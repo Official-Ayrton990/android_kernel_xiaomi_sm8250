@@ -71,6 +71,8 @@ int cpufreq_frequency_table_cpuinfo(struct cpufreq_policy *policy,
 		policy->min = CONFIG_CPU_FREQ_DEFAULT_PRIME_MIN;
 #endif
 
+	if (max_freq > cpuinfo_max_freq_cached)
+		cpuinfo_max_freq_cached = max_freq;
 
 	if (policy->min == ~0)
 		return -EINVAL;
