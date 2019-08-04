@@ -1,1 +1,1 @@
-obj-y += rmnet/
+obj-y += drivers/
