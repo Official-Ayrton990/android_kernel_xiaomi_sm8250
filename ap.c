@@ -2011,6 +2011,10 @@ static enum sigma_cmd_result cmd_ap_set_security(struct sigma_dut *dut,
 		dut->ap_sae_passwords = strdup(val);
 	}
 
+	val = get_param(cmd, "SAE_Confirm_Immediate");
+	if (val)
+		dut->sae_confirm_immediate = get_enable_disable(val);
+
 	val = get_param(cmd, "ENCRYPT");
 	if (!val)
 		val = get_param(cmd, "EncpType");
@@ -3803,6 +3807,8 @@ static int owrt_ap_config_vap(struct sigma_dut *dut)
 
 	if (dut->sae_reflection)
 		owrt_ap_set_vap(dut, vap_count, "sae_reflection_attack", "1");
+	if (dut->sae_confirm_immediate)
+		owrt_ap_set_vap(dut, vap_count, "sae_confirm_immediate", "1");
 
 	if (dut->program == PROGRAM_HE &&
 	    (dut->ap_txBF || dut->ap_he_ulofdma == VALUE_ENABLED)) {
@@ -7345,6 +7351,8 @@ skip_key_mgmt:
 			dut->sae_anti_clogging_threshold);
 	if (dut->sae_reflection)
 		fprintf(f, "sae_reflection_attack=1\n");
+	if (dut->sae_confirm_immediate)
+		fprintf(f, "sae_confirm_immediate=1\n");
 
 	if (dut->ap_p2p_mgmt)
 		fprintf(f, "manage_p2p=1\n");
@@ -7524,6 +7532,10 @@ skip_key_mgmt:
 		if (dut->eap_fragment)
 			fprintf(f, "fragment_size=128\n");
 	}
+
+	if (dut->ap_dpp_conf_addr && dut->ap_dpp_conf_pkhash)
+		fprintf(f, "dpp_controller=ipaddr=%s pkhash=%s\n",
+			dut->ap_dpp_conf_addr, dut->ap_dpp_conf_pkhash);
 
 	if (dut->program == PROGRAM_VHT) {
 		int vht_oper_centr_freq_idx;
@@ -8453,6 +8465,7 @@ static enum sigma_cmd_result cmd_ap_reset_default(struct sigma_dut *dut,
 
 	dut->sae_anti_clogging_threshold = -1;
 	dut->sae_reflection = 0;
+	dut->sae_confirm_immediate = 0;
 
 	dut->ap_cipher = AP_CCMP;
 	dut->ap_group_cipher = AP_NO_GROUP_CIPHER_SET;
@@ -8461,6 +8474,10 @@ static enum sigma_cmd_result cmd_ap_reset_default(struct sigma_dut *dut,
 	dut->ap_psk[0] = '\0';
 
 	dut->dpp_conf_id = -1;
+	free(dut->ap_dpp_conf_addr);
+	dut->ap_dpp_conf_addr = NULL;
+	free(dut->ap_dpp_conf_pkhash);
+	dut->ap_dpp_conf_pkhash = NULL;
 
 	if (is_60g_sigma_dut(dut)) {
 		dut->ap_mode = AP_11ad;
@@ -11926,6 +11943,18 @@ cmd_ap_preset_testparameters(struct sigma_dut *dut, struct sigma_conn *conn,
 	if (val) {
 		dut->ap_oper_chn = 1;
 		dut->ap_channel = atoi(val);
+	}
+
+	val = get_param(cmd, "DPPConfiguratorAddress");
+	if (val) {
+		free(dut->ap_dpp_conf_addr);
+		dut->ap_dpp_conf_addr = strdup(val);
+	}
+
+	val = get_param(cmd, "DPPConfiguratorPKHash");
+	if (val) {
+		free(dut->ap_dpp_conf_pkhash);
+		dut->ap_dpp_conf_pkhash = strdup(val);
 	}
 
 	return 1;

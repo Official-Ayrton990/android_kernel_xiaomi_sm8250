@@ -872,11 +872,12 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 	const char *frametype = get_param(cmd, "DPPFrameType");
 	const char *attr = get_param(cmd, "DPPIEAttribute");
 	const char *action_type = get_param(cmd, "DPPActionType");
+	const char *tcp = get_param(cmd, "DPPOverTCP");
 	const char *role;
 	const char *val;
 	const char *conf_role;
 	int conf_index = -1;
-	char buf[2000];
+	char buf[2000], *pos;
 	char buf2[200];
 	char conf_ssid[100];
 	char conf_pass[100];
@@ -914,6 +915,7 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 	int force_gas_fragm = 0;
 	int not_dpp_akm = 0;
 	int akm_use_selector = 0;
+	int conn_status;
 
 	if (!wait_conn)
 		wait_conn = "no";
@@ -1047,6 +1049,9 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 		sigma_dut_print(dut, DUT_MSG_DEBUG, "DPP timeout: %u",
 				dut->default_timeout);
 	}
+
+	val = get_param(cmd, "DPPStatusQuery");
+	conn_status = val && strcasecmp(val, "Yes") == 0;
 
 	conf_ssid[0] = '\0';
 	conf_pass[0] = '\0';
@@ -1184,6 +1189,8 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 		res = snprintf(conf2, sizeof(conf2),
 			       " @CONF-OBJ-SEP@ conf=%s-dpp+psk+sae ssid=%s pass=%s group_id=DPPGROUP_DPP_INFRA2",
 			       enrollee_ap ? "ap" : "sta", buf, buf2);
+		if (res < 0 || res >= sizeof(conf2))
+			goto err;
 		break;
 	default:
 		send_resp(dut, conn, SIGMA_ERROR,
@@ -1322,12 +1329,18 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 				goto out;
 			}
 			snprintf(buf, sizeof(buf),
-				 "DPP_AUTH_INIT peer=%d%s role=%s conf=%s %s %s configurator=%d%s%s%s%s",
+				 "DPP_AUTH_INIT peer=%d%s role=%s conf=%s %s %s configurator=%d%s%s%s%s%s",
 				 dpp_peer_bootstrap, own_txt, role,
 				 conf_role, conf_ssid, conf_pass,
 				 dut->dpp_conf_id, neg_freq, group_id,
 				 akm_use_selector ? " akm_use_selector=1" : "",
+				 conn_status ? " conn_status=1" : "",
 				 conf2);
+		} else if (tcp && strcasecmp(bs, "QR") == 0) {
+			snprintf(buf, sizeof(buf),
+				 "DPP_AUTH_INIT peer=%d%s role=%s tcp_addr=%s%s%s",
+				 dpp_peer_bootstrap, own_txt, role, tcp,
+				 neg_freq, group_id);
 		} else if (strcasecmp(bs, "QR") == 0) {
 			snprintf(buf, sizeof(buf),
 				 "DPP_AUTH_INIT peer=%d%s role=%s%s%s",
@@ -1407,10 +1420,11 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 				goto out;
 			}
 			snprintf(buf, sizeof(buf),
-				 "SET dpp_configurator_params  conf=%s %s %s configurator=%d%s%s%s",
+				 "SET dpp_configurator_params  conf=%s %s %s configurator=%d%s%s%s%s",
 				 conf_role, conf_ssid, conf_pass,
 				 dut->dpp_conf_id, group_id,
 				 akm_use_selector ? " akm_use_selector=1" : "",
+				 conn_status ? " conn_status=1" : "",
 				 conf2);
 			if (wpa_command(ifname, buf) < 0) {
 				send_resp(dut, conn, SIGMA_ERROR,
@@ -1429,17 +1443,22 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 			}
 		}
 
-		snprintf(buf, sizeof(buf), "DPP_LISTEN %d role=%s%s",
-			 freq, role,
-			 (strcasecmp(bs, "QR") == 0 && mutual) ?
-			 " qr=mutual" : "");
+		if (tcp && strcasecmp(tcp, "yes") == 0) {
+			snprintf(buf, sizeof(buf), "DPP_CONTROLLER_START");
+		} else {
+			snprintf(buf, sizeof(buf), "DPP_LISTEN %d role=%s%s",
+				 freq, role,
+				 (strcasecmp(bs, "QR") == 0 && mutual) ?
+				 " qr=mutual" : "");
+		}
 		if (wpa_command(ifname, buf) < 0) {
 			send_resp(dut, conn, SIGMA_ERROR,
 				  "errorCode,Failed to start DPP listen");
 			goto out;
 		}
 
-		if (get_driver_type() == DRIVER_OPENWRT) {
+		if (!(tcp && strcasecmp(tcp, "yes") == 0) &&
+		    get_driver_type() == DRIVER_OPENWRT) {
 			snprintf(buf, sizeof(buf), "iwconfig %s channel %d",
 				 dut->hostapd_ifname, freq_to_channel(freq));
 			run_system(dut, buf);
@@ -1767,6 +1786,29 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 		goto out;
 	}
 
+	if (conn_status && strstr(buf, "DPP-CONF-SENT") &&
+	    strstr(buf, "wait_conn_status=1")) {
+		res = get_wpa_cli_event(dut, ctrl, "DPP-CONN-STATUS-RESULT",
+					buf, sizeof(buf));
+		if (res < 0) {
+			send_resp(dut, conn, SIGMA_COMPLETE,
+				  "BootstrapResult,OK,AuthResult,OK,ConfResult,OK,StatusResult,Timeout");
+		} else {
+			pos = strstr(buf, "result=");
+			if (!pos) {
+				send_resp(dut, conn, SIGMA_ERROR,
+					  "errorCode,Status result value not reported");
+			} else {
+				pos += 7;
+				snprintf(buf, sizeof(buf),
+					 "BootstrapResult,OK,AuthResult,OK,ConfResult,OK,StatusResult,%d",
+					 atoi(pos));
+				send_resp(dut, conn, SIGMA_COMPLETE, buf);
+			}
+		}
+		goto out;
+	}
+
 	if (sigma_dut_is_ap(dut) &&
 	    strcasecmp(prov_role, "Enrollee") == 0) {
 	update_ap:
@@ -1876,6 +1918,9 @@ static int dpp_automatic_dpp(struct sigma_dut *dut,
 out:
 	wpa_ctrl_detach(ctrl);
 	wpa_ctrl_close(ctrl);
+	if (tcp && strcasecmp(tcp, "yes") == 0 &&
+	    auth_role && strcasecmp(auth_role, "Responder") == 0)
+		wpa_command(ifname, "DPP_CONTROLLER_STOP");
 	dut->default_timeout = old_timeout;
 	return 0;
 err:
