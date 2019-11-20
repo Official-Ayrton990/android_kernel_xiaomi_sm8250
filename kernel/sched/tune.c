@@ -95,7 +95,6 @@ struct schedtune {
 	/* Boost value for tasks on that SchedTune CGroup */
 	int boost;
 
-#ifdef CONFIG_SCHED_WALT
 	/* Toggle ability to override sched boost enabled */
 	bool sched_boost_no_override;
 
@@ -106,6 +105,7 @@ struct schedtune {
 	 */
 	bool sched_boost_enabled;
 
+#ifdef CONFIG_SCHED_WALT
 	/*
 	 * Controls whether tasks of this cgroup should be colocated with each
 	 * other and tasks of other cgroups that have the same flag turned on.
@@ -164,9 +164,9 @@ static inline struct schedtune *parent_st(struct schedtune *st)
 static struct schedtune
 root_schedtune = {
 	.boost	= 0,
-#ifdef CONFIG_SCHED_WALT
 	.sched_boost_no_override = false,
 	.sched_boost_enabled = true,
+#ifdef CONFIG_SCHED_WALT
 	.colocate = false,
 	.colocate_update_disabled = false,
 #endif
@@ -228,13 +228,14 @@ struct boost_groups {
 /* Boost groups affecting each CPU in the system */
 DEFINE_PER_CPU(struct boost_groups, cpu_boost_groups);
 
-#ifdef CONFIG_SCHED_WALT
 static inline void init_sched_boost(struct schedtune *st)
 {
 	st->sched_boost_no_override = false;
 	st->sched_boost_enabled = true;
+#ifdef CONFIG_SCHED_WALT
 	st->colocate = false;
 	st->colocate_update_disabled = false;
+#endif /* CONFIG_SCHED_WALT */
 }
 
 void update_cgroup_boost_settings(void)
@@ -295,8 +296,6 @@ static int sched_boost_override_write(struct cgroup_subsys_state *css,
 
 	return 0;
 }
-
-#endif /* CONFIG_SCHED_WALT */
 
 static inline bool schedtune_boost_timeout(u64 now, u64 ts)
 {
@@ -511,11 +510,6 @@ bool schedtune_task_colocated(struct task_struct *p)
 
 	return colocated;
 }
-
-#else /* CONFIG_SCHED_WALT */
-
-static inline void init_sched_boost(struct schedtune *st) { }
-
 #endif /* CONFIG_SCHED_WALT */
 
 void schedtune_cancel_attach(struct cgroup_taskset *tset)
@@ -771,12 +765,12 @@ boost_write(struct cgroup_subsys_state *css, struct cftype *cft,
 }
 
 static struct cftype files[] = {
-#ifdef CONFIG_SCHED_WALT
 	{
 		.name = "sched_boost_no_override",
 		.read_u64 = sched_boost_override_read,
 		.write_u64 = sched_boost_override_write,
 	},
+#ifdef CONFIG_SCHED_WALT
 	{
 		.name = "colocate",
 		.read_u64 = sched_colocate_read,
