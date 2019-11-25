@@ -140,6 +140,8 @@
 		compatible = "qcom,gdsc";
 		reg = <0x9981004 0x4>;
 		regulator-name = "npu_core_gdsc";
+		proxy-supply = <&npu_core_gdsc>;
+		qcom,proxy-consumer-enable;
 		status = "disabled";
 	};
 
