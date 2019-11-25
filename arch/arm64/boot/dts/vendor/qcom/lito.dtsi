@@ -1658,6 +1658,7 @@
 			<0x9810000 0x10000>;
 		reg-names = "cc", "qdsp6ss", "qdsp6ss_pll";
 		vdd_cx-supply = <&VDD_CX_LEVEL>;
+		npu_core-supply = <&npu_core_gdsc>;
 		nvmem-cells = <&npu_efuse>;
 		nvmem-cell-names = "npu-bin";
 		#clock-cells = <1>;
