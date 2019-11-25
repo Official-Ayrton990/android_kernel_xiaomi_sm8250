@@ -109,6 +109,8 @@
 		qcom,no-status-check-on-disable;
 		qcom,clk-dis-wait-val = <8>;
 		qcom,gds-timeout = <500>;
+		proxy-supply = <&gpu_cx_gdsc>;
+		qcom,proxy-consumer-enable;
 		status = "disabled";
 	};
 
