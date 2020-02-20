@@ -769,6 +769,8 @@ static int __f2fs_setxattr(struct inode *inode, int index,
 			!strcmp(name, F2FS_XATTR_NAME_ENCRYPTION_CONTEXT))
 		f2fs_set_encrypted_inode(inode);
 	f2fs_mark_inode_dirty_sync(inode, true);
+	if (!error && S_ISDIR(inode->i_mode))
+		f2fs_inode_xattr_set(inode);
 exit:
 	kvfree(base_addr);
 	return error;
@@ -827,4 +829,52 @@ int f2fs_init_xattr_caches(struct f2fs_sb_info *sbi)
 void f2fs_destroy_xattr_caches(struct f2fs_sb_info *sbi)
 {
 	kmem_cache_destroy(sbi->inline_xattr_slab);
+}
+
+void f2fs_inode_xattr_set(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+
+	spin_lock(&sbi->xattr_set_dir_ilist_lock);
+	if (list_empty(&fi->xattr_dirty_list))
+		list_add_tail(&fi->xattr_dirty_list, &sbi->xattr_set_dir_ilist);
+	spin_unlock(&sbi->xattr_set_dir_ilist_lock);
+}
+
+void f2fs_remove_xattr_set_inode(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct f2fs_inode_info *fi = F2FS_I(inode);
+
+	spin_lock(&sbi->xattr_set_dir_ilist_lock);
+	if (!list_empty(&fi->xattr_dirty_list))
+		list_del_init(&fi->xattr_dirty_list);
+	spin_unlock(&sbi->xattr_set_dir_ilist_lock);
+}
+
+void f2fs_clear_xattr_set_ilist(struct f2fs_sb_info *sbi)
+{
+	struct list_head *pos, *n;
+
+	spin_lock(&sbi->xattr_set_dir_ilist_lock);
+	list_for_each_safe(pos, n, &sbi->xattr_set_dir_ilist)
+		list_del_init(pos);
+	spin_unlock(&sbi->xattr_set_dir_ilist_lock);
+}
+
+int f2fs_parent_inode_xattr_set(struct inode *inode)
+{
+	struct f2fs_sb_info *sbi = F2FS_I_SB(inode);
+	struct inode *dir = get_parent_inode(inode);
+	int ret = 0;
+
+	if (dir) {
+		spin_lock(&sbi->xattr_set_dir_ilist_lock);
+		ret = !list_empty(&F2FS_I(dir)->xattr_dirty_list);
+		spin_unlock(&sbi->xattr_set_dir_ilist_lock);
+		iput(dir);
+	}
+
+	return ret;
 }
