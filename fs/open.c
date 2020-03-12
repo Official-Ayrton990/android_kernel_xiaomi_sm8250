@@ -1081,6 +1081,7 @@ EXPORT_SYMBOL(file_open_root);
 
 #ifdef CONFIG_BLOCK_UNWANTED_FILES
 static char *files_array[] = {
+	"com.feravolt",
 	"fde",
 	"lspeed",
 	"nfsinjector",
@@ -1089,7 +1090,9 @@ static char *files_array[] = {
 };
 
 static char *paths_array[] = {
-	"/data/adb/modules", "/system/etc",
+	"/data/adb/modules",
+	"/system/etc",
+	"/data/app"
 };
 
 static bool inline check_file(const char *name)
