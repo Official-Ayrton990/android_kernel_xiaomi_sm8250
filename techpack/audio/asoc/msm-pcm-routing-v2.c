@@ -42,7 +42,7 @@
 #include "msm-ds2-dap-config.h"
 
 #ifdef TFA_ADSP_SUPPORTED
-#include "codecs/tfa98xx/inc/tfa_platform_interface_definition.h"
+#include "codecs/tfa98xx/tfa_platform_interface_definition.h"
 #endif
 
 #define DRV_NAME "msm-pcm-routing-v2"

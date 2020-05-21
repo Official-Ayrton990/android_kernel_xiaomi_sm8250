@@ -24,7 +24,7 @@
 #include "adsp_err.h"
 #include "q6afecal-hwdep.h"
 #ifdef TFA_ADSP_SUPPORTED
-#include "../asoc/codecs/tfa98xx/inc/tfa_platform_interface_definition.h"
+#include "../asoc/codecs/tfa98xx/tfa_platform_interface_definition.h"
 #endif
 
 #ifdef CONFIG_MSM_CSPL

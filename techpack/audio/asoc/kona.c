@@ -40,7 +40,7 @@
 #include "kona-port-config.h"
 #include <soc/qcom/socinfo.h>
 #ifdef CONFIG_SND_SOC_TFA9874
-#include "codecs/tfa98xx/inc/tfa_platform_interface_definition.h"
+#include "codecs/tfa98xx/tfa_platform_interface_definition.h"
 #endif
 
 
