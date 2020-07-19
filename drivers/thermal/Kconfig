@@ -22,6 +22,12 @@ config THERMAL_STATISTICS
 
 	  If in doubt, say N.
 
+config THERMAL_SWITCH
+        default n
+        bool "Support themral config switch"
+        help
+          Support themral config switch.
+
 config THERMAL_EMERGENCY_POWEROFF_DELAY_MS
 	int "Emergency poweroff delay in milli-seconds"
 	depends on THERMAL
