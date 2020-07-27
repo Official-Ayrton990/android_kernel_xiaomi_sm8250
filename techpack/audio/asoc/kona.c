@@ -8405,6 +8405,18 @@ aux_dev_register:
 			goto err;
 		}
 
+	/*
+	 * Alloc mem to store phandle and index info of WSA device, if already
+	 * registered with ALSA core
+	 */
+	wsa881x_dev_info = devm_kcalloc(&pdev->dev, wsa_max_devs,
+					sizeof(struct msm_wsa881x_dev_info),
+					GFP_KERNEL);
+	if (!wsa881x_dev_info) {
+		ret = -ENOMEM;
+		goto err;
+	}
+
 		ret = of_property_read_string_index(pdev->dev.of_node,
 						    "qcom,wsa-aux-dev-prefix",
 						    wsa881x_dev_info[i].index,
