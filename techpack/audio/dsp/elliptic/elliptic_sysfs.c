@@ -509,6 +509,7 @@ static ssize_t opmode_show(struct device *dev,
 	struct elliptic_system_configuration_parameters_cache *cache =
 				&elliptic_system_configuration_cache;
 
+	length = snprintf(buf, PAGE_SIZE - 1, "Cache:\n");
 	length += snprintf(buf + length, PAGE_SIZE - 1, "%d\n",
 							cache->operation_mode);
 	result = (ssize_t)length;
@@ -523,6 +524,7 @@ static ssize_t opmode_flags_show(struct device *dev,
 	struct elliptic_system_configuration_parameters_cache *cache =
 				&elliptic_system_configuration_cache;
 
+	length = snprintf(buf, PAGE_SIZE - 1, "Cache:\n");
 	length += snprintf(buf + length, PAGE_SIZE - 1, "%d\n",
 							cache->operation_mode_flags);
 	result = (ssize_t)length;
