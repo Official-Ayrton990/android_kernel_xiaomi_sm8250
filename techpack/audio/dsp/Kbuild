@@ -212,9 +212,7 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-Werror\
 		-D__linux__
 
-ifeq ($(TARGET_PRODUCT), $(filter $(TARGET_PRODUCT),lmi))
 CDEFINES += -DTFA_ADSP_SUPPORTED
-endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
