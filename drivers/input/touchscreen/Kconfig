@@ -1354,8 +1354,14 @@ config TOUCHSCREEN_SYNAPTICS_TCM
 
 source "drivers/input/touchscreen/synaptics_tcm/Kconfig"
 
-source "drivers/input/touchscreen/focaltech_touch/Kconfig"
-
 source "drivers/input/touchscreen/nt36xxx/Kconfig"
+
+config I2C_STATUS_FOR_TOUCH
+	bool "I2C Status for touch"
+	help
+		Say Y here if you use touch driver detect system i2c status when exit suspend state.
+		If unsure, say N.
+
+source "drivers/input/touchscreen/focaltech_touch/Kconfig"
 
 endif
