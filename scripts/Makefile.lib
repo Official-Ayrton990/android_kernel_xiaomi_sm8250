@@ -253,7 +253,7 @@ cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -n -f -9 > $@) || \
 
 # DTC
 # ---------------------------------------------------------------------------
-DTC = /usr/bin/dtc
+DTC = $(srctree)/prebuilt/dtc
 
 # Silence warnings
 DTC_FLAGS += -q
