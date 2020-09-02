@@ -131,6 +131,7 @@
 
 #define SMEM_IMAGE_VERSION_TABLE	469
 #define SMEM_HW_SW_BUILD_ID		137
+#define SMEM_ID_VENDOR1                 135
 enum msm_cpu {
 	MSM_CPU_UNKNOWN = 0,
 	MSM_CPU_8960,
@@ -191,6 +192,7 @@ enum pmic_model {
 #define HARDWARE_PLATFORM_UMI  2
 #define HARDWARE_PLATFORM_LMI  3
 #define HARDWARE_PLATFORM_VERTHANDI  5
+#define HARDWARE_PLATFORM_CAS  7
 
 #define HW_MAJOR_VERSION_B  9
 #define HW_MINOR_VERSION_B  1
@@ -216,6 +218,7 @@ uint32_t get_hw_country_version(void);
 uint32_t get_hw_version_major(void);
 uint32_t get_hw_version_minor(void);
 uint32_t get_hw_version_build(void);
+const char *product_name_get(void);
 
 enum msm_cpu socinfo_get_msm_cpu(void);
 uint32_t socinfo_get_id(void);

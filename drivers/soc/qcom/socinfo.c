@@ -54,6 +54,7 @@ enum {
 	HW_PLATFORM_RCM	= 21,
 	HW_PLATFORM_STP = 23,
 	HW_PLATFORM_SBC = 24,
+	HW_PLATFORM_J1S = 41,
 	HW_PLATFORM_HDK = 31,
 	HW_PLATFORM_IDP = 34,
 	HW_PLATFORM_J2  = 35,
@@ -80,6 +81,10 @@ const char *hw_platform[] = {
 	[HW_PLATFORM_DTV] = "DTV",
 	[HW_PLATFORM_STP] = "STP",
 	[HW_PLATFORM_SBC] = "SBC",
+	[HW_PLATFORM_J2] = "UMI",
+	[HW_PLATFORM_J1] = "CMI",
+	[HW_PLATFORM_J11] = "LMI",
+	[HW_PLATFORM_J1S] = "CAS",
 	[HW_PLATFORM_HDK] = "HDK",
 	[HW_PLATFORM_IDP] = "IDP",
 	[HW_PLATFORM_J2] = "UMI",
@@ -329,7 +334,7 @@ static struct msm_soc_info cpu_of_id[] = {
 	[365] = {MSM_CPU_SDMMAGPIE, "SDMMAGPIE"},
 
 	/* kona ID */
-	[356] = {MSM_CPU_KONA, "KONA"},
+	[356] = {MSM_CPU_KONA, "SM8250"},
 	[455] = {MSM_CPU_KONA, "KONA"},
 
 	/* Lito ID */
@@ -1630,6 +1635,25 @@ static void socinfo_select_format(void)
 	}
 }
 
+const char *product_name_get(void)
+{
+	char *product_name = NULL;
+	size_t size;
+	uint32_t hw_type;
+
+	hw_type = socinfo_get_platform_type();
+
+	product_name = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_ID_VENDOR1, &size);
+	if (IS_ERR_OR_NULL(product_name)) {
+		pr_warn("Can't find SMEM_ID_VENDOR1; falling back on dummy values.\n");
+		return hw_platform[hw_type];
+	}
+
+	return product_name;
+}
+
+EXPORT_SYMBOL(product_name_get);
+
 uint32_t get_hw_country_version(void)
 {
 	uint32_t version = socinfo_get_platform_version();
@@ -1647,8 +1671,12 @@ uint32_t get_hw_version_platform(void)
 		return HARDWARE_PLATFORM_CMI;
 	if (hw_type == HW_PLATFORM_J11)
 		return HARDWARE_PLATFORM_LMI;
+
 	if (hw_type == HW_PLATFORM_J1T)
 		return HARDWARE_PLATFORM_VERTHANDI;
+
+	if (hw_type == HW_PLATFORM_J1S)
+		return HARDWARE_PLATFORM_CAS;
 	else
 		return HARDWARE_PLATFORM_UNKNOWN;
 }
