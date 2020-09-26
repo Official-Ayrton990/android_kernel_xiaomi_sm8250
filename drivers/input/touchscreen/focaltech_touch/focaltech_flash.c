@@ -1561,7 +1561,7 @@ static int fts_get_lockdown_info(struct fts_ts_data *ts_data)
 	for (i = 0; i < FTS_LOCKDOWN_INFO_SIZE; i++)
 		FTS_INFO("Lockdown info[%d] = 0x%02x", i, ts_data->lockdown_info[i]);
 
-	snprintf(buf, PAGE_SIZE, "0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X",
+	snprintf(buf, sizeof(buf), "0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X",
 		(int)ts_data->lockdown_info[0], (int)ts_data->lockdown_info[1],
 		(int)ts_data->lockdown_info[2], (int)ts_data->lockdown_info[3],
 		(int)ts_data->lockdown_info[4], (int)ts_data->lockdown_info[5], (int)ts_data->lockdown_info[6],
