@@ -796,24 +796,27 @@ static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, u
 uint32_t dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 {
 	u32 brightness = dsi_panel_get_backlight(panel);
-	int i;
+	int i, alpha;
 
 	if (!panel->fod_dim_lut)
-		return 0;
+		alpha = 0;
 
 	for (i = 0; i < panel->fod_dim_lut_count; i++)
 		if (panel->fod_dim_lut[i].brightness >= brightness)
 			break;
 
 	if (i == 0)
-		return panel->fod_dim_lut[i].alpha;
+		alpha = panel->fod_dim_lut[0].alpha;
 
-	if (i == panel->fod_dim_lut_count)
-		return panel->fod_dim_lut[i - 1].alpha;
-
-	return interpolate(brightness,
-			panel->fod_dim_lut[i - 1].brightness, panel->fod_dim_lut[i].brightness,
-			panel->fod_dim_lut[i - 1].alpha, panel->fod_dim_lut[i].alpha);
+	else if (i == panel->fod_dim_lut_count)
+		alpha = panel->fod_dim_lut[brightness - 1].alpha;
+	else
+		alpha = interpolate(brightness,
+				panel->fod_dim_lut[i - 1].brightness,
+				panel->fod_dim_lut[i].brightness,
+				panel->fod_dim_lut[i - 1].alpha,
+				panel->fod_dim_lut[i].alpha);
+	return alpha;
 }
 
 int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
