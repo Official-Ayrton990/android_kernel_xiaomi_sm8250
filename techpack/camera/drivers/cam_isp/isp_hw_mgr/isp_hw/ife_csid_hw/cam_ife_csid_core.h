@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _CAM_IFE_CSID_HW_H_
@@ -81,7 +82,7 @@ enum cam_csid_path_halt_mode {
 };
 
 /**
- *enum cam_csid_path_timestamp_stb_sel - select the sof/eof strobes used to
+ *enum cam_csid_path_timestamp_stb_sel - select the sof/eofmiui.com strobes used to
  *        capture the timestamp
  */
 enum cam_csid_path_timestamp_stb_sel {
@@ -139,8 +140,6 @@ struct cam_ife_csid_pxl_reg_offset {
 	uint32_t quad_cfa_bin_en_shift_val;
 	uint32_t ccif_violation_en;
 	uint32_t overflow_ctrl_en;
-	uint32_t halt_master_sel_en;
-	uint32_t halt_sel_internal_master_val;
 };
 
 struct cam_ife_csid_rdi_reg_offset {
@@ -373,10 +372,6 @@ struct cam_ife_csid_common_reg_offset {
 	uint32_t measure_en_hbi_vbi_cnt_mask;
 	uint32_t format_measure_en_val;
 	uint32_t num_bytes_out_shift_val;
-	uint32_t format_measure_width_shift_val;
-	uint32_t format_measure_width_mask_val;
-	uint32_t format_measure_height_shift_val;
-	uint32_t format_measure_height_mask_val;
 };
 
 /**
@@ -553,15 +548,15 @@ struct cam_ife_csid_path_cfg {
  * @clk_rate                  Clock rate
  * @sof_irq_triggered:        Flag is set on receiving event to enable sof irq
  *                            incase of SOF freeze.
- * @is_resetting:             informs whether reset is started or not.
+ * @is_resetting: informs whether reset is started or not.
  * @irq_debug_cnt:            Counter to track sof irq's when above flag is set.
  * @error_irq_count           Error IRQ count, if continuous error irq comes
  *                            need to stop the CSID and mask interrupts.
  * @binning_enable            Flag is set if hardware supports QCFA binning
  * @binning_supported         Flag is set if sensor supports QCFA binning
+ *
  * @first_sof_ts              first bootime stamp at the start
  * @prev_qtimer_ts            stores csid timestamp
- * @epd_supported             Flag is set if sensor supports EPD
  */
 struct cam_ife_csid_hw {
 	struct cam_hw_intf              *hw_intf;
@@ -586,11 +581,6 @@ struct cam_ife_csid_hw {
 	struct completion    csid_udin_complete[CAM_IFE_CSID_UDI_MAX];
 	uint64_t                         csid_debug;
 	uint64_t                         clk_rate;
-	struct cam_isp_sensor_dimension  ipp_path_config;
-	struct cam_isp_sensor_dimension  ppp_path_config;
-	struct cam_isp_sensor_dimension  rdi_path_config[CAM_IFE_CSID_RDI_MAX];
-	uint32_t                         hbi;
-	uint32_t                         vbi;
 	bool                             sof_irq_triggered;
 	bool                             is_resetting;
 	uint32_t                         irq_debug_cnt;
@@ -601,7 +591,6 @@ struct cam_ife_csid_hw {
 	uint32_t                         binning_supported;
 	uint64_t                         prev_boot_timestamp;
 	uint64_t                         prev_qtimer_ts;
-	uint32_t                         epd_supported;
 };
 
 int cam_ife_csid_hw_probe_init(struct cam_hw_intf  *csid_hw_intf,

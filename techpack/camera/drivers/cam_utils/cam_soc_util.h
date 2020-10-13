@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _CAM_SOC_UTIL_H_
@@ -30,7 +31,7 @@
 #define CAM_SOC_MAX_BASE            CAM_SOC_MAX_BLOCK
 
 /* maximum number of device regulator */
-#define CAM_SOC_MAX_REGULATOR       5
+#define CAM_SOC_MAX_REGULATOR       10//xiaomi add liuqinhong@xiaomi.com
 
 /* maximum number of device clock */
 #define CAM_SOC_MAX_CLK             32
@@ -40,9 +41,6 @@
 #define DDR_TYPE_LPDDR4X       7
 #define DDR_TYPE_LPDDR5        8
 #define DDR_TYPE_LPDDR5X       9
-
-/* Maximum length of tag while dumping */
-#define CAM_SOC_HW_DUMP_TAG_MAX_LEN 32
 
 /**
  * enum cam_vote_level - Enum for voting level
@@ -217,34 +215,6 @@ struct cam_hw_soc_info {
 	int32_t                         cam_cx_ipeak_bit;
 
 	void                           *soc_private;
-};
-
-/**
- * struct cam_hw_soc_dump_header - SOC dump header
- *
- * @Brief:        soc hw dump header
- *
- * @tag:          Tag name for the header
- * @word_size:    Size of each word
- * @size:         Total size of dumped data
- */
-struct cam_hw_soc_dump_header {
-	uint8_t   tag[CAM_SOC_HW_DUMP_TAG_MAX_LEN];
-	uint64_t  size;
-	uint32_t  word_size;
-};
-
-/**
- * struct cam_hw_soc_dump_args:   SOC Dump args
- *
- * @request_id:          Issue request id
- * @offset:              Buffer offset, updated as the informaton is dumped
- * @buf_handle:          Buffer handle of the out buffer
- */
-struct cam_hw_soc_dump_args {
-	uint64_t             request_id;
-	size_t               offset;
-	uint32_t             buf_handle;
 };
 
 /*
@@ -665,23 +635,19 @@ typedef int (*cam_soc_util_regspace_data_cb)(uint32_t reg_base_type,
 /**
  * cam_soc_util_reg_dump_to_cmd_buf()
  *
- * @brief:                 Camera SOC util for dumping sets of register ranges
- *                         command buffer
+ * @brief:              Camera SOC util for dumping sets of register ranges to
+ *                      to command buffer
  *
- * @ctx:                   Context info from specific hardware manager
- * @cmd_desc:              Command buffer descriptor
- * @req_id:                Last applied req id for which reg dump is required
- * @reg_data_cb:           Callback function to get reg space info based on type
- *                         in command buffer
- * @soc_dump_args:         Dump buffer args to dump the soc information.
- * @user_triggered_dump:   Flag to indicate if the dump request is issued by
- *                         user.
- * @return:                Success or Failure
+ * @ctx:                Context info from specific hardware manager
+ * @cmd_desc:           Command buffer descriptor
+ * @req_id:             Last applied req id for which reg dump is required
+ * @reg_data_cb:        Callback function to get reg space info based on type
+ *                      in command buffer
+ *
+ * @return:             Success or Failure
  */
 int cam_soc_util_reg_dump_to_cmd_buf(void *ctx,
 	struct cam_cmd_buf_desc *cmd_desc, uint64_t req_id,
-	cam_soc_util_regspace_data_cb reg_data_cb,
-	struct cam_hw_soc_dump_args *soc_dump_args,
-	bool user_triggered_dump);
+	cam_soc_util_regspace_data_cb reg_data_cb);
 
 #endif /* _CAM_SOC_UTIL_H_ */

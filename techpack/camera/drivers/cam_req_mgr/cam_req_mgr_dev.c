@@ -1,22 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/platform_device.h>
-#include <linux/highmem.h>
-
-#include <mm/slab.h>
-
 #include <media/v4l2-fh.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-event.h>
 #include <media/v4l2-ioctl.h>
 #include <media/cam_req_mgr.h>
 #include <media/cam_defs.h>
-
 #include "cam_req_mgr_dev.h"
 #include "cam_req_mgr_util.h"
 #include "cam_req_mgr_core.h"
@@ -24,8 +20,9 @@
 #include "cam_mem_mgr.h"
 #include "cam_debug_util.h"
 #include "cam_common_util.h"
+#include <linux/slub_def.h>
 
-#define CAM_REQ_MGR_EVENT_MAX 30
+#define CAM_REQ_MGR_EVENT_MAX 60
 
 static struct cam_req_mgr_device g_dev;
 struct kmem_cache *g_cam_req_mgr_timer_cachep;
@@ -521,30 +518,6 @@ static long cam_private_ioctl(struct file *file, void *fh,
 		rc = cam_req_mgr_link_control(&cmd);
 		if (rc)
 			rc = -EINVAL;
-		}
-		break;
-	case CAM_REQ_MGR_REQUEST_DUMP: {
-		struct cam_dump_req_cmd cmd;
-
-		if (k_ioctl->size != sizeof(cmd))
-			return -EINVAL;
-
-		if (copy_from_user(&cmd,
-			u64_to_user_ptr(k_ioctl->handle),
-			sizeof(struct cam_dump_req_cmd))) {
-			rc = -EFAULT;
-			break;
-		}
-		rc = cam_req_mgr_dump_request(&cmd);
-		if (rc) {
-			CAM_ERR(CAM_CORE, "dump fail for dev %d req %llu rc %d",
-				cmd.dev_handle, cmd.issue_req_id, rc);
-			break;
-		}
-		if (copy_to_user(
-			u64_to_user_ptr(k_ioctl->handle),
-			&cmd, sizeof(struct cam_dump_req_cmd)))
-			rc = -EFAULT;
 		}
 		break;
 	default:

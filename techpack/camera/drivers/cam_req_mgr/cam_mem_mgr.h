@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _CAM_MEM_MGR_H_
@@ -11,7 +12,7 @@
 #include <media/cam_req_mgr.h>
 #include "cam_mem_mgr_api.h"
 
-#define CAM_MEM_BUFQ_MAX 1024
+#define CAM_MEM_BUFQ_MAX 1536
 
 /* Enum for possible mem mgr states */
 enum cam_mem_mgr_state {
@@ -65,16 +66,12 @@ struct cam_mem_buf_queue {
  * @bitmap: bitmap of the mem mgr utility
  * @bits: max bits of the utility
  * @bufq: array of buffers
- * @dentry: Debugfs entry
- * @alloc_profile_enable: Whether to enable alloc profiling
  */
 struct cam_mem_table {
 	struct mutex m_lock;
 	void *bitmap;
 	size_t bits;
 	struct cam_mem_buf_queue bufq[CAM_MEM_BUFQ_MAX];
-	struct dentry *dentry;
-	bool alloc_profile_enable;
 };
 
 /**

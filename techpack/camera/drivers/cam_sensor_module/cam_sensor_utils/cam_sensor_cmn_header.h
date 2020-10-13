@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _CAM_SENSOR_CMN_HEADER_
@@ -138,6 +139,7 @@ enum msm_camera_power_seq_type {
 	SENSOR_VAF_PWDM,
 	SENSOR_CUSTOM_REG1,
 	SENSOR_CUSTOM_REG2,
+	SENSOR_CUSTOM_REG3,//xiaomi add liuqinhong@xiaomi.com
 	SENSOR_RESET,
 	SENSOR_STANDBY,
 	SENSOR_CUSTOM_GPIO1,
@@ -152,15 +154,13 @@ enum cam_sensor_packet_opcodes {
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_PROBE,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_CONFIG,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_STREAMOFF,
-	CAM_SENSOR_PACKET_OPCODE_SENSOR_READ,
 	CAM_SENSOR_PACKET_OPCODE_SENSOR_NOP = 127
 };
 
 enum cam_actuator_packet_opcodes {
 	CAM_ACTUATOR_PACKET_OPCODE_INIT,
 	CAM_ACTUATOR_PACKET_AUTO_MOVE_LENS,
-	CAM_ACTUATOR_PACKET_MANUAL_MOVE_LENS,
-	CAM_ACTUATOR_PACKET_OPCODE_READ
+	CAM_ACTUATOR_PACKET_MANUAL_MOVE_LENS
 };
 
 enum cam_eeprom_packet_opcodes {
@@ -171,7 +171,8 @@ enum cam_eeprom_packet_opcodes {
 enum cam_ois_packet_opcodes {
 	CAM_OIS_PACKET_OPCODE_INIT,
 	CAM_OIS_PACKET_OPCODE_OIS_CONTROL,
-	CAM_OIS_PACKET_OPCODE_READ
+	CAM_OIS_PACKET_OPCODE_OIS_GETDATA,
+	CAM_OIS_PACKET_OPCODE_TELEOIS_GETDATA
 };
 
 enum msm_bus_perf_setting {
@@ -221,8 +222,7 @@ enum cam_sensor_i2c_cmd_type {
 	CAM_SENSOR_I2C_WRITE_RANDOM,
 	CAM_SENSOR_I2C_WRITE_BURST,
 	CAM_SENSOR_I2C_WRITE_SEQ,
-	CAM_SENSOR_I2C_READ_RANDOM,
-	CAM_SENSOR_I2C_READ_SEQ,
+	CAM_SENSOR_I2C_READ,
 	CAM_SENSOR_I2C_POLL
 };
 
@@ -274,8 +274,6 @@ struct cam_sensor_i2c_reg_setting {
 	enum camera_sensor_i2c_type addr_type;
 	enum camera_sensor_i2c_type data_type;
 	unsigned short delay;
-	uint8_t *read_buff;
-	uint32_t read_buff_len;
 };
 
 struct cam_sensor_i2c_seq_reg {
@@ -303,7 +301,6 @@ struct i2c_data_settings {
 	struct i2c_settings_array config_settings;
 	struct i2c_settings_array streamon_settings;
 	struct i2c_settings_array streamoff_settings;
-	struct i2c_settings_array read_settings;
 	struct i2c_settings_array *per_frame;
 };
 
@@ -382,6 +379,7 @@ enum msm_camera_vreg_name_t {
 	CAM_VAF,
 	CAM_V_CUSTOM1,
 	CAM_V_CUSTOM2,
+	CAM_V_CUSTOM3,//xiaomi add liuqinhong@xiaomi.com
 	CAM_VREG_MAX,
 };
 
