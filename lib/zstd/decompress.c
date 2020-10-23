@@ -297,7 +297,7 @@ size_t ZSTD_getFrameParams(ZSTD_frameParams *fparamsPtr, const void *src, size_t
 unsigned long long ZSTD_getFrameContentSize(const void *src, size_t srcSize)
 {
 	{
-		ZSTD_frameParams fParams;
+		ZSTD_frameParams fParams = { 0 };
 		if (ZSTD_getFrameParams(&fParams, src, srcSize) != 0)
 			return ZSTD_CONTENTSIZE_ERROR;
 		if (fParams.windowSize == 0) {
