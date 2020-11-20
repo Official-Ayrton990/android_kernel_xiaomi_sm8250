@@ -689,7 +689,7 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 	x = (buf[5] << 8) | buf[6];
 	y = (buf[7] << 8) | buf[8];
 	z = buf[4];
-	pr_info("FTS:read fod data: 0x%x    0x%x    0x%x    overlap_area=0x%x\
+	pr_debug("FTS:read fod data: 0x%x    0x%x    0x%x    overlap_area=0x%x\
 			0x%x    0x%x    0x%x    0x%x    0x%x    anxis_x: %d anxis_y: %d\n",
 			buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], x, y);
 	if (ret < 0) {
@@ -743,7 +743,7 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 					return 0;
 				}
 				if (!data->suspended) {
-					pr_info("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
+					pr_debug("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
 					mutex_unlock(&data->report_mutex);
 					return -EINVAL;
 				}
@@ -771,7 +771,7 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 				/* data->overlap_area = 0; */
 				fod_overlap_aera = 0;
 				if (!data->suspended) {
-					pr_info("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
+					pr_debug("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
 					return -EINVAL;
 				}
 				mutex_lock(&data->report_mutex);
