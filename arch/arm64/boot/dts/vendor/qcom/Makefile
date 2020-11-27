@@ -1,36 +1,12 @@
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
         dtbo-$(CONFIG_ARCH_KONA) += \
-                kona-cdp-overlay.dtbo \
-                kona-cdp-lcd-overlay.dtbo \
-                kona-mtp-overlay.dtbo \
                 umi-sm8250-overlay.dtbo \
                 cmi-sm8250-overlay.dtbo \
-                lmi-sm8250-overlay.dtbo \
-                cas-sm8250-overlay.dtbo \
-                kona-mtp-ws-overlay.dtbo \
-		kona-sa-mtp-overlay.dtbo \
-                kona-xr-overlay.dtbo \
-                kona-rumi-overlay.dtbo \
-                kona-qrd-overlay.dtbo \
-		kona-xrfusion-overlay.dtbo \
-		kona-xrfusion-ult-overlay.dtbo \
-                kona-hdk-overlay.dtbo
+                lmi-sm8250-overlay.dtbo
 
 umi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 cmi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 lmi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-cas-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-cdp-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-cdp-lcd-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-mtp-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-mtp-ws-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-sa-mtp-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-xr-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-rumi-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-qrd-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-xrfusion-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-xrfusion-ult-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
-kona-hdk-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 else
 dtb-$(CONFIG_ARCH_KONA) += kona-rumi.dtb \
         kona-mtp.dtb \
