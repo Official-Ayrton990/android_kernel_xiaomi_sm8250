@@ -1578,3 +1578,42 @@ source "arch/arm64/kvm/Kconfig"
 if CRYPTO
 source "arch/arm64/crypto/Kconfig"
 endif
+
+menu "Xiaomi configuration options"
+
+config MACH_XIAOMI
+        bool "Xiaomi device"
+        depends on ARCH_QCOM
+        help
+          Support for Xiaomi products
+
+config MACH_XIAOMI_KONA
+        bool "Xiaomi Kona"
+        depends on ARCH_KONA
+        select MACH_XIAOMI
+        help
+          Support for SM8250-based Xiaomi variants
+
+menu "Xiaomi board selection"
+
+config MACH_XIAOMI_CMI
+	bool "polaris board"
+	select MACH_XIAOMI_KONA
+	help
+	  Support for Xiaomi K30 Pro
+
+config MACH_XIAOMI_UMI
+	bool "polaris board"
+	select MACH_XIAOMI_KONA
+	help
+	  Support for Xiaomi K30 Pro
+
+config MACH_XIAOMI_LMI
+	bool "polaris board"
+	select MACH_XIAOMI_KONA
+	help
+	  Support for Xiaomi K30 Pro
+
+endmenu
+
+endmenu
