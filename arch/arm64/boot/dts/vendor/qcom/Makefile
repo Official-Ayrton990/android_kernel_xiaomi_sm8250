@@ -1,12 +1,13 @@
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-        dtbo-$(CONFIG_ARCH_KONA) += \
-                umi-sm8250-overlay.dtbo \
-                cmi-sm8250-overlay.dtbo \
-                lmi-sm8250-overlay.dtbo
-
-umi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+	dtbo-$(CONFIG_MACH_XIAOMI_CMI) += \
+		cmi-sm8250-overlay.dtbo
 cmi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+	dtbo-$(CONFIG_MACH_XIAOMI_LMI) += \
+		lmi-sm8250-overlay.dtbo
 lmi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
+	dtbo-$(CONFIG_MACH_XIAOMI_UMI) += \
+		umi-sm8250-overlay.dtbo
+umi-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 else
 dtb-$(CONFIG_ARCH_KONA) += kona-rumi.dtb \
         kona-mtp.dtb \
