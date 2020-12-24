@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #include <linux/debugfs.h>
@@ -20,6 +21,7 @@
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <uapi/linux/sched/types.h>
 #include <linux/spmi.h>
 #include <linux/input/qpnp-power-on.h>
 #include <linux/regulator/driver.h>
@@ -199,6 +201,7 @@ struct qpnp_pon {
 	struct list_head	list;
 	struct delayed_work	bark_work;
 	struct dentry		*debugfs;
+	struct task_struct	*longpress_task;
 	u16			base;
 	u8			subtype;
 	u8			pon_ver;
@@ -225,8 +228,10 @@ struct qpnp_pon {
 	bool			kpdpwr_dbc_enable;
 	bool			resin_pon_reset;
 	ktime_t			kpdpwr_last_release_time;
+	ktime_t			time_kpdpwr_bark;
 };
 
+int in_long_press;
 static int pon_ship_mode_en;
 module_param_named(
 	ship_mode_en, pon_ship_mode_en, int, 0600
@@ -981,6 +986,31 @@ static int qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	return 0;
 }
 
+static int longpress_kthread(void *_pon)
+{
+#ifdef CONFIG_MTD_BLOCK2MTD
+	struct qpnp_pon *pon = _pon;
+	ktime_t time_to_S2, time_S2;
+	struct sched_param param = {.sched_priority = MAX_RT_PRIO-1};
+
+	sched_setscheduler(current, SCHED_FIFO, &param);
+	dev_err(pon->dev, "Long press :Start to run longpress_kthread ");
+
+	ufs_enter_h8_disable(g_shost);
+	long_press();
+
+	time_S2 = pon->pon_cfg->s2_timer;
+	time_to_S2 = time_S2 - ktime_ms_delta(ktime_get(), pon->time_kpdpwr_bark);
+
+	if (time_to_S2 > 0)
+		mdelay(time_to_S2);
+
+	machine_restart(NULL);
+#endif
+
+	return 0;
+}
+
 static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 {
 	int rc;
@@ -995,6 +1025,14 @@ static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 
 static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
 {
+	struct qpnp_pon *pon = _pon;
+	dev_err(pon->dev, "Enter in kpdpwr irq !");
+
+	in_long_press = 1;
+
+	wake_up_process(pon->longpress_task);
+	pon->time_kpdpwr_bark = ktime_get();
+
 	return IRQ_HANDLED;
 }
 
@@ -1012,6 +1050,8 @@ static irqreturn_t qpnp_resin_irq(int irq, void *_pon)
 
 static irqreturn_t qpnp_kpdpwr_resin_bark_irq(int irq, void *_pon)
 {
+	struct qpnp_pon *pon = _pon;
+	dev_err(pon->dev, "qpnp_kpdpwr_resin_bark_irq!\n");
 	return IRQ_HANDLED;
 }
 
@@ -1379,6 +1419,7 @@ static int qpnp_pon_config_kpdpwr_init(struct qpnp_pon *pon,
 	cfg->use_bark = of_property_read_bool(node, "qcom,use-bark");
 	if (cfg->use_bark) {
 		cfg->bark_irq = platform_get_irq_byname(pdev, "kpdpwr-bark");
+		pon->longpress_task = kthread_create(longpress_kthread, pon, "longpress");
 		if (cfg->bark_irq < 0) {
 			dev_err(pon->dev, "Unable to get kpdpwr-bark irq, rc=%d\n",
 				cfg->bark_irq);
