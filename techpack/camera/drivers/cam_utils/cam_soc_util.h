@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _CAM_SOC_UTIL_H_
@@ -371,6 +370,20 @@ int cam_soc_util_disable_platform_resource(struct cam_hw_soc_info *soc_info,
  */
 long cam_soc_util_get_clk_round_rate(struct cam_hw_soc_info *soc_info,
 	uint32_t clk_index, unsigned long clk_rate);
+
+/**
+ * cam_soc_util_set_clk_flags()
+ *
+ * @brief:              Camera SOC util to set the flags for a specified clock
+ *
+ * @soc_info:           Device soc information
+ * @clk_index:          Clock index in soc_info for which flags are to be set
+ * @flags:              Flags to set
+ *
+ * @return:             Success or Failure
+ */
+int cam_soc_util_set_clk_flags(struct cam_hw_soc_info *soc_info,
+	 uint32_t clk_index, unsigned long flags);
 
 /**
  * cam_soc_util_set_src_clk_rate()
