@@ -10,6 +10,7 @@
 #include "sde_formats.h"
 #include "dsi_display.h"
 #include "sde_trace.h"
+#include "xiaomi_frame_stat.h"
 
 #define SDE_DEBUG_VIDENC(e, fmt, ...) SDE_DEBUG("enc%d intf%d " fmt, \
 		(e) && (e)->base.parent ? \
@@ -515,6 +516,7 @@ static void sde_encoder_phys_vid_vblank_irq(void *arg, int irq_idx)
 		event = SDE_ENCODER_FRAME_EVENT_DONE |
 			SDE_ENCODER_FRAME_EVENT_SIGNAL_RETIRE_FENCE |
 			SDE_ENCODER_FRAME_EVENT_SIGNAL_RELEASE_FENCE;
+		frame_stat_collector(0, VBLANK_TS);
 	}
 
 not_flushed:
