@@ -110,7 +110,8 @@ static int cam_fd_hw_dev_probe(struct platform_device *pdev)
 
 	memset(&init_args, 0x0, sizeof(init_args));
 	memset(&deinit_args, 0x0, sizeof(deinit_args));
-	rc = cam_fd_hw_init(fd_hw, &init_args, sizeof(init_args));
+    init_args.reset_required = true;
+    rc = cam_fd_hw_init(fd_hw, &init_args, sizeof(init_args));
 	if (rc) {
 		CAM_ERR(CAM_FD, "Failed to hw init, rc=%d", rc);
 		goto deinit_platform_res;
