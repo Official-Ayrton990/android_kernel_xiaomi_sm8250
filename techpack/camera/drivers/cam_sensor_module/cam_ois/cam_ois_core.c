@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2020 XiaoMi, Inc.
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -15,7 +14,6 @@
 #include "cam_res_mgr_api.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
-#include "Lc898128.h"
 
 int32_t cam_ois_construct_default_power_setting(
 	struct cam_sensor_power_ctrl_t *power_info)
@@ -276,10 +274,13 @@ static int cam_ois_slaveInfo_pkt_parser(struct cam_ois_ctrl_t *o_ctrl,
 		o_ctrl->ois_name[OIS_NAME_LEN - 1] = '\0';
 		o_ctrl->io_master_info.cci_client->retries = 3;
 		o_ctrl->io_master_info.cci_client->id_map = 0;
+		/* xiaomi add disable cci optmz for OIS by default */
+		o_ctrl->io_master_info.cci_client->disable_optmz = 1;
 		memcpy(&(o_ctrl->opcode), &(ois_info->opcode),
 			sizeof(struct cam_ois_opcode));
-		CAM_DBG(CAM_OIS, "Slave addr: 0x%x Freq Mode: %d",
-			ois_info->slave_addr, ois_info->i2c_freq_mode);
+		CAM_DBG(CAM_OIS, "Slave addr: 0x%x Freq Mode: %d, disable optmz %d",
+			ois_info->slave_addr, ois_info->i2c_freq_mode,
+			o_ctrl->io_master_info.cci_client->disable_optmz);
 	} else if (o_ctrl->io_master_info.master_type == I2C_MASTER) {
 		o_ctrl->io_master_info.client->addr = ois_info->slave_addr;
 		CAM_DBG(CAM_OIS, "Slave addr: 0x%x", ois_info->slave_addr);
@@ -803,82 +804,6 @@ release_firmware:
 
 }
 
-static int cam_lc898128_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl, uint32_t FwChecksum, uint32_t FwChecksumSize, uint8_t FwVersion)
-{
-	int32_t rc = 0;
-	uint8_t ans = 0;
-	if (!o_ctrl) {
-		CAM_ERR(CAM_OIS, "Invalid Args");
-		return -EINVAL;
-	}
-	if ( !CheckFwValid(o_ctrl,FwVersion) ) {
-		CAM_ERR(CAM_OIS, "firmware is invalid, updating");
-//--------------------------------------------------------------------------------
-// 0. <Info Mat1> Driver Offset
-//--------------------------------------------------------------------------------
-		ans = DrvOffAdj(o_ctrl);
- 		if (ans != 0)
-			 return ans;
-
-		ans = CoreResetwithoutMC128(o_ctrl);
-		if (ans != 0)
-			return ans;
-
-		ans = Mat2ReWrite(o_ctrl);	// MAT2 re-write process
-	 	if (ans != 0 && ans != 1)
-			return ans;
-
-		ans = PmemUpdate128(o_ctrl, 1);
-		if (ans != 0)
-			return ans;
-//--------------------------------------------------------------------------------
-// <User Mat> Erase
-//--------------------------------------------------------------------------------
-		if (0 != UnlockCodeSet(o_ctrl))
-			return 0x33;
-
-		WritePermission(o_ctrl);
-
-		AddtionalUnlockCodeSet(o_ctrl);
-
-		ans = EraseUserMat128(o_ctrl, 0, 10);
-		if (0 != ans) {
-			if (0 != UnlockCodeClear(o_ctrl))
-				return 0x32;
-			else
-				return ans;
-		}
-//--------------------------------------------------------------------------------
-// 4. <User Mat> Write
-//--------------------------------------------------------------------------------
-#if (SELECT_VENDOR == 0x01)
-		ans = ProgramFlash128_LongBurst(o_ctrl);
-#else
-		ans = ProgramFlash128_Standard(o_ctrl);
-#endif
-		if ( ans != 0) {
-			if ( UnlockCodeClear(o_ctrl) != 0 )
-			 	return (0x43);	// unlock code clear ng
-			else
-				return( ans );
-		}
-
-		if ( UnlockCodeClear(o_ctrl) != 0 )
-			return (0x43);
-//--------------------------------------------------------------------------------
-// 5. <User Mat> Verify
-//--------------------------------------------------------------------------------
-		ans = MatVerify(o_ctrl,FwChecksum,FwChecksumSize);
-		if (ans != 0) {
-			CAM_ERR(CAM_OIS, "MatVerify fail %d", ans);
-		}
-	} else {
-		CAM_ERR(CAM_OIS, "firmware is valid, skip updating");
-	}
-
-	return rc;
-}
-
 #ifdef ENABLE_OIS_EIS
 static int cam_ois_get_data(struct cam_ois_ctrl_t *o_ctrl,
 		struct cam_packet *csl_packet)
@@ -990,9 +915,6 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 	struct cam_ois_soc_private     *soc_private =
 		(struct cam_ois_soc_private *)o_ctrl->soc_info.soc_private;
 	struct cam_sensor_power_ctrl_t  *power_info = &soc_private->power_info;
-        uint32_t FwChecksum = o_ctrl->opcode.fwchecksum;
-        uint32_t FwChecksumSize = o_ctrl->opcode.fwchecksumsize;
-        uint8_t FwVersion = o_ctrl->opcode.fwversion;
 
 	ioctl_ctrl = (struct cam_control *)arg;
 	if (copy_from_user(&dev_config,
@@ -1166,18 +1088,14 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 
 		if (o_ctrl->ois_fw_flag) {
 			/* xiaomi add begin */
-			CAM_DBG(CAM_OIS, "is_addr_indata = %d", o_ctrl->opcode.is_addr_indata);
-			if(1 == o_ctrl->opcode.is_addr_indata) {
+			if(o_ctrl->opcode.is_addr_indata) {
 				CAM_DBG(CAM_OIS, "apply lc898124 ois_fw settings");
 				rc = cam_lc898124_ois_fw_download(o_ctrl);
-                        } else if (128 == o_ctrl->opcode.is_addr_indata) {
-				CAM_DBG(CAM_OIS, "apply lc898128 ois_fw settings");
-				rc = cam_lc898128_ois_fw_download(o_ctrl, FwChecksum, FwChecksumSize, FwVersion);
+			/* xiaomi add end */
 			} else {
-                                CAM_DBG(CAM_OIS, "apply ois_fw settings");
-                                rc = cam_ois_fw_download(o_ctrl);
-                        }
-
+				CAM_DBG(CAM_OIS, "apply ois_fw settings");
+				rc = cam_ois_fw_download(o_ctrl);
+			}
 			if (rc) {
 				CAM_ERR(CAM_OIS, "Failed OIS FW Download");
 				goto pwr_dwn;
@@ -1186,8 +1104,18 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 
 		CAM_DBG(CAM_OIS, "apply init settings");
 		rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_init_data);
+		if ((rc == -EAGAIN) &&
+			(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
+			CAM_WARN(CAM_OIS,
+				"CCI HW is restting: Reapplying INIT settings");
+			usleep_range(1000, 1010);
+			rc = cam_ois_apply_settings(o_ctrl,
+				&o_ctrl->i2c_init_data);
+		}
 		if (rc < 0) {
-			CAM_ERR(CAM_OIS, "Cannot apply Init settings");
+			CAM_ERR(CAM_OIS,
+				"Cannot apply Init settings: rc = %d",
+				rc);
 			goto pwr_dwn;
 		}
 
