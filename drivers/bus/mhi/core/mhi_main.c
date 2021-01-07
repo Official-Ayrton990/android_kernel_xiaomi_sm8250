@@ -1820,6 +1820,20 @@ int mhi_send_cmd(struct mhi_controller *mhi_cntrl,
 		}
 	}
 
+	if (cmd_db_not_set) {
+		ret = wait_event_timeout(mhi_cntrl->state_event,
+			MHI_DB_ACCESS_VALID(mhi_cntrl) ||
+			MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state),
+			msecs_to_jiffies(MHI_RESUME_TIME));
+		if (!ret || MHI_PM_IN_ERROR_STATE(mhi_cntrl->pm_state)) {
+			MHI_ERR(
+				"Did not enter M0, cur_state:%s pm_state:%s\n",
+				TO_MHI_STATE_STR(mhi_cntrl->dev_state),
+				to_mhi_pm_state_str(mhi_cntrl->pm_state));
+			return -EIO;
+		}
+	}
+
 	return 0;
 }
 
