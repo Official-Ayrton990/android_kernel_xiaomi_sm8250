@@ -91,7 +91,7 @@ static int cam_fd_mgr_util_packet_validate(struct cam_packet *packet,
 			return -EINVAL;
 		}
 
-		CAM_DBG(CAM_FD,
+		CAM_INFO(CAM_FD,
 			"CmdBuf[%d] hdl=%d, offset=%d, size=%d, len=%d, type=%d, meta_data=%d",
 			i,
 			cmd_desc[i].mem_handle, cmd_desc[i].offset,
@@ -822,11 +822,11 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 
 	/* Check if we have any frames pending in high priority list */
 	if (!list_empty(&hw_mgr->frame_pending_list_high)) {
-		CAM_DBG(CAM_FD, "Pending frames in high priority list");
+		CAM_INFO(CAM_FD, "Pending frames in high priority list");
 		frame_req = list_first_entry(&hw_mgr->frame_pending_list_high,
 			struct cam_fd_mgr_frame_request, list);
 	} else if (!list_empty(&hw_mgr->frame_pending_list_normal)) {
-		CAM_DBG(CAM_FD, "Pending frames in normal priority list");
+		CAM_INFO(CAM_FD, "Pending frames in normal priority list");
 		frame_req = list_first_entry(&hw_mgr->frame_pending_list_normal,
 			struct cam_fd_mgr_frame_request, list);
 	} else {
@@ -835,7 +835,7 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 		return 0;
 	}
 
-	CAM_DBG(CAM_FD, "FrameSubmit : Frame[%lld]", frame_req->request_id);
+	CAM_INFO(CAM_FD, "FrameSubmit : Frame[%lld]", frame_req->request_id);
 	hw_ctx = frame_req->hw_ctx;
 	rc = cam_fd_mgr_util_get_device(hw_mgr, hw_ctx, &hw_device);
 	if (rc) {
@@ -848,6 +848,7 @@ static int cam_fd_mgr_util_submit_frame(void *priv, void *data)
 	if (hw_device->ready_to_process == false) {
 		mutex_unlock(&hw_device->lock);
 		mutex_unlock(&hw_mgr->frame_req_mutex);
+		CAM_INFO(CAM_FD, "FrameSubmit : Frame[%lld] HW is busy", frame_req->request_id);
 		return -EBUSY;
 	}
 
@@ -953,7 +954,7 @@ static int32_t cam_fd_mgr_workq_irq_cb(void *priv, void *data)
 	work_data = (struct cam_fd_mgr_work_data *)data;
 	irq_type = work_data->irq_type;
 
-	CAM_DBG(CAM_FD, "FD IRQ type=%d", irq_type);
+	CAM_INFO(CAM_FD, "FD IRQ type=%d", irq_type);
 
 	if (irq_type == CAM_FD_IRQ_HALT_DONE) {
 		/* HALT would be followed by a RESET, ignore this */
@@ -990,7 +991,7 @@ static int32_t cam_fd_mgr_workq_irq_cb(void *priv, void *data)
 	if (irq_type == CAM_FD_IRQ_FRAME_DONE) {
 		struct cam_fd_hw_frame_done_args frame_done_args;
 
-		CAM_DBG(CAM_FD, "FrameDone : Frame[%lld]",
+		CAM_INFO(CAM_FD, "FrameDone : Frame[%lld]",
 			frame_req->request_id);
 
 		frame_done_args.hw_ctx = frame_req->hw_ctx;
@@ -1022,7 +1023,7 @@ notify_context:
 	if (frame_req->hw_ctx->event_cb) {
 		struct cam_hw_done_event_data buf_data;
 
-		CAM_DBG(CAM_FD, "FrameHALT : Frame[%lld]",
+		CAM_INFO(CAM_FD, "FrameHALT : Frame[%lld]",
 			frame_req->request_id);
 
 		buf_data.num_handles = frame_req->num_hw_update_entries;
@@ -1045,7 +1046,7 @@ notify_context:
 	hw_device->ready_to_process = true;
 	hw_device->req_id = -1;
 	hw_device->cur_hw_ctx = NULL;
-	CAM_DBG(CAM_FD, "ready_to_process=%d", hw_device->ready_to_process);
+	CAM_INFO(CAM_FD, "ready_to_process=%d", hw_device->ready_to_process);
 	mutex_unlock(&hw_device->lock);
 
 put_req_in_free_list:
@@ -1244,6 +1245,8 @@ static int cam_fd_mgr_hw_start(void *hw_mgr_priv, void *mgr_start_args)
 	struct cam_fd_device *hw_device;
 	struct cam_fd_hw_init_args hw_init_args;
 
+    struct cam_hw_info *fd_hw;
+	struct cam_fd_core *fd_core;
 	if (!hw_mgr_priv || !hw_mgr_start_args) {
 		CAM_ERR(CAM_FD, "Invalid arguments %pK %pK",
 			hw_mgr_priv, hw_mgr_start_args);
@@ -1265,13 +1268,21 @@ static int cam_fd_mgr_hw_start(void *hw_mgr_priv, void *mgr_start_args)
 		return rc;
 	}
 
-	if (hw_device->hw_intf->hw_ops.init) {
+	hw_device->ready_to_process = true;
+
+    fd_hw = (struct cam_hw_info *)hw_device->hw_intf->hw_priv;
+	fd_core = (struct cam_fd_core *)fd_hw->core_info;
+    if (hw_device->hw_intf->hw_ops.init) {
 		hw_init_args.hw_ctx = hw_ctx;
 		hw_init_args.ctx_hw_private = hw_ctx->ctx_hw_private;
-		rc = hw_device->hw_intf->hw_ops.init(
-			hw_device->hw_intf->hw_priv, &hw_init_args,
-			sizeof(hw_init_args));
-		if (rc) {
+        if (fd_core->hw_static_info->enable_errata_wa.skip_reset)
+            hw_init_args.reset_required = false;
+        else
+            hw_init_args.reset_required = true;
+        rc = hw_device->hw_intf->hw_ops.init(
+                hw_device->hw_intf->hw_priv, &hw_init_args,
+                sizeof(hw_init_args));
+        if (rc) {
 			CAM_ERR(CAM_FD, "Failed in HW Init %d", rc);
 			return rc;
 		}
@@ -1300,7 +1311,7 @@ static int cam_fd_mgr_hw_flush_req(void *hw_mgr_priv,
 		CAM_ERR(CAM_FD, "Invalid context is used, hw_ctx=%pK", hw_ctx);
 		return -EPERM;
 	}
-	CAM_DBG(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
+	CAM_INFO(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
 		hw_ctx->device_index);
 
 	rc = cam_fd_mgr_util_get_device(hw_mgr, hw_ctx, &hw_device);
@@ -1401,7 +1412,7 @@ static int cam_fd_mgr_hw_flush_ctx(void *hw_mgr_priv,
 		CAM_ERR(CAM_FD, "Invalid context is used, hw_ctx=%pK", hw_ctx);
 		return -EPERM;
 	}
-	CAM_DBG(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
+	CAM_INFO(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
 		hw_ctx->device_index);
 
 	rc = cam_fd_mgr_util_get_device(hw_mgr, hw_ctx, &hw_device);
@@ -1409,6 +1420,7 @@ static int cam_fd_mgr_hw_flush_ctx(void *hw_mgr_priv,
 		CAM_ERR(CAM_FD, "Error in getting device %d", rc);
 		return rc;
 	}
+
 
 	mutex_lock(&hw_mgr->frame_req_mutex);
 	list_for_each_entry_safe(frame_req, req_temp,
@@ -1433,6 +1445,7 @@ static int cam_fd_mgr_hw_flush_ctx(void *hw_mgr_priv,
 			continue;
 
 		list_del_init(&frame_req->list);
+		CAM_INFO(CAM_FD, "Request deleted from frame processing list");
 		mutex_lock(&hw_device->lock);
 		if ((hw_device->ready_to_process == true) ||
 			(hw_device->cur_hw_ctx != hw_ctx))
@@ -1525,7 +1538,7 @@ static int cam_fd_mgr_hw_stop(void *hw_mgr_priv, void *mgr_stop_args)
 		CAM_ERR(CAM_FD, "Invalid context is used, hw_ctx=%pK", hw_ctx);
 		return -EPERM;
 	}
-	CAM_DBG(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
+	CAM_INFO(CAM_FD, "ctx index=%u, hw_ctx=%d", hw_ctx->ctx_index,
 		hw_ctx->device_index);
 
 	rc = cam_fd_mgr_util_get_device(hw_mgr, hw_ctx, &hw_device);
@@ -1534,8 +1547,10 @@ static int cam_fd_mgr_hw_stop(void *hw_mgr_priv, void *mgr_stop_args)
 		return rc;
 	}
 
-	CAM_DBG(CAM_FD, "FD Device ready_to_process = %d",
+	CAM_INFO(CAM_FD, "FD Device ready_to_process = %d",
 		hw_device->ready_to_process);
+
+	hw_device->ready_to_process = true;
 
 	if (hw_device->hw_intf->hw_ops.deinit) {
 		hw_deinit_args.hw_ctx = hw_ctx;
@@ -1658,7 +1673,7 @@ static int cam_fd_mgr_hw_prepare_update(void *hw_mgr_priv,
 	 */
 	prepare->priv = frame_req;
 
-	CAM_DBG(CAM_FD, "FramePrepare : Frame[%lld]", frame_req->request_id);
+	CAM_INFO(CAM_FD, "FramePrepare : Frame[%lld]", frame_req->request_id);
 
 	return 0;
 error:
@@ -1694,7 +1709,7 @@ static int cam_fd_mgr_hw_config(void *hw_mgr_priv, void *hw_config_args)
 	frame_req = config->priv;
 
 	trace_cam_apply_req("FD", frame_req->request_id);
-	CAM_DBG(CAM_FD, "FrameHWConfig : Frame[%lld]", frame_req->request_id);
+	CAM_INFO(CAM_FD, "FrameHWConfig : Frame[%lld]", frame_req->request_id);
 
 	frame_req->num_hw_update_entries = config->num_hw_update_entries;
 	for (i = 0; i < config->num_hw_update_entries; i++) {
@@ -1708,11 +1723,11 @@ static int cam_fd_mgr_hw_config(void *hw_mgr_priv, void *hw_config_args)
 	}
 
 	if (hw_ctx->priority == CAM_FD_PRIORITY_HIGH) {
-		CAM_DBG(CAM_FD, "Insert frame into prio0 queue");
+		CAM_INFO(CAM_FD, "Insert frame into prio0 queue");
 		rc = cam_fd_mgr_util_put_frame_req(
 			&hw_mgr->frame_pending_list_high, &frame_req);
 	} else {
-		CAM_DBG(CAM_FD, "Insert frame into prio1 queue");
+		CAM_INFO(CAM_FD, "Insert frame into prio1 queue");
 		rc = cam_fd_mgr_util_put_frame_req(
 			&hw_mgr->frame_pending_list_normal, &frame_req);
 	}
