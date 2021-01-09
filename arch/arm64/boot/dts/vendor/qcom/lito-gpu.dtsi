@@ -78,7 +78,7 @@
 
 		qcom,initial-pwrlevel = <3>;
 
-		qcom,idle-timeout = <80>; /* msecs */
+		qcom,idle-timeout = <58>; /* msecs */
 
 		qcom,highest-bank-bit = <14>;
 
