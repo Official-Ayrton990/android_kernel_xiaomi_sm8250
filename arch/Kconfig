@@ -537,6 +537,7 @@ config LTO_CLANG
 	depends on !KASAN
 	depends on CC_IS_CLANG && LD_IS_LLD
 	select LTO
+	select LD_DEAD_CODE_DATA_ELIMINATION
 	help
           This option enables clang's Link Time Optimization (LTO), which allows
           the compiler to optimize the kernel globally at link time. If you
