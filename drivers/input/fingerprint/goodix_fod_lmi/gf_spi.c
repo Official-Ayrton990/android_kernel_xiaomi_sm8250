@@ -938,7 +938,6 @@ static int gf_probe(struct platform_device *pdev)
 	drm_register_client(&gf_dev->notifier);
 #endif
 	gf_dev->irq = gf_irq_num(gf_dev);
-	wakeup_source_init(&fp_wakelock, "fp_wakelock");
 	pr_debug("version V%d.%d.%02d\n", VER_MAJOR, VER_MINOR, PATCH_LEVEL);
 	return status;
 #ifdef AP_CONTROL_CLK
@@ -977,7 +976,6 @@ static int gf_remove(struct platform_device *pdev)
 #endif
 {
 	struct gf_dev *gf_dev = &gf;
-	wakeup_source_trash(&fp_wakelock);
 
 	/* make sure ops on existing fds can abort cleanly */
 	if (gf_dev->irq) {
