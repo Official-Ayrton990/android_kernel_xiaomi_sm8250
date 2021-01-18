@@ -766,8 +766,6 @@ int __init elliptic_driver_init(void)
 		return -ENOMEM;
 	}
 
-	wakeup_source_init(wake_source, "elliptic_wake_source");
-
 #ifdef ELLIPTIC_LOAD_CALIBRATION_DATA_FROM_FILESYSTEM
 	/* Code to send calibration to engine */
 	{
@@ -786,7 +784,6 @@ fail:
 void elliptic_driver_exit(void)
 {
 	if (wake_source) {
-		wakeup_source_trash(wake_source);
 		kfree(wake_source);
 	}
 

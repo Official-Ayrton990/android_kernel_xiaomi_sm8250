@@ -2370,8 +2370,6 @@ static int usf_open(struct inode *inode, struct file *file)
 	if (usf == NULL)
 		return -ENOMEM;
 
-	wakeup_source_init(&usf_wakeup_source, "usf");
-
 	file->private_data = usf;
 	usf->dev_ind = dev_ind;
 
@@ -2401,7 +2399,6 @@ static int usf_release(struct inode *inode, struct file *file)
 
 	atomic_set(&s_opened_devs[usf->dev_ind], 0);
 
-	wakeup_source_trash(&usf_wakeup_source);
 	mutex_unlock(&usf->mutex);
 	mutex_destroy(&usf->mutex);
 	kfree(usf);
