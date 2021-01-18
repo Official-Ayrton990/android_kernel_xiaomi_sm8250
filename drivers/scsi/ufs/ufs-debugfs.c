@@ -456,7 +456,7 @@ static void ufsdbg_setup_fault_injection(struct ufs_hba *hba)
 	}
 
 	hba->debugfs_files.err_inj_scenario =
-		debugfs_create_file("err_inj_scenario", 0600,
+		debugfs_create_file("err_inj_scenario", 0644,
 				   hba->debugfs_files.debugfs_root, hba,
 				   &ufsdbg_err_inj_scenario_ops);
 
