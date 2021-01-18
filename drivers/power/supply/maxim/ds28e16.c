@@ -143,10 +143,10 @@ short Read_RomID(unsigned char *RomID)
 	unsigned char i;
 	unsigned char crc = 0x00;
 
-	if (flag_mi_romid == 2) {
+	/*if (flag_mi_romid == 2) {
 		memcpy(RomID, mi_romid, 8);
 		return DS_TRUE;
-	}
+	}*/
 
 	if ((ow_reset()) != 0) {
 		ds_err("Failed to reset ds28e16!\n");
@@ -385,10 +385,10 @@ int DS28E16_cmd_readStatus(unsigned char *data)
 	int len_byte = 1;
 	int read_len = 7;
 
-	if (flag_mi_status) {
+	/*if (flag_mi_status) {
 		memcpy(data, mi_status, 8);
 		return DS_TRUE;
-	}
+	}*/
 
 	last_result_byte = RESULT_FAIL_NONE;
 	/*
@@ -1037,12 +1037,18 @@ static int verify_get_property(struct power_supply *psy, enum power_supply_prope
 		break;
 	case POWER_SUPPLY_PROP_ROMID:
 		ret = Read_RomID(mi_romid);
+		ds_err("get RomID = %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n",
+				mi_romid[0], mi_romid[1], mi_romid[2], mi_romid[3],
+				mi_romid[4], mi_romid[5], mi_romid[6], mi_romid[7]);
 		memcpy(val->arrayval, mi_romid, 8);
 		if (ret != DS_TRUE)
 			return -EAGAIN;
 		break;
 	case POWER_SUPPLY_PROP_CHIP_OK:
 		ret = Read_RomID(mi_romid);
+		ds_err("get chip_ok read RomID = %02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x\n",
+				mi_romid[0], mi_romid[1], mi_romid[2], mi_romid[3],
+				mi_romid[4], mi_romid[5], mi_romid[6], mi_romid[7]);
 		if ((mi_romid[0] == 0x9f) && (mi_romid[6] == 0x04) && ((mi_romid[5] & 0xf0) == 0xf0))
 			val->intval = true;
 		else
@@ -1081,7 +1087,7 @@ static int verify_get_property(struct power_supply *psy, enum power_supply_prope
 		}
 		break;
 	default:
-		ds_err("unsupported property %d\n", psp);
+		ds_dbg("unsupported property %d\n", psp);
 		return -ENODATA;
 	}
 
@@ -1731,6 +1737,7 @@ static const struct file_operations ds28e16_dev_fops = {
 
 static const struct of_device_id ds28e16_dt_match[] = {
 	{.compatible = "maxim,ds28e16"},
+	{},
 };
 
 static struct platform_driver ds28e16_driver = {
