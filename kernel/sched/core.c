@@ -1234,11 +1234,6 @@ unsigned int uclamp_task(struct task_struct *p)
 	return util;
 }
 
-bool uclamp_boosted(struct task_struct *p)
-{
-	return uclamp_eff_value(p, UCLAMP_MIN) > 0;
-}
-
 bool uclamp_latency_sensitive(struct task_struct *p)
 {
 #ifdef CONFIG_UCLAMP_TASK_GROUP
