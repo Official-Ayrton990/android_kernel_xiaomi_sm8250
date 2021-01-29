@@ -36,15 +36,6 @@
 	#size-cells = <2>;
 	memory { device_type = "memory"; reg = <0 0 0 0>; };
 
-	mem-offline {
-		compatible = "qcom,mem-offline";
-		offline-sizes = <0x1 0x40000000 0x0 0x40000000>,
-				<0x1 0xc0000000 0x0 0x80000000>,
-				<0x2 0xc0000000 0x1 0x40000000>;
-		granule = <512>;
-		mboxes = <&qmp_aop 0>;
-	};
-
 	aliases {
 		ufshc1 = &ufshc_mem; /* Embedded UFS slot */
 		sdhc2 = &sdhc_2; /* SDC2 SD card slot */
@@ -355,7 +346,7 @@
 			compatible = "android,firmware";
 			vbmeta {
 				compatible = "android,vbmeta";
-				parts = "vbmeta,boot,system,vendor,dtbo";
+				parts = "vbmeta,boot,system,vendor,dtbo,recovery";
 			};
 
 			fstab {
@@ -365,7 +356,7 @@
 					dev = "/dev/block/platform/soc/1d84000.ufshc/by-name/vendor";
 					type = "ext4";
 					mnt_flags = "ro,barrier=1,discard";
-					fsmgr_flags = "wait,slotselect,avb";
+					fsmgr_flags = "wait,avb";
 					status = "ok";
 				};
 			};
@@ -472,19 +463,19 @@
 		pil_adsp_mem: pil_adsp_region@8a100000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x8a100000 0x0 0x1d00000>;
+			reg = <0x0 0x8a100000 0x0 0x2500000>;
 		};
 
-		pil_spss_mem: pil_spss_region@8be00000 {
+		pil_spss_mem: pil_spss_region@8c600000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x8be00000 0x0 0x100000>;
+			reg = <0x0 0x8c600000 0x0 0x100000>;
 		};
 
-		cdsp_secure_heap: cdsp_secure_heap@8bf00000 {
+		cdsp_secure_heap: cdsp_secure_heap@8c700000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x8bf00000 0x0 0x4600000>;
+			reg = <0x0 0x8c700000 0x0 0x4600000>;
 		};
 
 		adsp_mem: adsp_region {
@@ -517,7 +508,7 @@
 		};
 
 		disp_rdump_memory: disp_rdump_region@9c000000 {
-			reg = <0x0 0x9c000000 0x0 0x00800000>;
+			reg = <0x0 0x9c000000 0x0 0x02400000>;
 			label = "disp_rdump_region";
 		};
 
@@ -614,6 +605,9 @@
 	compatible = "simple-bus";
 
 	thermal_zones: thermal-zones {
+	};
+
+	maxim_ds28e16: maxim_ds28e16 {
 	};
 
 	slim_aud: slim@3ac0000 {
@@ -3349,7 +3343,7 @@
 		qcom,spss-debug-reg-addr = <0x01886020>;
 		qcom,spss-emul-type-reg-addr = <0x01fc8004>;
 		pil-mem = <&pil_spss_mem>;
-		qcom,pil-addr = <0x8BE00000>; // backward compatible
+		qcom,pil-addr = <0x8C600000>; // see pil_spss_mem
 		qcom,pil-size = <0x0F0000>; // padding to 960 KB
 		status = "ok";
 	};
@@ -4626,7 +4620,7 @@
 
 	qcom,msm-rtb {
 		compatible = "qcom,msm-rtb";
-		qcom,rtb-size = <0x100000>;
+		qcom,rtb-size = <0x400000>;
 	};
 
 	qcom,mpm2-sleep-counter@c221000 {
@@ -4729,6 +4723,7 @@
 		qcom,converged-dt;
 		cnss-daemon-support;
 		qcom,cmd_db_name = "smpf2";
+		use-nv-mac;
 		qcom,set-wlaon-pwr-ctrl;
 		cnss-enable-self-recovery;
 
