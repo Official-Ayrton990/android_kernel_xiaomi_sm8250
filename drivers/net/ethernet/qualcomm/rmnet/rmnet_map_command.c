@@ -205,7 +205,7 @@ static void rmnet_map_process_flow_end(struct sk_buff *skb,
 				       bool rmnet_perf)
 {
 	struct rmnet_map_dl_ind_trl *dltrl;
-	struct rmnet_map_control_command_header *qcmd;
+	struct rmnet_map_control_command_header *qcmd = NULL;
 	u32 data_format;
 	bool is_dl_mark_v2;
 

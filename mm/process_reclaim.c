@@ -117,7 +117,7 @@ static void swap_fn(struct work_struct *work)
 	short min_score_adj = 360;
 	int total_scan = 0;
 	int total_reclaimed = 0;
-	int nr_to_reclaim;
+	int nr_to_reclaim = 0;
 	int efficiency;
 
 	if (!tsk_nomap_swap_sz && !per_swap_size)

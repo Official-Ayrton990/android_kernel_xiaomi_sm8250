@@ -116,7 +116,7 @@ static void mon_enable(struct llcc_pmu *llccpmu, int cpu)
 
 static unsigned long read_cnt(struct llcc_pmu *llccpmu, int cpu)
 {
-	unsigned long value;
+	unsigned long value = 0;
 
 	if (!llccpmu->ver) {
 		pr_err("LLCCPMU version not correct\n");
