@@ -579,7 +579,7 @@ static void lan78xx_update_stats(struct lan78xx_net *dev)
 	u32 *p, *count, *max;
 	u64 *data;
 	int i;
-	struct lan78xx_statstage lan78xx_stats;
+	struct lan78xx_statstage lan78xx_stats = { 0 };
 
 	if (usb_autopm_get_interface(dev->intf) < 0)
 		return;

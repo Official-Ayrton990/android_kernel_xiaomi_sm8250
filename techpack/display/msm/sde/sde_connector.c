@@ -1073,7 +1073,7 @@ int sde_connector_pre_kickoff(struct drm_connector *connector)
 	struct sde_connector *c_conn;
 	struct sde_connector_state *c_state;
 	struct msm_display_kickoff_params params;
-	struct dsi_display *display;
+	struct dsi_display *display = NULL;
 	int rc;
 
 	if (!connector) {

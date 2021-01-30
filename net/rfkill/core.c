@@ -1214,7 +1214,7 @@ static ssize_t rfkill_fop_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *pos)
 {
 	struct rfkill *rfkill;
-	struct rfkill_event ev;
+	struct rfkill_event ev = { 0 };
 	int ret;
 
 	/* we don't need the 'hard' variable but accept it */

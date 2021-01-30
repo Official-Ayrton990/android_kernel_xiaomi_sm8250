@@ -1291,7 +1291,7 @@ static int msm_gpio_domain_alloc(struct irq_domain *domain, unsigned int virq,
 				 unsigned int nr_irqs, void *arg)
 {
 	int ret;
-	irq_hw_number_t hwirq;
+	irq_hw_number_t hwirq = 0;
 	struct gpio_chip *gc = domain->host_data;
 	struct msm_pinctrl *pctrl = gpiochip_get_data(gc);
 	struct irq_fwspec *fwspec = arg;
