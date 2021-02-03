@@ -14,6 +14,9 @@ endif
 ifeq ($(CONFIG_ARCH_KONA), y)
 include $(srctree)/techpack/audio/config/konaauto.conf
 endif
+ifeq ($(CONFIG_ARCH_SDM660), y)
+include $(srctree)/techpack/audio/config/sdm660auto.conf
+endif
 
 # Use USERINCLUDE when you must reference the UAPI directories only.
 USERINCLUDE     += \
@@ -24,7 +27,15 @@ USERINCLUDE     += \
 # Needed to be compatible with the O= option
 LINUXINCLUDE    += \
                 -I$(srctree)/techpack/audio/include/uapi \
+                -I$(srctree)/techpack/audio/include/elliptic \
                 -I$(srctree)/techpack/audio/include
+
+#for mius start
+ifeq ($(CONFIG_US_PROXIMITY), y)
+LINUXINCLUDE    += \
+                -I$(srctree)/techpack/audio/include/mius
+endif
+#for mius end
 
 ifeq ($(CONFIG_ARCH_SDXPOORWILLS), y)
 LINUXINCLUDE    += \
@@ -42,8 +53,17 @@ ifeq ($(CONFIG_ARCH_KONA), y)
 LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/konaautoconf.h
 endif
-
+ifeq ($(CONFIG_ARCH_SDM660), y)
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/sdm660autoconf.h
+endif
 obj-y += soc/
 obj-y += dsp/
+obj-y += dsp/elliptic
+#for mius start
+ifeq ($(CONFIG_US_PROXIMITY), y)
+obj-y += dsp/mius
+endif
+#for mius end
 obj-y += ipc/
 obj-y += asoc/

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #ifndef BOLERO_CDC_H
@@ -54,6 +55,10 @@ enum {
 	BOLERO_MACRO_EVT_RX_COMPANDER_SOFT_RST,
 	BOLERO_MACRO_EVT_BCS_CLK_OFF,
 	BOLERO_MACRO_EVT_SSR_GFMUX_UP,
+	BOLERO_MACRO_EVT_PRE_SSR_UP,
+	BOLERO_MACRO_EVT_RX_PA_GAIN_UPDATE,
+	BOLERO_MACRO_EVT_HPHL_HD2_ENABLE, /* Enable HD2 cfg for HPHL */
+	BOLERO_MACRO_EVT_HPHR_HD2_ENABLE, /* Enable HD2 cfg for HPHR */
 };
 
 enum {
@@ -100,6 +105,7 @@ typedef int (*rsc_clk_cb_t)(struct device *dev, u16 event);
 #if IS_ENABLED(CONFIG_SND_SOC_BOLERO)
 int bolero_register_res_clk(struct device *dev, rsc_clk_cb_t cb);
 void bolero_unregister_res_clk(struct device *dev);
+bool bolero_is_va_macro_registered(struct device *dev);
 int bolero_register_macro(struct device *dev, u16 macro_id,
 			  struct macro_ops *ops);
 void bolero_unregister_macro(struct device *dev, u16 macro_id);
@@ -116,19 +122,29 @@ int bolero_set_port_map(struct snd_soc_component *component, u32 size, void *dat
 int bolero_tx_clk_switch(struct snd_soc_component *component, int clk_src);
 int bolero_register_event_listener(struct snd_soc_component *component,
 				   bool enable);
-void bolero_wsa_pa_on(struct device *dev);
+void bolero_wsa_pa_on(struct device *dev, bool adie_lb);
 bool bolero_check_core_votes(struct device *dev);
 int bolero_tx_mclk_enable(struct snd_soc_component *c, bool enable);
 int bolero_get_version(struct device *dev);
 int bolero_dmic_clk_enable(struct snd_soc_component *component,
 			   u32 dmic, u32 tx_mode, bool enable);
+void bolero_tx_macro_mute_hs(void);
 #else
+
+static inline void bolero_tx_macro_mute_hs(void)
+{
+}
 static inline int bolero_register_res_clk(struct device *dev, rsc_clk_cb_t cb)
 {
 	return 0;
 }
 static inline void bolero_unregister_res_clk(struct device *dev)
 {
+}
+
+static bool bolero_is_va_macro_registered(struct device *dev)
+{
+	return false;
 }
 
 static inline int bolero_register_macro(struct device *dev,
@@ -194,7 +210,7 @@ static inline int bolero_register_event_listener(
 	return 0;
 }
 
-static void bolero_wsa_pa_on(struct device *dev)
+static void bolero_wsa_pa_on(struct device *dev, bool adie_lb)
 {
 }
 

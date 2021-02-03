@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2010-2014, 2016-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2010-2014, 2016-2020 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/kernel.h>
@@ -1308,9 +1309,9 @@ static int __init apr_debug_init(void)
 }
 #else
 static int __init apr_debug_init(void)
-(
+{
 	return 0;
-)
+}
 #endif
 
 static void apr_cleanup(void)
@@ -1331,7 +1332,9 @@ static void apr_cleanup(void)
 				mutex_destroy(&client[i][j].svc[k].m_lock);
 		}
 	}
+#ifdef CONFIG_DEBUG_FS
 	debugfs_remove(debugfs_apr_debug);
+#endif
 }
 
 static int apr_probe(struct platform_device *pdev)

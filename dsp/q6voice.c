@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 #include <linux/slab.h>
 #include <linux/kthread.h>
@@ -24,7 +25,7 @@
 #include "adsp_err.h"
 #include <dsp/voice_mhi.h>
 
-#define TIMEOUT_MS 300
+#define TIMEOUT_MS 1000
 
 
 #define CMD_STATUS_SUCCESS 0
@@ -515,6 +516,8 @@ static void voc_set_error_state(uint16_t reset_proc)
 		if (v != NULL) {
 			v->voc_state = VOC_ERROR;
 			v->rec_info.recording = 0;
+			v->music_info.playing = 0;
+			v->music_info.force = 0;
 		}
 	}
 }
@@ -7202,6 +7205,16 @@ int voc_enable_device(uint32_t session_id)
 			goto done;
 		}
 		v->voc_state = VOC_RUN;
+
+		if (v->lch_mode == 0) {
+			pr_debug("%s: dev_mute = %d, ramp_duration = %d ms\n",
+				__func__, v->dev_rx.dev_mute,
+				 v->dev_rx.dev_mute_ramp_duration_ms);
+			ret = voice_send_device_mute_cmd(v,
+					VSS_IVOLUME_DIRECTION_RX,
+					v->dev_rx.dev_mute,
+					v->dev_rx.dev_mute_ramp_duration_ms);
+		}
 	} else {
 		pr_debug("%s: called in voc state=%d, No_OP\n",
 			 __func__, v->voc_state);

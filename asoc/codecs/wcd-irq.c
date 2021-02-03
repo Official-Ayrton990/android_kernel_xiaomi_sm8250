@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/kernel.h>
@@ -43,7 +44,7 @@ int wcd_request_irq(struct wcd_irq_info *irq_info, int irq, const char *name,
 		return irq;
 
 	return request_threaded_irq(irq, NULL, handler,
-				    IRQF_ONESHOT | IRQF_TRIGGER_RISING,
+				    IRQF_ONESHOT | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 				    name, data);
 }
 EXPORT_SYMBOL(wcd_request_irq);

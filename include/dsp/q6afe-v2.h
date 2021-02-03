@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 #ifndef __Q6AFE_V2_H__
 #define __Q6AFE_V2_H__
@@ -45,7 +46,8 @@
 #define AFE_API_VERSION_V4		4
 /* for VAD enable */
 #define AFE_API_VERSION_V6		6
-
+/* for Speaker Protection V4 */
+#define AFE_API_VERSION_V9		9
 
 typedef int (*routing_cb)(int port);
 
@@ -284,6 +286,7 @@ enum {
 	/* IDX 208-> 209 */
 	IDX_AFE_PORT_ID_PRIMARY_META_MI2S_RX,
 	IDX_AFE_PORT_ID_SECONDARY_META_MI2S_RX,
+    IDX_AFE_PORT_ID_PSEUDOPORT_01,
 	/* IDX 210-> 211 */
 	IDX_RT_PROXY_PORT_002_RX,
 	IDX_RT_PROXY_PORT_002_TX,
@@ -402,6 +405,11 @@ int afe_port_start_v2(u16 port_id, union afe_port_config *afe_config,
 		      u32 rate, u16 afe_in_channels, u16 afe_in_bit_width,
 		      struct afe_enc_config *enc_config,
 		      struct afe_dec_config *dec_config);
+int afe_port_start_v3(u16 port_id, union afe_port_config *afe_config,
+		      u32 rate, u16 afe_in_channels, u16 afe_in_bit_width,
+		      struct afe_enc_config *enc_config,
+		      struct afe_dec_config *dec_config,
+		      struct afe_ttp_config *ttp_config);
 int afe_spk_prot_feed_back_cfg(int src_port, int dst_port,
 	int l_ch, int r_ch, u32 enable);
 int afe_spk_prot_get_calib_data(struct afe_spkr_prot_get_vi_calib *calib);
@@ -482,11 +490,19 @@ int afe_get_sp_rx_tmax_xmax_logging_data(
 int afe_cal_init_hwdep(void *card);
 int afe_send_port_island_mode(u16 port_id);
 int afe_send_port_vad_cfg_params(u16 port_id);
+#ifdef CONFIG_MSM_CSPL
+int afe_apr_send_pkt_crus(void *data, int index, int set);
+int crus_afe_port_close(u16 port_id);
+int crus_afe_port_start(u16 port_id);
+#endif
 int afe_send_cmd_wakeup_register(void *handle, bool enable);
 void afe_register_wakeup_irq_callback(
 	void (*afe_cb_wakeup_irq)(void *handle));
 int afe_get_doa_tracking_mon(u16 port_id,
 	struct doa_tracking_mon_param *doa_tracking_data);
+int afe_set_pll_clk_drift(u16 port_id, int32_t set_clk_drift,
+			  uint32_t clk_reset);
+int afe_set_clk_id(u16 port_id, uint32_t clk_id);
 
 enum {
 	AFE_LPASS_CORE_HW_BLOCK_ID_NONE,

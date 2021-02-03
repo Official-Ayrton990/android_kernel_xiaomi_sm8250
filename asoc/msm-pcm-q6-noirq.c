@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/init.h>
@@ -730,6 +731,12 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 		pr_err("%s: vol is NULL\n", __func__);
 		return -ENODEV;
 	}
+
+	if (!vol->pcm) {
+		pr_err("%s: vol->pcm is NULL\n", __func__);
+		return -ENODEV;
+	}
+
 	substream = vol->pcm->streams[vol->stream].substream;
 	if (!substream) {
 		pr_err("%s substream not found\n", __func__);
@@ -754,9 +761,11 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 		return -ENODEV;
 	}
 	mutex_lock(&pdata->lock);
-	prtd = substream->runtime->private_data;
-	if (prtd)
-		ucontrol->value.integer.value[0] = prtd->volume;
+	if (substream->ref_count > 0) {
+		prtd = substream->runtime->private_data;
+		if (prtd)
+			ucontrol->value.integer.value[0] = prtd->volume;
+	}
 	mutex_unlock(&pdata->lock);
 	return 0;
 }
@@ -799,10 +808,12 @@ static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
 	}
 
 	mutex_lock(&pdata->lock);
-	prtd = substream->runtime->private_data;
-	if (prtd) {
-		rc = msm_pcm_set_volume(prtd, volume);
-		prtd->volume = volume;
+	if (substream->ref_count > 0) {
+		prtd = substream->runtime->private_data;
+		if (prtd) {
+			rc = msm_pcm_set_volume(prtd, volume);
+			prtd->volume = volume;
+		}
 	}
 	mutex_unlock(&pdata->lock);
 	return rc;

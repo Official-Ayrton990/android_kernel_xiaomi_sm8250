@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
+#define DEBUG
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
@@ -33,16 +35,20 @@ static int wcd_mbhc_get_micbias(struct wcd_mbhc *mbhc)
 	int micbias = 0;
 	u8 vout_ctl = 0;
 
-	/* Read MBHC Micbias (Mic Bias2) voltage */
-	WCD_MBHC_REG_READ(WCD_MBHC_MICB2_VOUT, vout_ctl);
+	if (mbhc->mbhc_cb->get_micbias_val) {
+		mbhc->mbhc_cb->get_micbias_val(mbhc, &micbias);
+		pr_debug("%s: micbias: %d\n",  __func__, micbias);
+	} else {
+		/* Read MBHC Micbias (Mic Bias2) voltage */
+		WCD_MBHC_REG_READ(WCD_MBHC_MICB2_VOUT, vout_ctl);
 
-	/* Formula for getting micbias from vout
-	 * micbias = 1.0V + VOUT_CTL * 50mV
-	 */
-	micbias = 1000 + (vout_ctl * 50);
-	pr_debug("%s: vout_ctl: %d, micbias: %d\n",
-		 __func__, vout_ctl, micbias);
-
+		/* Formula for getting micbias from vout
+		 * micbias = 1.0V + VOUT_CTL * 50mV
+		 */
+		micbias = 1000 + (vout_ctl * 50);
+		pr_debug("%s: vout_ctl: %d, micbias: %d\n",
+			 __func__, vout_ctl, micbias);
+	}
 	return micbias;
 }
 
@@ -76,8 +82,22 @@ static int wcd_measure_adc_continuous(struct wcd_mbhc *mbhc)
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
 	/* Set the MUX selection to IN2P */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MUX_CTL, MUX_CTL_IN2P);
+
+	/*
+	 * Current source mode requires Auto zeroing to be enabled
+	 * automatically. If HW doesn't do it, SW has to take care of this
+	 * for button interrupts to work fine and to avoid
+	 * fake electrical removal interrupts by enabling autozero before FSM
+	 * enable and disable it after FSM enable
+	 */
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							true);
 	/* Enable MBHC FSM */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							false);
 	/* Enable ADC_ENABLE bit */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, 1);
 
@@ -120,7 +140,20 @@ static int wcd_measure_adc_once(struct wcd_mbhc *mbhc, int mux_ctl)
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
 	/* Set the appropriate MUX selection */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MUX_CTL, mux_ctl);
+	/*
+	 * Current source mode requires Auto zeroing to be enabled
+	 * automatically. If HW doesn't do it, SW has to take care of this
+	 * for button interrupts to work fine and to avoid
+	 * fake electrical removal interrupts by enabling autozero before FSM
+	 * enable and disable it after FSM enable
+	 */
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							true);
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							false);
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, 1);
 
 	while (retry--) {
@@ -290,6 +323,10 @@ static int wcd_check_cross_conn(struct wcd_mbhc *mbhc)
 	WCD_MBHC_REG_READ(WCD_MBHC_ELECT_SCHMT_ISRC, elect_ctl);
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, 0x00);
 
+	/* Disable surge detection before ADC measurement */
+	if (mbhc->mbhc_cb->mbhc_surge_ctl)
+		mbhc->mbhc_cb->mbhc_surge_ctl(mbhc, false);
+
 	/* Read and set ADC to single measurement */
 	WCD_MBHC_REG_READ(WCD_MBHC_ADC_MODE, adc_mode);
 	/* Read ADC Enable bit to restore after adc measurement */
@@ -313,7 +350,12 @@ static int wcd_check_cross_conn(struct wcd_mbhc *mbhc)
 		goto done;
 	}
 
-	if (hphl_adc_res > 100 || hphr_adc_res > 100) {
+	/* Update cross connection threshold voltages if needed */
+	if (mbhc->mbhc_cb->update_cross_conn_thr)
+		mbhc->mbhc_cb->update_cross_conn_thr(mbhc);
+
+	if (hphl_adc_res > mbhc->hphl_cross_conn_thr ||
+	    hphr_adc_res > mbhc->hphr_cross_conn_thr) {
 		plug_type = MBHC_PLUG_TYPE_GND_MIC_SWAP;
 		pr_debug("%s: Cross connection identified\n", __func__);
 	} else {
@@ -324,8 +366,20 @@ done:
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);
 	/* Set the MUX selection to Auto */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_MUX_CTL, MUX_CTL_AUTO);
+	/*
+	 * Current source mode requires Auto zeroing to be enabled
+	 * automatically. If HW doesn't do it, SW has to take care of this
+	 * for button interrupts to work fine and to avoid
+	 * fake electrical removal interrupts by enabling autozero before FSM
+	 * enable and disable it after FSM enable
+	 */
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							true);
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
-
+	if (mbhc->mbhc_cb->mbhc_comp_autozero_control)
+		mbhc->mbhc_cb->mbhc_comp_autozero_control(mbhc,
+							false);
 	/* Restore ADC Enable */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ADC_EN, adc_en);
 
@@ -334,6 +388,10 @@ done:
 
 	/* Restore FSM state */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, fsm_en);
+
+	/* Restore surge detection */
+	if (mbhc->mbhc_cb->mbhc_surge_ctl)
+		mbhc->mbhc_cb->mbhc_surge_ctl(mbhc, true);
 
 	/* Restore electrical detection */
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_SCHMT_ISRC, elect_ctl);
@@ -716,6 +774,12 @@ correct_plug_type:
 		}
 
 		msleep(180);
+		/* In the case of system bootup with headset pluged, mbhc
+		 * begin to detect without sound card registered. delay
+		 * about 150ms to wait sound card registe.
+		 */
+		if ((mbhc->mbhc_cfg->swap_gnd_mic == NULL) && (mbhc->mbhc_cfg->enable_usbc_analog))
+			msleep(200);
 		/*
 		 * Use ADC single mode to minimize the chance of missing out
 		 * btn press/release for HEADSET type during correct work.
@@ -898,6 +962,9 @@ enable_supply:
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_DETECTION_DONE, 1);
 	else
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_DETECTION_DONE, 0);
+
+	if (plug_type == MBHC_PLUG_TYPE_HEADSET)
+		mbhc->micbias_enable = true;
 
 	if (mbhc->mbhc_cb->mbhc_micbias_control)
 		wcd_mbhc_adc_update_fsm_source(mbhc, plug_type);
@@ -1091,6 +1158,11 @@ static irqreturn_t wcd_mbhc_adc_hs_ins_irq(int irq, void *data)
 	 * get ADC complete interrupt, so connected cable should be
 	 * headset not headphone.
 	 */
+	/*
+	 * delete it to fix headset recogition problem when insert
+	 * lineout and then connect headset to lineout.
+	*/
+	/*
 	if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADPHONE) {
 		wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_INS, false);
 		WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_DETECTION_DONE, 1);
@@ -1098,6 +1170,7 @@ static irqreturn_t wcd_mbhc_adc_hs_ins_irq(int irq, void *data)
 		WCD_MBHC_RSC_UNLOCK(mbhc);
 		return IRQ_HANDLED;
 	}
+	*/
 
 	if (!mbhc->mbhc_cfg->detect_extn_cable) {
 		pr_debug("%s: Returning as Extension cable feature not enabled\n",
