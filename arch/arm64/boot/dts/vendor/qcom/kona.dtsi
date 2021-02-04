@@ -481,6 +481,14 @@
 			reg = <0x0 0x8e100000 0x0 0x4600000>;
 		};
 
+		ramoops: ramoops {
+			compatible = "removed-dma-pool", "ramoops";
+			reg = <0x0 0x96A00000 0x0 0x00100000>;
+			record-size = <0x20000>;
+			console-size = <0x40000>;
+			pmsg-size = <0x20000>;
+		};
+
 		adsp_mem: adsp_region {
 			compatible = "shared-dma-pool";
 			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
