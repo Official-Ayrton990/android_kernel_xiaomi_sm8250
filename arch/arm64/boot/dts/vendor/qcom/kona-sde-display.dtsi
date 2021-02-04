@@ -1305,6 +1305,8 @@
 				"src_byte_clk0", "src_pixel_clk0",
 				"shadow_byte_clk0", "shadow_pixel_clk0";
 
+	qcom,mdss-dsi-clk-strength = <0xFF>;
+
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings = [00 24 0A 0A 26 25 09

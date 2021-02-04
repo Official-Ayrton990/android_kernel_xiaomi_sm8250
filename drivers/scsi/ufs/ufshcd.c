@@ -221,7 +221,7 @@ static void ufshcd_update_uic_error_cnt(struct ufs_hba *hba, u32 reg, int type)
 #define UIC_CMD_TIMEOUT	500
 
 /* UIC MI command timeout, unit: ms */
-#define UIC_MI_CMD_TIMEOUT	3000
+#define UIC_PWR_CTRL_TIMEOUT	3000
 
 /* NOP OUT retries waiting for NOP IN response */
 #define NOP_OUT_RETRIES    10
@@ -3995,7 +3995,7 @@ static int ufshcd_wait_for_dev_cmd(struct ufs_hba *hba,
 		ufshcd_outstanding_req_clear(hba, lrbp->task_tag);
 	}
 
-	if (err)
+	if (err && err != -EAGAIN)
 		ufsdbg_set_err_state(hba);
 
 	return err;
@@ -5165,7 +5165,7 @@ static int ufshcd_uic_pwr_ctrl(struct ufs_hba *hba, struct uic_command *cmd)
 
 more_wait:
 	if (!wait_for_completion_timeout(hba->uic_async_done,
-					 msecs_to_jiffies(UIC_CMD_TIMEOUT))) {
+					 msecs_to_jiffies(UIC_PWR_CTRL_TIMEOUT))) {
 		u32 intr_status = 0;
 		s64 ts_since_last_intr;
 
@@ -5679,9 +5679,11 @@ EXPORT_SYMBOL_GPL(ufshcd_config_pwr_mode);
  */
 static int ufshcd_complete_dev_init(struct ufs_hba *hba)
 {
-	int i;
+	int i = 0;
 	int err;
 	bool flag_res = 1;
+	ktime_t timeout;
+	bool timeout_warn = false;
 
 	err = ufshcd_query_flag_retry(hba, UPIU_QUERY_OPCODE_SET_FLAG,
 		QUERY_FLAG_IDN_FDEVICEINIT, NULL);
@@ -5692,10 +5694,35 @@ static int ufshcd_complete_dev_init(struct ufs_hba *hba)
 		goto out;
 	}
 
-	/* poll for max. 1000 iterations for fDeviceInit flag to clear */
-	for (i = 0; i < 1000 && !err && flag_res; i++)
+	/*
+	* Some vendor devices are taking longer time to complete its internal
+	* initialization, so set fDeviceInit flag poll time to 5 secs
+	*/
+	timeout = ktime_add_ms(ktime_get(), 8000);
+
+	/* poll for max. 5sec for fDeviceInit flag to clear */
+	while (1) {
+		timeout_warn = ktime_after(ktime_get(), timeout);
 		err = ufshcd_query_flag_retry(hba, UPIU_QUERY_OPCODE_READ_FLAG,
 			QUERY_FLAG_IDN_FDEVICEINIT, &flag_res);
+		if (err || !flag_res || timeout_warn)
+			break;
+
+		/*
+		* Poll for this flag in a tight loop for first 1000 iterations.
+		* This is same as old logic which is working for most of the
+		* devices, so continue using the same.
+		*/
+		if (i == 1000)
+			msleep(20);
+		else
+			i++;
+	}
+
+	if (timeout_warn)
+		dev_err(hba->dev,
+			"%s reading fDeviceInit flag timeout.\n",
+			__func__);
 
 	if (err)
 		dev_err(hba->dev,
@@ -6902,10 +6929,8 @@ out:
 
 static bool ufshcd_wb_sup(struct ufs_hba *hba)
 {
-	return ((hba->dev_info.d_ext_ufs_feature_sup &
-		   UFS_DEV_WRITE_BOOSTER_SUP) &&
-		  (hba->dev_info.b_wb_buffer_type
-		   || hba->dev_info.wb_config_lun));
+	return !!(hba->dev_info.d_ext_ufs_feature_sup &
+		  UFS_DEV_WRITE_BOOSTER_SUP);
 }
 
 static int ufshcd_wb_ctrl(struct ufs_hba *hba, bool enable)
@@ -8523,7 +8548,6 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 		if (hba->dev_info.b_wb_buffer_type)
 			goto skip_unit_desc;
 
-		hba->dev_info.wb_config_lun = false;
 		for (lun = 0; lun < UFS_UPIU_MAX_GENERAL_LUN; lun++) {
 			d_lu_wb_buf_alloc = 0;
 			err = ufshcd_read_unit_desc_param(hba,
@@ -8536,7 +8560,6 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 				break;
 
 			if (d_lu_wb_buf_alloc) {
-				hba->dev_info.wb_config_lun = true;
 				break;
 			}
 		}
@@ -9177,6 +9200,12 @@ reinit:
 		scsi_scan_host(hba->host);
 		pm_runtime_put_sync(hba->dev);
 	}
+
+	/*
+	 * Enable auto hibern8 if supported, after full host and
+	 * device initialization.
+	 */
+	ufshcd_set_auto_hibern8_timer(hba);
 
 out:
 	if (ret) {
