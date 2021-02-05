@@ -6,45 +6,45 @@
 		status = "ok";
 	};
 
-    	led_flash_rear_wide: qcom,camera-flash@0 {
-        	cell-index = <0>;
-        	reg = <0x00 0x00>;
-        	compatible = "qcom,camera-flash";
-        	flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
-        	torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
-        	switch-source = <&pm8150l_switch2>;
-        	status = "ok";
-    	};
+	led_flash_rear_wide: qcom,camera-flash@0 {
+		cell-index = <0>;
+		reg = <0x00 0x00>;
+		compatible = "qcom,camera-flash";
+		flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
+		torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
+		switch-source = <&pm8150l_switch2>;
+		status = "ok";
+	};
 
-    	led_flash_rear_ultra: qcom,camera-flash@1 {
-        	cell-index = <1>;
-        	reg = <0x01 0x00>;
-        	compatible = "qcom,camera-flash";
-        	flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
-        	torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
-        	switch-source = <&pm8150l_switch2>;
-        	status = "ok";
-    	};
+	led_flash_rear_ultra: qcom,camera-flash@1 {
+		cell-index = <1>;
+		reg = <0x01 0x00>;
+		compatible = "qcom,camera-flash";
+		flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
+		torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
+		switch-source = <&pm8150l_switch2>;
+		status = "ok";
+	};
 
-    	led_flash_rear_macro: qcom,camera-flash@2 {
-        	cell-index = <2>;
-        	reg = <0x02 0x00>;
-        	compatible = "qcom,camera-flash";
-        	flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
-        	torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
-        	switch-source = <&pm8150l_switch2>;
-        	status = "ok";
-    	};
+	led_flash_rear_macro: qcom,camera-flash@2 {
+		cell-index = <2>;
+		reg = <0x02 0x00>;
+		compatible = "qcom,camera-flash";
+		flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
+		torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
+		switch-source = <&pm8150l_switch2>;
+		status = "ok";
+	};
 
-    	led_flash_rear_depth: qcom,camera-flash@3 {
-        	cell-index = <3>;
-        	reg = <0x03 0x00>;
-        	compatible = "qcom,camera-flash";
-        	flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
-        	torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
-        	switch-source = <&pm8150l_switch2>;
-        	status = "ok";
-    	};
+	led_flash_rear_depth: qcom,camera-flash@3 {
+		cell-index = <3>;
+		reg = <0x03 0x00>;
+		compatible = "qcom,camera-flash";
+		flash-source = <&pm8150l_flash0 &pm8150l_flash1>;
+		torch-source = <&pm8150l_torch0 &pm8150l_torch1>;
+		switch-source = <&pm8150l_switch2>;
+		status = "ok";
+	};
 
 	/* for 8M UltraWide & 48M Wide */
 	camera_rear_ultrawide_vana_ldo: gpio-regulator@0 {
@@ -100,11 +100,9 @@
 		gpio = <&tlmm 11 0>;
 		vin-supply = <&S8C>;
 	};
-
 };
 
 &cam_cci0 {
-
 	/* for 48M Wide */
 	eeprom_wide: qcom,eeprom@0 {
 		cell-index = <0>;
@@ -120,7 +118,6 @@
 		cci-master = <1>;
 		status = "ok";
 	};
-
 	 /* for 48M Wide */
 	actuator_rear_wide: qcom,actuator@0 {
 		cell-index = <0>;
@@ -184,23 +181,21 @@
 		clock-cntl-level = "turbo";
 		clock-rates = <19200000>;
 	};
-
         /* for 44M/16M Front */
-        eeprom_front: qcom,eeprom@2 {
-            cell-index = <2>;
-            reg = <0x2>;
-            compatible = "qcom,eeprom";
-            cam_vio-supply = <&L6P>;
-            regulator-names = "cam_vio";
-            rgltr-cntrl-support;
-            rgltr-min-voltage = <1800000>;
-            rgltr-max-voltage = <1800000>;
-            rgltr-load-current = <180000>;
-            cci-device = <0>;
-            cci-master = <0>;
-            status = "ok";
+	eeprom_front: qcom,eeprom@2 {
+		cell-index = <2>;
+		reg = <0x2>;
+		compatible = "qcom,eeprom";
+		cam_vio-supply = <&L6P>;
+		regulator-names = "cam_vio";
+		rgltr-cntrl-support;
+		rgltr-min-voltage = <1800000>;
+		rgltr-max-voltage = <1800000>;
+		rgltr-load-current = <180000>;
+		cci-device = <0>;
+		cci-master = <0>;
+		status = "ok";
         };
-
 	/* for 44M/16M Front */
 	qcom,cam-sensor@2 {
 		cell-index = <2>;
@@ -244,7 +239,6 @@
 		clock-cntl-level = "turbo";
 		clock-rates = <19200000>;
 	};
-
 	/* for 2M Micro */
 	actuator_rear_macro: qcom,actuator@1 {
 		cell-index = <1>;
@@ -263,24 +257,22 @@
 		cci-master = <0>;
 		status = "ok";
 	};
-
         /* for 2M Micro */
         eeprom_rear_macro: qcom,eeprom@3 {
-            cell-index = <3>;
-            reg = <0x3>;
-            compatible = "qcom,eeprom";
-            cam_vio-supply = <&camera_rear_micro_vdig_vio_ldo>;
-            cam_vdig-supply = <&L6P>;       //i2c pull up
-            regulator-names = "cam_vio","cam_vdig";
-            rgltr-cntrl-support;
-            rgltr-min-voltage = <1800000 1800000>;
-            rgltr-max-voltage = <1800000 1800000>;
-            rgltr-load-current = <180000 180000>;
-            cci-device = <0>;
-            cci-master = <0>;
-            status = "ok";
+		cell-index = <3>;
+		reg = <0x3>;
+		compatible = "qcom,eeprom";
+		cam_vio-supply = <&camera_rear_micro_vdig_vio_ldo>;
+		cam_vdig-supply = <&L6P>;       //i2c pull up
+		regulator-names = "cam_vio","cam_vdig";
+		rgltr-cntrl-support;
+		rgltr-min-voltage = <1800000 1800000>;
+		rgltr-max-voltage = <1800000 1800000>;
+		rgltr-load-current = <180000 180000>;
+		cci-device = <0>;
+		cci-master = <0>;
+		status = "ok";
         };
-
 	/* for 2M Micro */
 	qcom,cam-sensor@3 {
 		cell-index = <3>;
@@ -326,27 +318,24 @@
 		clock-cntl-level = "turbo";
 		clock-rates = <19200000>;
 	};
-
 };
 
 &cam_cci1 {
-
         /* for 8M UltraWide */
-        eeprom_rear_ultra: qcom,eeprom@1 {
-            cell-index = <1>;
-            reg = <0x1>;
-            compatible = "qcom,eeprom";
-            cam_vio-supply = <&L6P>;
-            regulator-names = "cam_vio";
-            rgltr-cntrl-support;
-            rgltr-min-voltage = <1800000>;
-            rgltr-max-voltage = <1800000>;
-            rgltr-load-current = <180000>;
-            cci-device = <1>;
-            cci-master = <0>;
-            status = "ok";
-        };
-
+	eeprom_rear_ultra: qcom,eeprom@1 {
+		cell-index = <1>;
+		reg = <0x1>;
+		compatible = "qcom,eeprom";
+		cam_vio-supply = <&L6P>;
+		regulator-names = "cam_vio";
+		rgltr-cntrl-support;
+		rgltr-min-voltage = <1800000>;
+		rgltr-max-voltage = <1800000>;
+		rgltr-load-current = <180000>;
+		cci-device = <1>;
+		cci-master = <0>;
+		status = "ok";
+	};
 	/* for 8M UltraWide */
 	qcom,cam-sensor@1 {
 		cell-index = <1>;
@@ -391,48 +380,46 @@
 		clock-cntl-level = "turbo";
 		clock-rates = <19200000>;
 	};
-
-        /* for 2M rear depth */
-        eeprom_rear_depth: qcom,eeprom@4 {
-            cell-index = <4>;
-            reg = <0x4>;
-            compatible = "qcom,eeprom";
-            cam_vio-supply = <&camera_rear_tele_vio_ldo>;
-            cam_vana-supply = <&L4P>;
-            cam_vdig-supply = <&L1P>;
-            cam_v_custom1-supply = <&L6P>;
-            cam_v_custom2-supply = <&L9C>;
-            cam_clk-supply = <&titan_top_gdsc>;
-            regulator-names = "cam_vio", "cam_vana", "cam_vdig","cam_v_custom1",
-                "cam_v_custom2","cam_clk";
-            rgltr-cntrl-support;
-            pwm-switch;
-            rgltr-min-voltage = <1800000 2800000 1200000 1800000 3100000 0>;
-            rgltr-max-voltage = <1800000 2800000 1200000 1800000 3100000 0>;
-            rgltr-load-current = <180000 120000  105000 180000 3100000 0>;
-            gpio-no-mux = <0>;
-            pinctrl-names = "cam_default", "cam_suspend";
-            pinctrl-0 = <&monet_cam_sensor_mclk1_active
-                    &cam_sensor_rear_tele_active>;
-            pinctrl-1 = <&monet_cam_sensor_mclk1_suspend
-                    &cam_sensor_rear_tele_suspend>;
-            gpios = <&tlmm 14 0>,
-                <&tlmm 21 0>;
-            gpio-reset = <1>;
-            gpio-req-tbl-num = <0 1>;
-            gpio-req-tbl-flags = <1 0>;
-            gpio-req-tbl-label = "CAMIF_MCLK1",
-                        "CAM_RESET1";
-            sensor-mode = <0>;
-            cci-device = <1>;
-            cci-master = <0>;
-            status = "ok";
-            clocks = <&camcc CAM_CC_MCLK1_CLK>;
-            clock-names = "cam_clk";
-            clock-cntl-level = "turbo";
-            clock-rates = <19200000>;
-        };
-
+	/* for 2M rear depth */
+	eeprom_rear_depth: qcom,eeprom@4 {
+		cell-index = <4>;
+		reg = <0x4>;
+		compatible = "qcom,eeprom";
+		cam_vio-supply = <&camera_rear_tele_vio_ldo>;
+		cam_vana-supply = <&L4P>;
+		cam_vdig-supply = <&L1P>;
+		cam_v_custom1-supply = <&L6P>;
+		cam_v_custom2-supply = <&L9C>;
+		cam_clk-supply = <&titan_top_gdsc>;
+		regulator-names = "cam_vio", "cam_vana", "cam_vdig","cam_v_custom1",
+			"cam_v_custom2","cam_clk";
+		rgltr-cntrl-support;
+		pwm-switch;
+		rgltr-min-voltage = <1800000 2800000 1200000 1800000 3100000 0>;
+		rgltr-max-voltage = <1800000 2800000 1200000 1800000 3100000 0>;
+		rgltr-load-current = <180000 120000  105000 180000 3100000 0>;
+		gpio-no-mux = <0>;
+		pinctrl-names = "cam_default", "cam_suspend";
+		pinctrl-0 = <&monet_cam_sensor_mclk1_active
+			&cam_sensor_rear_tele_active>;
+		pinctrl-1 = <&monet_cam_sensor_mclk1_suspend
+			&cam_sensor_rear_tele_suspend>;
+		gpios = <&tlmm 14 0>,
+			<&tlmm 21 0>;
+		gpio-reset = <1>;
+		gpio-req-tbl-num = <0 1>;
+		gpio-req-tbl-flags = <1 0>;
+		gpio-req-tbl-label = "CAMIF_MCLK1",
+					"CAM_RESET1";
+		sensor-mode = <0>;
+		cci-device = <1>;
+		cci-master = <0>;
+		status = "ok";
+		clocks = <&camcc CAM_CC_MCLK1_CLK>;
+		clock-names = "cam_clk";
+		clock-cntl-level = "turbo";
+		clock-rates = <19200000>;
+	};
 	/* for 2M Depth */
 	qcom,cam-sensor@4 {
 		cell-index = <4>;
@@ -447,8 +434,8 @@
 		cam_vio-supply = <&camera_rear_tele_vio_ldo>;
 		cam_vana-supply = <&L4P>;
 		cam_vdig-supply = <&L1P>;
-        	cam_v_custom1-supply = <&L6P>;
-        	cam_v_custom2-supply = <&L9C>;
+		cam_v_custom1-supply = <&L6P>;
+		cam_v_custom2-supply = <&L9C>;
 		cam_clk-supply = <&titan_top_gdsc>;
 		regulator-names = "cam_vio", "cam_vana", "cam_vdig","cam_v_custom1",
 			"cam_v_custom2","cam_clk";
