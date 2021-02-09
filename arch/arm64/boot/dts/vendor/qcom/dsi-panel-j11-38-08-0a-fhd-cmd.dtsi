@@ -167,8 +167,8 @@
 	mi,mdss-dsi-panel-hbm-off-51-index = <1>;
 	mi,mdss-dsi-panel-fod-off-51-index = <1>;
 
-	mi,mdss-panel-on-dimming-delay = <120>;
-	mi,disp-fod-off-dimming-delay = <85>;
+	mi,mdss-panel-on-dimming-delay = <0>;
+	mi,disp-fod-off-dimming-delay = <0>;
 	mi,mdss-panel-prepare-before-fod-hbm-on;
 
 	/* mi,elvss_dimming_check_enable; */
