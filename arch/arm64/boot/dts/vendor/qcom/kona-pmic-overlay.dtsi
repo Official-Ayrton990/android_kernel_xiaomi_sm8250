@@ -44,7 +44,7 @@
 		};
 	};
 
-	imu_clkin {
+imu_clkin {
 		imu_clkin_default: imu_clkin_default {
 			pins = "gpio3";
 			function = "func1";
