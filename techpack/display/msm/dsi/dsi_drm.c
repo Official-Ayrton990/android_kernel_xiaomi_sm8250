@@ -549,7 +549,6 @@ static bool dsi_bridge_mode_fixup(struct drm_bridge *bridge,
 				dsi_mode.timing.refresh_rate,
 				dsi_mode.pixel_clk_khz,
 				dsi_mode.panel_mode);
-		}
 	}
 
 	/* Reject seamless transition when active changed */
@@ -940,8 +939,6 @@ int dsi_connector_get_modes(struct drm_connector *connector, void *data,
 	struct edid edid;
 	unsigned int width_mm = connector->display_info.width_mm;
 	unsigned int height_mm = connector->display_info.height_mm;
-	u32 width_mm = connector->display_info.width_mm;
-	u32 height_mm = connector->display_info.height_mm;
 
 	const u8 edid_buf[EDID_LENGTH] = {
 		0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x44, 0x6D,
