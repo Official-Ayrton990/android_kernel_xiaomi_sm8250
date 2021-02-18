@@ -1238,11 +1238,11 @@ static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
 {
 	struct qpnp_pon *pon = _pon;
+
 	dev_err(pon->dev, "Enter in kpdpwr irq !");
 
 	in_long_press = 1;
 
-	wake_up_process(pon->longpress_task);
 	pon->time_kpdpwr_bark = ktime_get();
 
 	return IRQ_HANDLED;
