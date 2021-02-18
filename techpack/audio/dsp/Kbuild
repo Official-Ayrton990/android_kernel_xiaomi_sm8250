@@ -237,6 +237,8 @@ ifneq (,$(filter $(TARGET_PRODUCT), picasso picassoin))
         CDEFINES += -DTFA_ADSP_SUPPORTED
 endif
 
+
+CDEFINES += -DTFA_ADSP_SUPPORTED
 KBUILD_CPPFLAGS += $(CDEFINES)
 
 # Currently, for versions of gcc which support it, the kernel Makefile

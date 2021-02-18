@@ -99,9 +99,8 @@ CDEFINES +=	-DANI_LITTLE_BYTE_ENDIAN \
 		-DDEBUG
 
 
-ifneq (,$(filter $(TARGET_PRODUCT), picasso picassoin))
 CDEFINES += -DTFA_NON_DSP_SOLUTION
-endif
+
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
