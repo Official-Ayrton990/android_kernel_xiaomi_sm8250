@@ -103,6 +103,7 @@ static inline int qpnp_pon_modem_pwr_off(enum pon_power_off_type type)
 	return -ENODEV;
 }
 
+#endif
 #ifdef CONFIG_MTD_BLOCK2MTD
 extern struct Scsi_Host *g_shost;
 extern void ufs_enter_h8_disable(struct Scsi_Host *shost);

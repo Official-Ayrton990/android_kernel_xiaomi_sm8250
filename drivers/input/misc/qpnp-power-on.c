@@ -20,6 +20,7 @@
 #include <linux/power_supply.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <uapi/linux/sched/types.h>
 #include <linux/spmi.h>
 #include <linux/input/qpnp-power-on.h>
 #include <linux/regulator/driver.h>
@@ -199,6 +200,7 @@ struct qpnp_pon {
 	struct list_head	list;
 	struct delayed_work	bark_work;
 	struct dentry		*debugfs;
+ 	struct task_struct	*longpress_task;
 	u16			base;
 	u8			subtype;
 	u8			pon_ver;
@@ -225,8 +227,10 @@ struct qpnp_pon {
 	bool			kpdpwr_dbc_enable;
 	bool			resin_pon_reset;
 	ktime_t			kpdpwr_last_release_time;
+	ktime_t			time_kpdpwr_bark;
 };
 
+int in_long_press;
 static int pon_ship_mode_en;
 module_param_named(
 	ship_mode_en, pon_ship_mode_en, int, 0600
@@ -1020,6 +1024,8 @@ static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 
 static irqreturn_t qpnp_kpdpwr_bark_irq(int irq, void *_pon)
 {
+	struct qpnp_pon *pon = _pon;
+	dev_err(pon->dev, "qpnp_kpdpwr_resin_bark_irq!\n");
 	return IRQ_HANDLED;
 }
 
@@ -1404,6 +1410,7 @@ static int qpnp_pon_config_kpdpwr_init(struct qpnp_pon *pon,
 	cfg->use_bark = of_property_read_bool(node, "qcom,use-bark");
 	if (cfg->use_bark) {
 		cfg->bark_irq = platform_get_irq_byname(pdev, "kpdpwr-bark");
+		pon->longpress_task = kthread_create(longpress_kthread, pon, "longpress");
 		if (cfg->bark_irq < 0) {
 			dev_err(pon->dev, "Unable to get kpdpwr-bark irq, rc=%d\n",
 				cfg->bark_irq);
