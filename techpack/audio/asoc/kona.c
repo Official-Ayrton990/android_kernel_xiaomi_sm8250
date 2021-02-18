@@ -5420,7 +5420,7 @@ static struct snd_soc_ops msm_mi2s_cs35l41_be_ops = {
 };
 #endif
 
-static int cs35l41_init(struct snd_soc_pcm_runtime *rtd)
+/*static int cs35l41_init(struct snd_soc_pcm_runtime *rtd)
 {
 #if 0
 	struct snd_soc_card *card = rtd->card;
@@ -5454,7 +5454,7 @@ static int cs35l41_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_sync(rcv_dapm);
 #endif
 	return 0;
-}
+}*/
 
 
 static struct snd_soc_ops msm_fe_qos_ops = {
@@ -7164,7 +7164,7 @@ static struct snd_soc_dai_link sec_mi2s_rx_tfa9874_be_dai_links[] = {
 	},
 };
 
-static struct snd_soc_dai_link sec_mi2s_rx_cs35l41_dai_links[] = {
+/*static struct snd_soc_dai_link sec_mi2s_rx_cs35l41_dai_links[] = {
 	{
 		.name = LPASS_BE_SEC_MI2S_RX,
 		.stream_name = "Secondary MI2S Playback",
@@ -7181,7 +7181,7 @@ static struct snd_soc_dai_link sec_mi2s_rx_cs35l41_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		.init = &cs35l41_init,
 	},
-};
+};*/
 
 static struct snd_soc_dai_link msm_auxpcm_be_dai_links[] = {
 	/* Primary AUX PCM Backend DAI Links */
@@ -7577,7 +7577,6 @@ static struct snd_soc_dai_link msm_kona_dai_links[
 			ARRAY_SIZE(msm_common_be_dai_links) +
 			ARRAY_SIZE(msm_mi2s_be_dai_links) +
 			ARRAY_SIZE(sec_mi2s_rx_tfa9874_be_dai_links) +
-			ARRAY_SIZE(sec_mi2s_rx_cs35l41_dai_links) +
 			ARRAY_SIZE(msm_auxpcm_be_dai_links) +
 			ARRAY_SIZE(msm_wsa_cdc_dma_be_dai_links) +
 			ARRAY_SIZE(msm_rx_tx_cdc_dma_be_dai_links) +
@@ -7878,23 +7877,11 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 				total_links +=
 					ARRAY_SIZE(msm_mi2s_be_dai_links);
 
-				if (get_hw_version_platform() == HARDWARE_PLATFORM_PICASSO) {
+				if (get_hw_version_platform() == HARDWARE_PLATFORM_LMI) {
 					memcpy(msm_kona_dai_links + total_links,
 						sec_mi2s_rx_tfa9874_be_dai_links,
 						sizeof(sec_mi2s_rx_tfa9874_be_dai_links));
 					total_links += ARRAY_SIZE(sec_mi2s_rx_tfa9874_be_dai_links);
-				}
-				if (get_hw_version_platform() == HARDWARE_PLATFORM_MONET) {
-				    memcpy(msm_kona_dai_links + total_links,
-					    sec_mi2s_rx_cs35l41_dai_links,
-					    sizeof(sec_mi2s_rx_cs35l41_dai_links));
-				    total_links += ARRAY_SIZE(sec_mi2s_rx_cs35l41_dai_links);
-				}
-				if (get_hw_version_platform() == HARDWARE_PLATFORM_VANGOGH) {
-				    memcpy(msm_kona_dai_links + total_links,
-					    sec_mi2s_rx_cs35l41_dai_links,
-					    sizeof(sec_mi2s_rx_cs35l41_dai_links));
-				    total_links += ARRAY_SIZE(sec_mi2s_rx_cs35l41_dai_links);
 				}
 
 
