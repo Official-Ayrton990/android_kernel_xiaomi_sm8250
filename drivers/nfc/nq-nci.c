@@ -1278,7 +1278,6 @@ static int nfcc_hw_check(struct i2c_client *client, struct nqx_dev *nqx_dev)
 
 		if (send_retry_count < MAX_RETRY_COUNT) {
 			send_retry_count  += 1;
-			goto reset_enable_gpio;
 		} else {
 			dev_warn(&client->dev,
 				"%s: - send core reset retry Max times, go on\n", __func__);
