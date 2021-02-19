@@ -2775,7 +2775,6 @@ static void ufs_qcom_dump_dbg_regs(struct ufs_hba *hba, bool no_sleep)
 		usleep_range(1000, 1100);
 	else
 		udelay(1000);
-	ufs_qcom_ice_print_regs(host);
 }
 
 static u32 ufs_qcom_get_user_cap_mode(struct ufs_hba *hba)
