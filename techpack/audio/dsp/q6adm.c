@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 #include <linux/module.h>
 #include <linux/slab.h>
@@ -516,17 +516,6 @@ int adm_programable_channel_mixer(int port_id, int copp_idx, int session_id,
 		pr_err("%s: Invalid port_id %#x\n", __func__, port_id);
 		return -EINVAL;
 	}
-
-	/*
-	 * check if PSPD is already configured
-	 * if it is configured already, return 0 without applying PSPD.
-	 */
-	if (atomic_read(&this_adm.copp.cnt[port_idx][copp_idx]) > 1) {
-		pr_debug("%s: copp.cnt:%#x\n", __func__,
-			atomic_read(&this_adm.copp.cnt[port_idx][copp_idx]));
-		return 0;
-	}
-
 	/*
 	 * First 8 bytes are 4 bytes as rule number, 2 bytes as output
 	 * channel and 2 bytes as input channel.
@@ -927,6 +916,7 @@ int crus_adm_get_params(int port_id, int copp_idx, uint32_t module_id,
 			uint32_t params_length, uint32_t client_id)
 {
 	int ret = 0;
+#ifndef TFA_ADSP_SUPPORTED
 	struct param_hdr_v3 param_hdr;
 
 	pr_info("[CSPL] %s: Enter, port_id %d, copp_idx %d, len= %d\n",
@@ -947,6 +937,7 @@ int crus_adm_get_params(int port_id, int copp_idx, uint32_t module_id,
 	}
 
 done:
+#endif
 	pr_debug("%s: Exit, ret = %d\n", __func__, ret);
 
 	return ret;
@@ -1824,7 +1815,7 @@ static int32_t adm_callback(struct apr_client_data *data, void *priv)
 				pr_debug("%s:usb port need be closed\n", __func__);
 				close_usb = true;
 			}
-			if (close_usb && (IDX_AFE_PORT_ID_USB_RX != port_idx)) {
+			if (close_usb && (IDX_AFE_PORT_ID_TERTIARY_MI2S_RX == port_idx)) {
 				pr_debug("%s: enable usb port\n", __func__);
 				is_usb_timeout = false;
 			}
@@ -2243,8 +2234,7 @@ static struct cal_block_data *adm_find_cal_by_path(int cal_index, int path)
 
 		if (cal_index == ADM_AUDPROC_CAL ||
 		    cal_index == ADM_LSM_AUDPROC_CAL ||
-		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL ||
-		    cal_index == ADM_AUDPROC_PERSISTENT_CAL) {
+		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL) {
 			audproc_cal_info = cal_block->cal_info;
 			if ((audproc_cal_info->path == path) &&
 			    (cal_block->cal_data.size > 0))
@@ -2282,8 +2272,7 @@ static struct cal_block_data *adm_find_cal_by_app_type(int cal_index, int path,
 
 		if (cal_index == ADM_AUDPROC_CAL ||
 		    cal_index == ADM_LSM_AUDPROC_CAL ||
-		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL ||
-		    cal_index == ADM_AUDPROC_PERSISTENT_CAL) {
+		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL) {
 			audproc_cal_info = cal_block->cal_info;
 			if ((audproc_cal_info->path == path) &&
 			    (audproc_cal_info->app_type == app_type) &&
@@ -2324,8 +2313,7 @@ static struct cal_block_data *adm_find_cal(int cal_index, int path,
 
 		if (cal_index == ADM_AUDPROC_CAL ||
 		    cal_index == ADM_LSM_AUDPROC_CAL ||
-		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL||
-		    cal_index == ADM_AUDPROC_PERSISTENT_CAL) {
+		    cal_index == ADM_LSM_AUDPROC_PERSISTENT_CAL) {
 			audproc_cal_info = cal_block->cal_info;
 			if ((audproc_cal_info->path == path) &&
 			    (audproc_cal_info->app_type == app_type) &&
@@ -2416,9 +2404,6 @@ static void send_adm_cal(int port_id, int copp_idx, int path, int perf_mode,
 	if (passthr_mode != LISTEN) {
 		send_adm_cal_type(ADM_AUDPROC_CAL, path, port_id, copp_idx,
 				perf_mode, app_type, acdb_id, sample_rate);
-		send_adm_cal_type(ADM_AUDPROC_PERSISTENT_CAL, path,
-				  port_id, copp_idx, perf_mode, app_type,
-				  acdb_id, sample_rate);
 	} else {
 		send_adm_cal_type(ADM_LSM_AUDPROC_CAL, path, port_id, copp_idx,
 				  perf_mode, app_type, acdb_id, sample_rate);
@@ -3086,7 +3071,7 @@ exit:
  */
 int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	     int perf_mode, uint16_t bit_width, int app_type, int acdb_id,
-	     int session_type, uint32_t passthr_mode)
+	     int session_type)
 {
 	struct adm_cmd_device_open_v5	open;
 	struct adm_cmd_device_open_v6	open_v6;
@@ -3103,10 +3088,9 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	int param_size;
 	int num_ec_ref_rx_chans = this_adm.num_ec_ref_rx_chans;
 
-	pr_err("%s:port %#x path:%d rate:%d channel_mode:%d perf_mode:%d topology 0x%x bit_width %d \
-		app_type %d acdb_id %d session_type %d passthr_mode %d \n",
-			__func__, port_id, path, rate, channel_mode, perf_mode,
-				topology, bit_width, app_type, acdb_id, session_type, passthr_mode);
+	pr_debug("%s:port %#x path:%d rate:%d mode:%d perf_mode:%d,topo_id %d\n",
+		 __func__, port_id, path, rate, channel_mode, perf_mode,
+		 topology);
 
 	port_id = q6audio_convert_virtual_to_portid(port_id);
 	port_idx = adm_validate_and_get_port_index(port_id);
@@ -3184,9 +3168,7 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 	}
 
 	if (topology == VPM_TX_VOICE_SMECNS_V2_COPP_TOPOLOGY ||
-	        topology == VPM_TX_VOICE_FLUENCE_SM_COPP_TOPOLOGY ||
-		topology == ADM_TOPOLOGY_ID_AUDIO_RX_FVSAM ||
-		topology == ADM_TOPOLOGY_ID_AUDIO_RX_MISE) {
+		topology == ADM_TOPOLOGY_ID_AUDIO_RX_FVSAM) {
 		pr_debug("%s: set channel_mode as 1 for topology=%d\n", __func__, topology);
 		channel_mode = 1;
 	}
@@ -3311,9 +3293,7 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 			}
 
 			open_v8.topology_id = topology;
-			open_v8.compressed_data_type = 0;
-			if (passthr_mode == COMPRESSED_PASSTHROUGH_DSD)
-				open_v8.compressed_data_type = 1;
+			open_v8.reserved = 0;
 
 			/* variable endpoint payload */
 			ep1_payload.dev_num_channel = channel_mode & 0x00FF;
@@ -3386,6 +3366,7 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 			if ((this_adm.num_ec_ref_rx_chans != 0)
 				&& (path != ADM_PATH_PLAYBACK)
 				&& (open_v8.endpoint_id_2 != 0xFFFF)) {
+				this_adm.num_ec_ref_rx_chans = 0;
 				memcpy(adm_params + sizeof(open_v8)
 						+ ep1_payload_size,
 						(void *)&ep2_payload,
@@ -3929,7 +3910,7 @@ int adm_close(int port_id, int perf_mode, int copp_idx)
 	int usb_copp_idx = 0;
 	struct apr_hdr usb_close;
 
-	pr_err("%s: port_id=0x%x perf_mode: %d copp_idx: %d\n", __func__,
+	pr_debug("%s: port_id=0x%x perf_mode: %d copp_idx: %d\n", __func__,
 		 port_id, perf_mode, copp_idx);
 
 	port_id = q6audio_convert_virtual_to_portid(port_id);
@@ -4304,9 +4285,6 @@ static int get_cal_type_index(int32_t cal_type)
 	case ADM_LSM_AUDPROC_PERSISTENT_CAL_TYPE:
 		ret = ADM_LSM_AUDPROC_PERSISTENT_CAL;
 		break;
-	case ADM_AUDPROC_PERSISTENT_CAL_TYPE:
-		ret = ADM_AUDPROC_PERSISTENT_CAL;
-		break;
 	default:
 		pr_err("%s: invalid cal type %d!\n", __func__, cal_type);
 	}
@@ -4534,12 +4512,6 @@ static int adm_init_cal_data(void)
 		  adm_set_cal, NULL, NULL} },
 		 {adm_map_cal_data, adm_unmap_cal_data,
 		  cal_utils_match_buf_num} },
-
-		{{ADM_AUDPROC_PERSISTENT_CAL_TYPE,
-		 {adm_alloc_cal, adm_dealloc_cal, NULL,
-		  adm_set_cal, NULL, NULL} },
-		 {adm_map_cal_data, adm_unmap_cal_data,
-		  cal_utils_match_buf_num} },
 	};
 	pr_debug("%s:\n", __func__);
 
@@ -4757,49 +4729,6 @@ int adm_set_ffecns_effect(int effect)
 	return rc;
 }
 EXPORT_SYMBOL(adm_set_ffecns_effect);
-
-/**
- * adm_set_ffecns_freeze_event -
- *      command to set event for ffecns module
- *
- * @event: send ffecns freeze event true or false
- *
- * Returns 0 on success or error on failure
- */
-int adm_set_ffecns_freeze_event(bool ffecns_freeze_event)
-{
-	struct ffv_spf_freeze_param_t ffv_param;
-	struct param_hdr_v3 param_hdr;
-	int rc = 0;
-	int copp_idx = 0;
-
-	memset(&param_hdr, 0, sizeof(param_hdr));
-	memset(&ffv_param, 0, sizeof(ffv_param));
-
-	ffv_param.freeze = ffecns_freeze_event ? 1 : 0;
-	ffv_param.source_id = 0; /*default value*/
-
-	copp_idx = adm_get_default_copp_idx(this_adm.ffecns_port_id);
-	if ((copp_idx < 0) || (copp_idx >= MAX_COPPS_PER_PORT)) {
-		pr_err("%s, no active copp to query rms copp_idx:%d\n",
-			__func__, copp_idx);
-		return -EINVAL;
-	}
-
-	param_hdr.module_id = FFECNS_MODULE_ID;
-	param_hdr.instance_id = INSTANCE_ID_0;
-	param_hdr.param_id = PARAM_ID_FFV_SPF_FREEZE;
-	param_hdr.param_size = sizeof(ffv_param);
-
-	rc = adm_pack_and_set_one_pp_param(this_adm.ffecns_port_id, copp_idx,
-					param_hdr, (uint8_t *) &ffv_param);
-	if (rc)
-		pr_err("%s: Failed to set ffecns imc event, err %d\n",
-		       __func__, rc);
-
-	return rc;
-}
-EXPORT_SYMBOL(adm_set_ffecns_freeze_event);
 
 /**
  * adm_param_enable -
@@ -5101,15 +5030,7 @@ int adm_store_cal_data(int port_id, int copp_idx, int path, int perf_mode,
 			rc = -ENOMEM;
 			goto unlock;
 		}
-	} else if (cal_index == ADM_AUDPROC_PERSISTENT_CAL) {
-		if (cal_block->cal_data.size > AUD_PROC_PERSIST_BLOCK_SIZE) {
-			pr_err("%s:persist invalid size exp/actual[%zd, %d]\n",
-				__func__, cal_block->cal_data.size, *size);
-			rc = -ENOMEM;
-			goto unlock;
-		}
-	}
-	else if (cal_index == ADM_AUDVOL_CAL) {
+	} else if (cal_index == ADM_AUDVOL_CAL) {
 		if (cal_block->cal_data.size > AUD_VOL_BLOCK_SIZE) {
 			pr_err("%s:aud_vol:invalid size exp/actual[%zd, %d]\n",
 				__func__, cal_block->cal_data.size, *size);
@@ -5522,7 +5443,7 @@ int adm_get_source_tracking(int port_id, int copp_idx,
 	 */
 	param_hdr.param_size =
 		sizeof(struct adm_param_fluence_sourcetracking_t) +
-		sizeof(struct param_hdr_v3);
+		sizeof(union param_hdrs);
 
 	/*
 	 * Retrieving parameters out of band, so no need to provide a buffer for
@@ -5551,7 +5472,7 @@ int adm_get_source_tracking(int port_id, int copp_idx,
 	source_tracking_params =
 		(struct adm_param_fluence_sourcetracking_t
 			 *) (this_adm.sourceTrackingData.memmap.kvaddr +
-			     sizeof(struct param_hdr_v3));
+			     sizeof(struct param_hdr_v1));
 	for (i = 0; i < MAX_SECTORS; i++) {
 		sourceTrackingData->vad[i] = source_tracking_params->vad[i];
 		pr_debug("%s: vad[%d] = %d\n",

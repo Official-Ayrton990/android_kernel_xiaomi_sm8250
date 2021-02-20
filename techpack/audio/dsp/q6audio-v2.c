@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #include <linux/slab.h>
@@ -47,7 +47,6 @@ int q6audio_get_port_index(u16 port_id)
 	case MI2S_RX: return IDX_MI2S_RX;
 	case MI2S_TX: return IDX_MI2S_TX;
 	case HDMI_RX: return IDX_HDMI_RX;
-	case HDMI_RX_MS: return IDX_HDMI_RX_MS;
 	case DISPLAY_PORT_RX: return IDX_DISPLAY_PORT_RX;
 	case AFE_PORT_ID_PRIMARY_SPDIF_RX: return IDX_PRIMARY_SPDIF_RX;
 	case AFE_PORT_ID_PRIMARY_SPDIF_TX: return IDX_PRIMARY_SPDIF_TX;
@@ -389,10 +388,6 @@ int q6audio_get_port_index(u16 port_id)
 		return IDX_AFE_PORT_ID_RX_CODEC_DMA_RX_7;
 	case AFE_PORT_ID_PSEUDOPORT_01:
 		return IDX_AFE_PORT_ID_PSEUDOPORT_01;
-	case RT_PROXY_PORT_002_RX:
-		return IDX_RT_PROXY_PORT_002_RX;
-	case RT_PROXY_PORT_002_TX:
-		return IDX_RT_PROXY_PORT_002_TX;
 	default: return -EINVAL;
 	}
 }
@@ -431,8 +426,6 @@ int q6audio_get_port_id(u16 port_id)
 	case MI2S_RX: return AFE_PORT_ID_PRIMARY_MI2S_RX;
 	case MI2S_TX: return AFE_PORT_ID_PRIMARY_MI2S_TX;
 	case HDMI_RX: return AFE_PORT_ID_MULTICHAN_HDMI_RX;
-	case HDMI_RX_MS:
-		return AFE_PORT_ID_HDMI_MS;
 	case DISPLAY_PORT_RX:
 			return AFE_PORT_ID_HDMI_OVER_DP_RX;
 	case AFE_PORT_ID_PRIMARY_SPDIF_RX:
@@ -777,10 +770,6 @@ int q6audio_get_port_id(u16 port_id)
 		return AFE_PORT_ID_RX_CODEC_DMA_RX_6;
 	case AFE_PORT_ID_RX_CODEC_DMA_RX_7:
 		return AFE_PORT_ID_RX_CODEC_DMA_RX_7;
-	case RT_PROXY_PORT_002_RX:
-		return RT_PROXY_PORT_002_RX;
-	case RT_PROXY_PORT_002_TX:
-		return RT_PROXY_PORT_002_TX;
 	default:
 		pr_warn("%s: Invalid port_id %d\n", __func__, port_id);
 		return -EINVAL;
@@ -1022,7 +1011,6 @@ int q6audio_validate_port(u16 port_id)
 	case MI2S_RX:
 	case MI2S_TX:
 	case HDMI_RX:
-	case HDMI_RX_MS:
 	case DISPLAY_PORT_RX:
 	case RSVD_2:
 	case RSVD_3:
@@ -1212,8 +1200,6 @@ int q6audio_validate_port(u16 port_id)
 	case AFE_PORT_ID_RX_CODEC_DMA_RX_6:
 	case AFE_PORT_ID_RX_CODEC_DMA_RX_7:
 	case AFE_PORT_ID_PSEUDOPORT_01:
-	case RT_PROXY_PORT_002_RX:
-	case RT_PROXY_PORT_002_TX:
 	{
 		ret = 0;
 		break;

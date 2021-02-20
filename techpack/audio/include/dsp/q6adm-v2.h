@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 #ifndef __Q6_ADM_V2_H__
 #define __Q6_ADM_V2_H__
@@ -36,7 +36,6 @@ enum {
 	ADM_SRS_TRUMEDIA,
 	ADM_RTAC_AUDVOL_CAL,
 	ADM_LSM_AUDPROC_PERSISTENT_CAL,
-	ADM_AUDPROC_PERSISTENT_CAL,
 	ADM_MAX_CAL_TYPES
 };
 
@@ -87,11 +86,6 @@ struct msm_pcm_channel_mixer {
 	bool override_out_ch_map;
 };
 
-struct ffv_spf_freeze_param_t {
-	uint16_t freeze;
-	uint16_t source_id;
-};
-
 int srs_trumedia_open(int port_id, int copp_idx, __s32 srs_tech_id,
 		      void *srs_params);
 
@@ -120,8 +114,7 @@ int adm_pack_and_set_one_pp_param(int port_id, int copp_idx,
 
 int adm_open(int port, int path, int rate, int mode, int topology,
 			   int perf_mode, uint16_t bits_per_sample,
-			   int app_type, int acdbdev_id, int session_type,
-			   uint32_t pass_thr);
+			   int app_type, int acdbdev_id, int session_type);
 
 int adm_map_rtac_block(struct rtac_cal_block_data *cal_block);
 
@@ -229,7 +222,6 @@ int adm_programable_channel_mixer(int port_id, int copp_idx, int session_id,
 void msm_dts_srs_acquire_lock(void);
 void msm_dts_srs_release_lock(void);
 void adm_set_native_mode(int mode);
-int adm_set_ffecns_freeze_event(bool ffecns_freeze_event);
 int crus_adm_set_params(int port_id, int copp_idx, uint32_t module_id,
 			 uint32_t param_id, char *params,
 			 uint32_t params_length);

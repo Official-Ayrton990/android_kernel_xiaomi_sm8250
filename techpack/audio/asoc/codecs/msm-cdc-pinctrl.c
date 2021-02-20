@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -21,7 +21,6 @@ struct msm_cdc_pinctrl_info {
 	struct pinctrl *pinctrl;
 	struct pinctrl_state *pinctrl_active;
 	struct pinctrl_state *pinctrl_sleep;
-	struct pinctrl_state *pinctrl_alt_active;
 	int gpio;
 	bool state;
 	u32 tlmm_gpio[MAX_GPIOS];
@@ -104,31 +103,6 @@ int msm_cdc_pinctrl_select_sleep_state(struct device_node *np)
 				    gpio_data->pinctrl_sleep);
 }
 EXPORT_SYMBOL(msm_cdc_pinctrl_select_sleep_state);
-
-/*
- * msm_cdc_pinctrl_select_alt_active_state: select pinctrl alt_active state
- * @np: pointer to struct device_node
- *
- * Returns error code for failure
- */
-int msm_cdc_pinctrl_select_alt_active_state(struct device_node *np)
-{
-	struct msm_cdc_pinctrl_info *gpio_data;
-
-	gpio_data = msm_cdc_pinctrl_get_gpiodata(np);
-	if (!gpio_data)
-		return -EINVAL;
-
-	if (!gpio_data->pinctrl_alt_active) {
-		pr_err("%s: pinctrl alt_active state is null\n", __func__);
-		return -EINVAL;
-	}
-	gpio_data->state = true;
-
-	return pinctrl_select_state(gpio_data->pinctrl,
-				    gpio_data->pinctrl_alt_active);
-}
-EXPORT_SYMBOL(msm_cdc_pinctrl_select_alt_active_state);
 
 /*
  * msm_cdc_pinctrl_select_active_state: select pinctrl active state
@@ -257,14 +231,6 @@ static int msm_cdc_pinctrl_probe(struct platform_device *pdev)
 		ret = PTR_ERR(gpio_data->pinctrl_sleep);
 		goto err_lookup_state;
 	}
-
-	gpio_data->pinctrl_alt_active = pinctrl_lookup_state(
-					gpio_data->pinctrl, "aud_alt_active");
-	if (IS_ERR_OR_NULL(gpio_data->pinctrl_alt_active)) {
-		dev_dbg(&pdev->dev, "%s: Cannot get aud_alt_active pinctrl state:%ld\n",
-			__func__, PTR_ERR(gpio_data->pinctrl_alt_active));
-	}
-
 	/* skip setting to sleep state for LPI_TLMM GPIOs */
 	if (!of_property_read_bool(pdev->dev.of_node, "qcom,lpi-gpios")) {
 		/* Set pinctrl state to aud_sleep by default */
@@ -293,7 +259,7 @@ static int msm_cdc_pinctrl_probe(struct platform_device *pdev)
 			gpio_data->chip_wakeup_register[i] =
 				devm_ioremap(&pdev->dev, chip_wakeup_reg[i], 0x4);
 		}
-		if (!of_property_read_u32_array(pdev->dev.of_node,
+		if (of_property_read_u32_array(pdev->dev.of_node,
 					"qcom,chip-wakeup-default-val",
 					chip_wakeup_default_val, count)) {
 			for (i = 0; i < count; i++) {

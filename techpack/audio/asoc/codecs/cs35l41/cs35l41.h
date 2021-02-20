@@ -2,7 +2,7 @@
  * cs35l41.h -- CS35L41 ALSA SoC audio driver
  *
  * Copyright 2018 Cirrus Logic, Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (C) 2020 XiaoMi, Inc.
  *
  * Author: Brian Austin <brian.austin@cirrus.com>
  *         David Rhodes <david.rhodes@cirrus.com>
@@ -639,8 +639,6 @@
 #define CS35L41_PLL_CLK_EN_SHIFT	4
 #define CS35L41_PLL_OPENLOOP_MASK	0x0800
 #define CS35L41_PLL_OPENLOOP_SHIFT	11
-#define CS35L41_PLL_FORCE_EN_MASK	0x10000
-#define CS35L41_PLL_FORCE_EN_SHIFT	16
 #define CS35L41_PLLSRC_SCLK		0
 #define CS35L41_PLLSRC_LRCLK		1
 #define CS35L41_PLLSRC_SELF		3
@@ -754,9 +752,6 @@ extern const struct cs35l41_otp_map_element_t
 /* Driver update following reg */
 #define CS35L41_CSPL_MBOX_CMD_DRV		CS35L41_DSP_VIRT1_MBOX_1
 #define CS35L41_CSPL_MBOX_CMD_DRV_SHIFT		CS35L41_DSP_VIRT1_MBOX_SHIFT
-
-#define CS35L41_AMP_MUTE_SHIFT			4
-#define CS35L41_DC_CURRENT_THRESHOLD		3
 
 enum cs35l41_cspl_mboxstate {
 	CSPL_MBOX_STS_RUNNING = 0,

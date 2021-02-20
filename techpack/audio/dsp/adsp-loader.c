@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2012-2014, 2017-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2012-2014, 2017-2019, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/init.h>
@@ -325,17 +324,15 @@ static int adsp_loader_probe(struct platform_device *pdev)
 {
 	struct adsp_loader_private *priv = NULL;
 	struct nvmem_cell *cell;
-	size_t len;
+	ssize_t len;
 	u32 *buf;
 	const char **adsp_fw_name_array = NULL;
 	int adsp_fw_cnt;
 	u32* adsp_fw_bit_values = NULL;
 	int i;
 	int fw_name_size;
-	u32 adsp_var_idx = 0;
+	u32 adsp_var_idx;
 	int ret = 0;
-	u32 adsp_fuse_not_supported = 0;
-	const char *adsp_fw_name;
 
 	ret = adsp_loader_init_sysfs(pdev);
 	if (ret != 0) {
@@ -347,44 +344,7 @@ static int adsp_loader_probe(struct platform_device *pdev)
 	/* get adsp variant idx */
 	cell = nvmem_cell_get(&pdev->dev, "adsp_variant");
 	if (IS_ERR_OR_NULL(cell)) {
-		dev_dbg(&pdev->dev, "%s: FAILED to get nvmem cell \n",
-			__func__);
-
-		/*
-		 * When ADSP variant read from fuse register is not
-		 * supported, check if image with different fw image
-		 * name needs to be loaded
-		 */
-		ret = of_property_read_u32(pdev->dev.of_node,
-					  "adsp-fuse-not-supported",
-					  &adsp_fuse_not_supported);
-		if (ret) {
-			dev_dbg(&pdev->dev,
-				"%s: adsp_fuse_not_supported prop not found %d\n",
-				__func__, ret);
-			goto wqueue;
-		}
-
-		if (adsp_fuse_not_supported) {
-			/* Read ADSP firmware image name */
-			ret = of_property_read_string(pdev->dev.of_node,
-						"adsp-fw-name",
-						 &adsp_fw_name);
-			if (ret < 0) {
-				dev_dbg(&pdev->dev, "%s: unable to read fw-name\n",
-					__func__);
-				goto wqueue;
-			}
-
-			fw_name_size = strlen(adsp_fw_name) + 1;
-			priv->adsp_fw_name = devm_kzalloc(&pdev->dev,
-						fw_name_size,
-						GFP_KERNEL);
-			if (!priv->adsp_fw_name)
-				goto wqueue;
-			strlcpy(priv->adsp_fw_name, adsp_fw_name,
-				fw_name_size);
-		}
+		dev_dbg(&pdev->dev, "%s: FAILED to get nvmem cell \n", __func__);
 		goto wqueue;
 	}
 	buf = nvmem_cell_read(cell, &len);
@@ -393,13 +353,7 @@ static int adsp_loader_probe(struct platform_device *pdev)
 		dev_dbg(&pdev->dev, "%s: FAILED to read nvmem cell \n", __func__);
 		goto wqueue;
 	}
-	if (len <= 0 || len > sizeof(u32)) {
-		dev_dbg(&pdev->dev, "%s: nvmem cell length out of range: %zu\n",
-			__func__, len);
-		kfree(buf);
-		goto wqueue;
-	}
-	memcpy(&adsp_var_idx, buf, len);
+	adsp_var_idx = (*buf);
 	kfree(buf);
 
 	/* Get count of fw images */
