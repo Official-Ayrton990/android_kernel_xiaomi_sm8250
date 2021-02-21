@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  */
 
 
@@ -1008,11 +1007,6 @@ static int msm_pcm_capture_copy(struct snd_pcm_substream *substream,
 			xfer = size;
 		offset = prtd->in_frame_info[idx].offset;
 		pr_debug("Offset value = %d\n", offset);
-		if (size == 0 || size < fbytes) {
-			memset(bufptr + offset + size, 0, fbytes - size);
-			size = xfer = fbytes;
-		}
-
 		if (copy_to_user(buf, bufptr+offset, xfer)) {
 			pr_err("Failed to copy buf to user\n");
 			ret = -EFAULT;
@@ -1331,12 +1325,7 @@ static int msm_pcm_adsp_stream_cmd_put(struct snd_kcontrol *kcontrol,
 		ret = -EINVAL;
 		goto done;
 	}
-	if (substream->ref_count <= 0) {
-		pr_err_ratelimited("%s substream ref_count:%d invalid\n",
-				__func__, substream->ref_count);
-		ret = -EINVAL;
-		goto done;
-	}
+
 	prtd = substream->runtime->private_data;
 	if (prtd == NULL) {
 		pr_err("%s prtd is null.\n", __func__);
@@ -1525,23 +1514,13 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 {
 	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
 	struct msm_plat_data *pdata = NULL;
-	struct snd_pcm_substream *substream = NULL;
+	struct snd_pcm_substream *substream =
+		vol->pcm->streams[vol->stream].substream;
 	struct snd_soc_pcm_runtime *soc_prtd = NULL;
 	struct snd_soc_component *component = NULL;
 	struct msm_audio *prtd;
 
 	pr_debug("%s\n", __func__);
-	if (!vol) {
-		pr_err("%s: vol is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	if (!vol->pcm) {
-		pr_err("%s: vol->pcm is NULL\n", __func__);
-		return -ENODEV;
-	}
-
-	substream = vol->pcm->streams[vol->stream].substream;
 	if (!substream) {
 		pr_err("%s substream not found\n", __func__);
 		return -ENODEV;
@@ -1566,11 +1545,9 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 	}
 
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd)
-			ucontrol->value.integer.value[0] = prtd->volume;
-	}
+	prtd = substream->runtime->private_data;
+	if (prtd)
+		ucontrol->value.integer.value[0] = prtd->volume;
 	mutex_unlock(&pdata->lock);
 	return 0;
 }
@@ -1614,12 +1591,10 @@ static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
 	}
 
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd) {
-			rc = msm_pcm_set_volume(prtd, volume);
-			prtd->volume = volume;
-		}
+	prtd = substream->runtime->private_data;
+	if (prtd) {
+		rc = msm_pcm_set_volume(prtd, volume);
+		prtd->volume = volume;
 	}
 	mutex_unlock(&pdata->lock);
 	return rc;
@@ -1680,11 +1655,9 @@ static int msm_pcm_compress_ctl_get(struct snd_kcontrol *kcontrol,
 		return 0;
 	}
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd)
-			ucontrol->value.integer.value[0] = prtd->compress_enable;
-	}
+	prtd = substream->runtime->private_data;
+	if (prtd)
+		ucontrol->value.integer.value[0] = prtd->compress_enable;
 	mutex_unlock(&pdata->lock);
 	return 0;
 }
@@ -1714,13 +1687,11 @@ static int msm_pcm_compress_ctl_put(struct snd_kcontrol *kcontrol,
 		return 0;
 	}
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (prtd) {
-			pr_debug("%s: setting compress flag to 0x%x\n",
-			__func__, compress);
-			prtd->compress_enable = compress;
-		}
+	prtd = substream->runtime->private_data;
+	if (prtd) {
+		pr_debug("%s: setting compress flag to 0x%x\n",
+		__func__, compress);
+		prtd->compress_enable = compress;
 	}
 	mutex_unlock(&pdata->lock);
 	return rc;
@@ -1830,12 +1801,6 @@ static int msm_pcm_chmap_ctl_put(struct snd_kcontrol *kcontrol,
 		return 0;
 
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count <= 0) {
-		pr_err_ratelimited("%s: substream ref_count:%d invalid\n",
-				__func__, substream->ref_count);
-		mutex_unlock(&pdata->lock);
-		return -EINVAL;
-	}
 	prtd = substream->runtime ? substream->runtime->private_data : NULL;
 	if (prtd) {
 		prtd->set_channel_map = true;
@@ -1903,12 +1868,6 @@ static int msm_pcm_chmap_ctl_get(struct snd_kcontrol *kcontrol,
 		return 0; /* no channels set */
 
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count <= 0) {
-		pr_err_ratelimited("%s: substream ref_count:%d invalid\n",
-				__func__, substream->ref_count);
-		mutex_unlock(&pdata->lock);
-		return -EINVAL;
-	}
 	prtd = substream->runtime ? substream->runtime->private_data : NULL;
 
 	if (prtd && prtd->set_channel_map == true) {
@@ -1966,7 +1925,7 @@ static int msm_pcm_playback_app_type_cfg_ctl_put(struct snd_kcontrol *kcontrol,
 	cfg_data.acdb_dev_id = ucontrol->value.integer.value[1];
 	if (ucontrol->value.integer.value[2] != 0)
 		cfg_data.sample_rate = ucontrol->value.integer.value[2];
-	pr_err("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
+	pr_debug("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
 		__func__, fe_id, session_type, be_id,
 		cfg_data.app_type, cfg_data.acdb_dev_id, cfg_data.sample_rate);
 	ret = msm_pcm_routing_reg_stream_app_type_cfg(fe_id, session_type,
@@ -2019,7 +1978,7 @@ static int msm_pcm_capture_app_type_cfg_ctl_put(struct snd_kcontrol *kcontrol,
 	cfg_data.acdb_dev_id = ucontrol->value.integer.value[1];
 	if (ucontrol->value.integer.value[2] != 0)
 		cfg_data.sample_rate = ucontrol->value.integer.value[2];
-	pr_err("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
+	pr_debug("%s: fe_id- %llu session_type- %d be_id- %d app_type- %d acdb_dev_id- %d sample_rate- %d\n",
 		__func__, fe_id, session_type, be_id,
 		cfg_data.app_type, cfg_data.acdb_dev_id, cfg_data.sample_rate);
 	ret = msm_pcm_routing_reg_stream_app_type_cfg(fe_id, session_type,
@@ -2191,12 +2150,6 @@ static int msm_pcm_channel_mixer_cfg_ctl_put(struct snd_kcontrol *kcontrol,
 	}
 
 	mutex_lock(&pdata->lock);
-	if (substream->ref_count <= 0) {
-		pr_err_ratelimited("%s: substream ref_count:%d invalid\n",
-				__func__, substream->ref_count);
-		mutex_unlock(&pdata->lock);
-		return -EINVAL;
-	}
 	prtd = substream->runtime ? substream->runtime->private_data : NULL;
 	if (chmixer_pspd->enable && prtd) {
 		if (session_type == SESSION_TYPE_RX &&

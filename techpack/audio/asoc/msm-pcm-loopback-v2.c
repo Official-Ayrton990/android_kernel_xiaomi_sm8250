@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+/* Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/init.h>
@@ -308,7 +307,6 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 			dev_err(component->dev,
 				"%s: pcm out open failed\n", __func__);
 			q6asm_audio_client_free(pcm->audio_client);
-			pcm->audio_client = NULL;
 			mutex_unlock(&pcm->lock);
 			return -ENOMEM;
 		}
@@ -348,10 +346,8 @@ static void stop_pcm(struct msm_pcm_loopback *pcm)
 	struct snd_soc_pcm_runtime *soc_pcm_rx;
 	struct snd_soc_pcm_runtime *soc_pcm_tx;
 
-	if (pcm->audio_client == NULL) {
-		pr_err("%s: audio client freed\n", __func__);
+	if (pcm->audio_client == NULL)
 		return;
-	}
 
 	mutex_lock(&loopback_session_lock);
 	q6asm_cmd(pcm->audio_client, CMD_CLOSE);
@@ -469,12 +465,6 @@ static int msm_pcm_prepare(struct snd_pcm_substream *substream)
 			pcm->capture_substream->private_data;
 		event.event_func = msm_pcm_route_event_handler;
 		event.priv_data = (void *) pcm;
-
-		if (!pcm->audio_client) {
-			mutex_unlock(&pcm->lock);
-			pr_err("%s: audio client freed\n", __func__);
-			return -EINVAL;
-		}
 		msm_pcm_routing_reg_phy_stream(soc_pcm_tx->dai_link->id,
 			pcm->audio_client->perf_mode,
 			pcm->session_id, pcm->capture_substream->stream);
@@ -552,15 +542,13 @@ static int msm_pcm_volume_ctl_put(struct snd_kcontrol *kcontrol,
 		goto exit;
 	}
 	mutex_lock(&loopback_session_lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (!prtd) {
-			rc = -ENODEV;
-			mutex_unlock(&loopback_session_lock);
-			goto exit;
-		}
-		rc = pcm_loopback_set_volume(prtd, volume);
+	prtd = substream->runtime->private_data;
+	if (!prtd) {
+		rc = -ENODEV;
+		mutex_unlock(&loopback_session_lock);
+		goto exit;
 	}
+	rc = pcm_loopback_set_volume(prtd, volume);
 	mutex_unlock(&loopback_session_lock);
 exit:
 	return rc;
@@ -571,30 +559,24 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
 {
 	int rc = 0;
 	struct snd_pcm_volume *vol = snd_kcontrol_chip(kcontrol);
-	struct snd_pcm_substream *substream = NULL;
+	struct snd_pcm_substream *substream =
+		vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
 	struct msm_pcm_loopback *prtd;
 
 	pr_debug("%s\n", __func__);
-	if (!vol) {
-		pr_err("%s: vol is NULL\n", __func__);
-		return -ENODEV;
-	}
-	substream = vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
 	if ((!substream) || (!substream->runtime)) {
 		pr_debug("%s substream or runtime not found\n", __func__);
 		rc = -ENODEV;
 		goto exit;
 	}
 	mutex_lock(&loopback_session_lock);
-	if (substream->ref_count > 0) {
-		prtd = substream->runtime->private_data;
-		if (!prtd) {
-			rc = -ENODEV;
-			mutex_unlock(&loopback_session_lock);
-			goto exit;
-		}
-		ucontrol->value.integer.value[0] = prtd->volume;
+	prtd = substream->runtime->private_data;
+	if (!prtd) {
+		rc = -ENODEV;
+		mutex_unlock(&loopback_session_lock);
+		goto exit;
 	}
+	ucontrol->value.integer.value[0] = prtd->volume;
 	mutex_unlock(&loopback_session_lock);
 exit:
 	return rc;
@@ -882,12 +864,6 @@ static int msm_pcm_channel_mixer_cfg_ctl_put(struct snd_kcontrol *kcontrol,
 			chmixer_pspd);
 
 	mutex_lock(&loopback_session_lock);
-	if (substream->ref_count <= 0) {
-		pr_err_ratelimited("%s: substream ref_count:%d invalid\n",
-				__func__, substream->ref_count);
-		mutex_unlock(&loopback_session_lock);
-		return -EINVAL;
-	}
 	if (chmixer_pspd->enable && substream->runtime) {
 		prtd = substream->runtime->private_data;
 		if (!prtd) {

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef _SWR_WCD_CTRL_H
@@ -27,7 +27,6 @@
 #define SWR_ROW_48		0
 #define SWR_ROW_50		1
 #define SWR_ROW_64		3
-#define SWR_COL_04		1 /* Cols = 4 */
 #define SWR_MAX_COL		7 /* Cols = 16 */
 #define SWR_MIN_COL		0 /* Cols = 2 */
 
@@ -44,7 +43,7 @@
 
 #define SWR_MAX_CH_PER_PORT 8
 
-#define SWRM_NUM_AUTO_ENUM_SLAVES    6
+#define SWR_MAX_SLAVE_DEVICES 11
 
 enum {
 	SWR_MSTR_PAUSE,
@@ -83,6 +82,7 @@ struct swrm_mports {
 	bool port_en;
 	u8 ch_en;
 	u8 req_ch;
+	u8 ch_rate;
 	u8 offset1;
 	u8 offset2;
 	u8 sinterval;
@@ -92,7 +92,6 @@ struct swrm_mports {
 	u8 blk_pack_mode;
 	u8 word_length;
 	u8 lane_ctrl;
-	u32 ch_rate;
 };
 
 struct swrm_port_type {
@@ -126,7 +125,6 @@ struct swr_mstr_ctrl {
 	struct mutex mlock;
 	struct mutex reslock;
 	struct mutex pm_lock;
-	struct mutex irq_lock;
 	u32 swrm_base_reg;
 	char __iomem *swrm_dig_base;
 	char __iomem *swrm_hctl_reg;
@@ -168,7 +166,6 @@ struct swr_mstr_ctrl {
 	u32 ipc_wakeup;
 	bool dev_up;
 	bool ipc_wakeup_triggered;
-	bool req_clk_switch;
 	struct pm_qos_request pm_qos_req;
 	enum swrm_pm_state pm_state;
 	wait_queue_head_t pm_wq;
@@ -182,10 +179,6 @@ struct swr_mstr_ctrl {
 	int hw_core_clk_en;
 	int aud_core_clk_en;
 	int clk_src;
-	u32 disable_div2_clk_switch;
-	u32 rd_fifo_depth;
-	u32 wr_fifo_depth;
-	bool enable_slave_irq;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_swrm_dent;
 	struct dentry *debugfs_peek;

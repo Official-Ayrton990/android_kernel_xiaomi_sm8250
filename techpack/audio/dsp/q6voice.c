@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 #include <linux/slab.h>
 #include <linux/kthread.h>
@@ -516,8 +516,6 @@ static void voc_set_error_state(uint16_t reset_proc)
 		if (v != NULL) {
 			v->voc_state = VOC_ERROR;
 			v->rec_info.recording = 0;
-			v->music_info.playing = 0;
-			v->music_info.force = 0;
 		}
 	}
 }
@@ -1276,6 +1274,7 @@ static int voice_unmap_cal_block(struct voice_data *v, int cal_index)
 		goto unlock;
 	}
 
+	mutex_lock(&common.common_lock);
 	result = voice_send_mvm_unmap_memory_physical_cmd(
 		v, cal_block->map_data.q6map_handle);
 	if (result)
@@ -1283,6 +1282,7 @@ static int voice_unmap_cal_block(struct voice_data *v, int cal_index)
 			__func__, v->session_id, result);
 
 	cal_block->map_data.q6map_handle = 0;
+	mutex_unlock(&common.common_lock);
 unlock:
 	mutex_unlock(&common.cal_data[cal_index]->lock);
 done:
@@ -7205,16 +7205,6 @@ int voc_enable_device(uint32_t session_id)
 			goto done;
 		}
 		v->voc_state = VOC_RUN;
-
-		if (v->lch_mode == 0) {
-			pr_debug("%s: dev_mute = %d, ramp_duration = %d ms\n",
-				__func__, v->dev_rx.dev_mute,
-				 v->dev_rx.dev_mute_ramp_duration_ms);
-			ret = voice_send_device_mute_cmd(v,
-					VSS_IVOLUME_DIRECTION_RX,
-					v->dev_rx.dev_mute,
-					v->dev_rx.dev_mute_ramp_duration_ms);
-		}
 	} else {
 		pr_debug("%s: called in voc state=%d, No_OP\n",
 			 __func__, v->voc_state);

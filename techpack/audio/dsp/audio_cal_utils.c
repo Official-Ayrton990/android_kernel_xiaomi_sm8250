@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2014-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2014-2019, The Linux Foundation. All rights reserved.
  */
 #include <linux/slab.h>
 #include <linux/fs.h>
@@ -58,7 +57,6 @@ size_t get_cal_info_size(int32_t cal_type)
 	case ADM_AUDPROC_CAL_TYPE:
 	case ADM_LSM_AUDPROC_CAL_TYPE:
 	case ADM_LSM_AUDPROC_PERSISTENT_CAL_TYPE:
-	case ADM_AUDPROC_PERSISTENT_CAL_TYPE:
 		size = sizeof(struct audio_cal_info_audproc);
 		break;
 	case ADM_AUDVOL_CAL_TYPE:
@@ -109,9 +107,6 @@ size_t get_cal_info_size(int32_t cal_type)
 		 */
 		size = max(sizeof(struct audio_cal_info_sp_ex_vi_ftm_cfg),
 			   sizeof(struct audio_cal_info_sp_ex_vi_param));
-		break;
-	case AFE_FB_SPKR_PROT_V4_EX_VI_CAL_TYPE:
-		size = sizeof(struct audio_cal_info_sp_v4_ex_vi_param);
 		break;
 	case AFE_ANC_CAL_TYPE:
 		size = 0;
@@ -216,7 +211,6 @@ size_t get_user_cal_type_size(int32_t cal_type)
 	case ADM_AUDPROC_CAL_TYPE:
 	case ADM_LSM_AUDPROC_CAL_TYPE:
 	case ADM_LSM_AUDPROC_PERSISTENT_CAL_TYPE:
-	case ADM_AUDPROC_PERSISTENT_CAL_TYPE:
 		size = sizeof(struct audio_cal_type_audproc);
 		break;
 	case ADM_AUDVOL_CAL_TYPE:
@@ -264,9 +258,6 @@ size_t get_user_cal_type_size(int32_t cal_type)
 		 */
 		size = max(sizeof(struct audio_cal_type_sp_ex_vi_ftm_cfg),
 			   sizeof(struct audio_cal_type_sp_ex_vi_param));
-		break;
-	case AFE_FB_SPKR_PROT_V4_EX_VI_CAL_TYPE:
-		size = sizeof(struct audio_cal_type_sp_v4_ex_vi_param);
 		break;
 	case AFE_ANC_CAL_TYPE:
 		size = 0;

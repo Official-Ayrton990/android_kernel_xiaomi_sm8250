@@ -2,7 +2,7 @@
  * cs35l41.c -- CS35l41 ALSA SoC audio driver
  *
  * Copyright 2018 Cirrus Logic, Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (C) 2020 XiaoMi, Inc.
  *
  * Author:	David Rhodes	<david.rhodes@cirrus.com>
  *		Brian Austin	<brian.austin@cirrus.com>
@@ -12,7 +12,7 @@
  * published by the Free Software Foundation.
  *
  */
-#define DEBUG
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/version.h>
@@ -45,7 +45,7 @@
 #include "wm_adsp.h"
 #include "cs35l41.h"
 #include <sound/cs35l41.h>
-#include "send_data_to_xlog.h"
+
 static const char * const cs35l41_supplies[] = {
 	"VA",
 	"VP",
@@ -208,11 +208,11 @@ static int cs35l41_halo_booted_put(struct snd_kcontrol *kcontrol,
 }
 
 static const char *cs35l41_fast_switch_text[] = {
-	"spk1_playback_delta.txt",
-	"spk1_voice_delta.txt",
-	"spk2_playback_delta.txt",
-	"spk2_voice_delta.txt",
-	"rcv_voice_delta.txt",
+	"fast_switch1.txt",
+	"fast_switch2.txt",
+	"fast_switch3.txt",
+	"fast_switch4.txt",
+	"fast_switch5.txt",
 };
 
 static int cs35l41_fast_switch_en_get(struct snd_kcontrol *kcontrol,
@@ -362,14 +362,21 @@ exit:
 static int cs35l41_fast_switch_en_put(struct snd_kcontrol *kcontrol,
 				      struct snd_ctl_elem_value *ucontrol)
 {
+	int			ret = 0;
 
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	struct cs35l41_private *cs35l41 = snd_soc_component_get_drvdata(component);
 
+	if (!cs35l41->fast_switch_en && ucontrol->value.integer.value[0])
+		/*
+		 * Rising on fast switch enable
+		 * Perform fast use case switching
+		 */
+		ret = cs35l41_do_fast_switch(cs35l41);
 
 	cs35l41->fast_switch_en = ucontrol->value.integer.value[0];
 
-	return 0;
+	return ret;
 }
 
 static int cs35l41_fast_switch_file_put(struct snd_kcontrol *kcontrol,
@@ -379,20 +386,12 @@ static int cs35l41_fast_switch_file_put(struct snd_kcontrol *kcontrol,
 	struct cs35l41_private *cs35l41 = snd_soc_component_get_drvdata(component);
 	struct soc_enum		*soc_enum;
 	unsigned int		i = ucontrol->value.enumerated.item[0];
-	int			ret = 0;
 
 	soc_enum = (struct soc_enum *)kcontrol->private_value;
 
 	if (i >= soc_enum->items) {
 		dev_err(cs35l41->dev, "Invalid mixer input (%u)\n", i);
 		return -EINVAL;
-	}
-	if ((i != cs35l41->fast_switch_file_idx) && cs35l41->fast_switch_en) {
-		cs35l41->fast_switch_file_idx = i;
-		ret = cs35l41_do_fast_switch(cs35l41);
-	} else {
-		dev_info(cs35l41->dev, "do not need switch to delta (%u),origin delta %d, fast_switch_en %d\n",
-			i, cs35l41->fast_switch_file_idx, cs35l41->fast_switch_en);
 	}
 
 	cs35l41->fast_switch_file_idx = i;
@@ -641,9 +640,6 @@ static const struct snd_kcontrol_new cs35l41_aud_controls[] = {
 			 0, 7, 0),
 	SOC_SINGLE_RANGE("ASPRX2 Slot Position", CS35L41_SP_FRAME_RX_SLOT, 8,
 			 0, 7, 0),
-	SOC_SINGLE("Boost Class-H Tracking Enable", CS35L41_BSTCVRT_VCTRL2, 0, 1, 0),
-	SOC_SINGLE("Boost Target Voltage", CS35L41_BSTCVRT_VCTRL1, 0, 0xAA, 0),
-	SOC_SINGLE("Class-H Head Room", CS35L41_CLASSH_CFG, 16, 0x7F, 0),
 	SOC_ENUM("PCM Soft Ramp", pcm_sft_ramp),
 	SOC_SINGLE_EXT("DSP Booted", SND_SOC_NOPM, 0, 1, 0,
 			cs35l41_halo_booted_get, cs35l41_halo_booted_put),
@@ -796,7 +792,6 @@ static irqreturn_t cs35l41_irq(int irq, void *data)
 	unsigned int status[4];
 	unsigned int masks[4];
 	unsigned int i;
-	char reason[] = "DSP";
 	dev_info(cs35l41->dev, "step into cs35l41 irq handler\n");
 
 	for (i = 0; i < ARRAY_SIZE(status); i++) {
@@ -913,19 +908,6 @@ static irqreturn_t cs35l41_irq(int irq, void *data)
 				CS35L41_OTP_BOOT_DONE, CS35L41_OTP_BOOT_DONE);
 	}
 
-	if (status[1] & (1 << CS35L41_DSP_VIRT2_MBOX_SHIFT)) {
-		regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK2,
-			     0xFFFFFFFF);
-		regmap_write(cs35l41->regmap, CS35L41_IRQ1_STATUS2,
-			     1 << CS35L41_DSP_VIRT2_MBOX_SHIFT);
-		//Analog mute PA if DC is detected
-		//regmap_write(cs35l41->regmap, CS35L41_AMP_OUT_MUTE,
-		//	     1 << CS35L41_AMP_MUTE_SHIFT);
-		cs35l41->dc_current_cnt++;
-		send_DC_data_to_xlog((int)cs35l41->dc_current_cnt, reason);
-		dev_crit(cs35l41->dev, "DC current detected");
-	}
-
 	return IRQ_HANDLED;
 }
 
@@ -945,7 +927,6 @@ static const struct reg_sequence cs35l41_pdn_patch[] = {
 	{0x00000040, 0x00000033},
 };
 
-
 static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 		struct snd_kcontrol *kcontrol, int event)
 {
@@ -957,8 +938,7 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 	int i;
 	bool pdn;
 	unsigned int val;
-	dev_info(cs35l41->dev, "%s: event = %d, DC counter = %d.\n",
-		__func__, event, cs35l41->dc_current_cnt);
+	pr_debug("++++>CSPL: %s, event = %d.\n", __func__, event);
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		regmap_multi_reg_write_bypassed(cs35l41->regmap,
@@ -995,20 +975,10 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 				break;
 			}
 			ret = cs35l41_set_csplmboxcmd(cs35l41, mboxcmd);
-			regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK2,
-				     ~(1 << CS35L41_DSP_VIRT2_MBOX_SHIFT));
 		}
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		if (cs35l41->dsp.running) {
-			regmap_write(cs35l41->regmap, CS35L41_IRQ1_MASK2,
-				     0xFFFFFFFF);
-			//Unmute PA if DC are less than 3 times, or keep muted state
-			//if (cs35l41->dc_current_cnt <
-			//    CS35L41_DC_CURRENT_THRESHOLD)
-			//	regmap_write(cs35l41->regmap,
-			//		     CS35L41_AMP_OUT_MUTE, 0);
-
 			if (cs35l41->reload_tuning) {
 				mboxcmd = CSPL_MBOX_CMD_STOP_PRE_REINIT;
 				/*
@@ -1021,9 +991,6 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 			}
 			ret = cs35l41_set_csplmboxcmd(cs35l41, mboxcmd);
 		}
-		regmap_update_bits(cs35l41->regmap,
-				CS35L41_PLL_CLK_CTRL,
-				CS35L41_PLL_FORCE_EN_MASK, 0);
 
 		regmap_update_bits(cs35l41->regmap, CS35L41_PWR_CTRL1,
 				CS35L41_GLOBAL_EN_MASK, 0);
@@ -1048,13 +1015,12 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 		regmap_multi_reg_write_bypassed(cs35l41->regmap,
 					cs35l41_pdn_patch,
 					ARRAY_SIZE(cs35l41_pdn_patch));
-		cs35l41->extclk_freq = 0;
 		break;
 	default:
 		dev_err(cs35l41->dev, "Invalid event = 0x%x\n", event);
 		ret = -EINVAL;
 	}
-
+	pr_debug("----CSPL: %s.\n", __func__);
 	return ret;
 }
 
@@ -1084,7 +1050,7 @@ static const struct snd_soc_dapm_widget cs35l41_dapm_widgets[] = {
 
 	SND_SOC_DAPM_OUT_DRV_E("Main AMP", CS35L41_PWR_CTRL2, 0, 0, NULL, 0,
 				cs35l41_main_amp_event,
-				SND_SOC_DAPM_POST_PMD | SND_SOC_DAPM_POST_PMU),
+				SND_SOC_DAPM_POST_PMD |	SND_SOC_DAPM_POST_PMU),
 
 	SND_SOC_DAPM_INPUT("VP"),
 	SND_SOC_DAPM_INPUT("VBST"),
@@ -1301,41 +1267,6 @@ static const struct cs35l41_global_fs_config cs35l41_fs_rates[] = {
 	{ 32000,	0x13 },
 };
 
-#define SPK_DAI_NAME "cs35l41.1-0040"
-#define RCV_DAI_NAME "cs35l41.1-0042"
-#define HANDSET_TUNING "rcv_voice_delta.txt"
-
-static int cs35l41_is_speaker_in_handset(struct snd_pcm_substream *substream,
-		struct snd_soc_dai *dai)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *rcv_dai = NULL;//rtd->codec_dais[1];
-	struct cs35l41_private *cs35l41 = NULL;
-	const char *fw_name = NULL;
-	int i = 0;
-
-	/* Only care about speaker ops*/
-	if (strcmp(dai->name, SPK_DAI_NAME))
-		return 0;
-
-	for (i = 0; i < rtd->num_codecs; i++) {
-		if(!strcmp(RCV_DAI_NAME, rtd->codec_dais[i]->name))
-			rcv_dai = rtd->codec_dais[i];
-	}
-
-	/* Check the tuning on RCV amp */
-	cs35l41 = snd_soc_component_get_drvdata(rcv_dai->component);
-	fw_name = cs35l41->fast_switch_names[cs35l41->fast_switch_file_idx];
-
-	if (!strcmp(fw_name, HANDSET_TUNING)) {
-		dev_info(cs35l41->dev, "%s: '%s'[%d] = '%s'\n",
-				__func__, rcv_dai->name,
-				cs35l41->fast_switch_file_idx, fw_name);
-		return 1;
-	}
-
-	return 0;
-}
 static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 				 struct snd_pcm_hw_params *params,
 				 struct snd_soc_dai *dai)
@@ -1345,17 +1276,8 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 	int i;
 	unsigned int rate = params_rate(params);
 	u8 asp_width, asp_wl;
-	int val = 0;
 
-	if(cs35l41_is_speaker_in_handset(substream, dai)) {
-		dev_info(cs35l41->dev, "%s: speaker amp"
-				" hw_parmas in handset mode\n", __func__);
-		return 0;
-	}
-
-	regmap_read(cs35l41->regmap, CS35L41_PLL_CLK_CTRL, &val);
-	dev_info(cs35l41->dev, "%s: Before 0x2c04 <= 0x%x\n",
-			__func__, val);
+	pr_debug("++++>CSPL: %s.\n", __func__);
 	for (i = 0; i < ARRAY_SIZE(cs35l41_fs_rates); i++) {
 		if (rate == cs35l41_fs_rates[i].rate)
 			break;
@@ -1368,9 +1290,6 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 	asp_width = params_physical_width(params);
 
 	cs35l41_component_set_sysclk(dai->component, 0, 0, 2 * rate * asp_width, 0);
-	regmap_read(cs35l41->regmap, CS35L41_PLL_CLK_CTRL, &val);
-	dev_info(cs35l41->dev, "%s: After 0x2c04 <= 0x%x\n",
-			__func__, val);
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_FORMAT,
@@ -1400,7 +1319,7 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 				asp_wl << CS35L41_ASP_TX_WL_SHIFT);
 	}
 
-
+	pr_debug("---->CSPL: %s.\n", __func__);
 	return 0;
 }
 
@@ -1436,8 +1355,7 @@ static int cs35l41_pcm_startup(struct snd_pcm_substream *substream,
 	pr_debug("++++>CSPL: %s.\n", __func__);
 
 	cs35l41_set_dai_fmt(dai, SND_SOC_DAIFMT_CBS_CFS|SND_SOC_DAIFMT_I2S);
-	
-    //cs35l41_codec_set_sysclk(codec, 0, 0, 1536000, 0);
+	//cs35l41_codec_set_sysclk(codec, 0, 0, 1536000, 0);
 #if 0
 	if (substream->runtime)
 		return snd_pcm_hw_constraint_list(substream->runtime, 0,
@@ -1454,15 +1372,11 @@ static int cs35l41_component_set_sysclk(struct snd_soc_component *component,
 	struct cs35l41_private *cs35l41 =
 				       snd_soc_component_get_drvdata(component);
 
+	int val = 0;
+	cs35l41->extclk_freq = freq;
 
-	if (cs35l41->extclk_freq) {
-		dev_info(cs35l41->dev, "%s: clock has beed configured, clk_id=%d, src=%d, freq=%d\n",
-			__func__, clk_id, source, freq);
-		return 0;
-	}
-
-	dev_info(cs35l41->dev, "%s: clk_id=%d, src=%d, freq=%d, dir=%d\n",
-			__func__, clk_id, source, freq, dir);
+	pr_debug("++++>CSPL: %s: clk_id = %d, src = %d, freq = %d, dir = %d.\n", __func__, clk_id, source, freq, dir);
+	dev_info(cs35l41->dev, "%s: clk_id=%d, src=%d, freq=%d\n", __func__, clk_id, source, freq);
 
 	switch (clk_id) {
 	case 0:
@@ -1510,13 +1424,10 @@ static int cs35l41_component_set_sysclk(struct snd_soc_component *component,
 	regmap_update_bits(cs35l41->regmap, CS35L41_PLL_CLK_CTRL,
 			CS35L41_PLL_CLK_EN_MASK,
 			1 << CS35L41_PLL_CLK_EN_SHIFT);
-	regmap_update_bits(cs35l41->regmap,
-			CS35L41_PLL_CLK_CTRL,
-			CS35L41_PLL_FORCE_EN_MASK,
-			1 << CS35L41_PLL_FORCE_EN_SHIFT);
 
-	cs35l41->extclk_freq = freq;
-
+	regmap_read(cs35l41->regmap, CS35L41_PLL_CLK_CTRL, &val);
+	dev_info(cs35l41->dev, "%s: 0x%x <== 0x%x\n",__func__, CS35L41_PLL_CLK_CTRL, val);
+	pr_debug("---->CSPL: %s.\n", __func__);
 
 	return 0;
 }
@@ -1814,18 +1725,10 @@ static int cs35l41_component_probe(struct snd_soc_component *component)
 					CS35L41_CH_WKFET_THLD_MASK,
 					classh->classh_wk_fet_thld <<
 					CS35L41_CH_WKFET_THLD_SHIFT);
-		regmap_update_bits(cs35l41->regmap,
-				CS35L41_PLL_CLK_CTRL,
-				CS35L41_PLL_FORCE_EN_MASK,
-				1 << CS35L41_PLL_FORCE_EN_SHIFT);
 	}
 
 	wm_adsp2_component_probe(&cs35l41->dsp, component);
-#if defined(CONFIG_TARGET_PRODUCT_MONET) || defined(CONFIG_TARGET_PRODUCT_VANGOGH)
-        if (0 == cs35l41->pdata.right_channel) {
-#else
 	if (cs35l41->pdata.right_channel) {
-#endif
 		snd_soc_dapm_ignore_suspend(dapm, "AMP Playback");
 		snd_soc_dapm_ignore_suspend(dapm, "AMP Capture");
 		snd_soc_dapm_ignore_suspend(dapm, "Main AMP");
@@ -2379,8 +2282,6 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	irq_pol = cs35l41_irq_gpio_config(cs35l41);
 
-	cs35l41->dc_current_cnt = 0;
-
 	ret = devm_request_threaded_irq(cs35l41->dev, cs35l41->irq, NULL,
 				cs35l41_irq, irq_pol | IRQF_ONESHOT,
 				"cs35l41", cs35l41);
@@ -2447,10 +2348,6 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 	//init brownout parameter
 	ret = regmap_update_bits(cs35l41->regmap, CS35L41_PWR_CTRL3, 0x1000, 0x1000);
 	ret = regmap_write(cs35l41->regmap, CS35L41_VPBR_CFG, 0x0200530E);
-
-	//external clock frequency initialize
-	cs35l41->extclk_freq = 0;
-
 
 	dev_info(cs35l41->dev, "Cirrus Logic CS35L41 (%x), Revision: %02X\n",
 			regid, reg_revid);

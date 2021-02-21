@@ -70,11 +70,6 @@ ifeq ($(KERNEL_BUILD), 0)
 		export
 		INCS    +=  -include $(AUDIO_ROOT)/config/gvmautoconf.h
 	endif
-	ifeq ($(CONFIG_ARCH_SDM660), y)
-		include $(AUDIO_ROOT)/config/sdm660auto.conf
-		export
-		INCS    +=  -include $(AUDIO_ROOT)/config/sdm660autoconf.h
-	endif
 endif
 
 # As per target team, build is done as follows:
@@ -232,9 +227,6 @@ ifeq ($(KERNEL_BUILD), 1)
 	obj-y	+= wcd938x/
 	obj-y	+= bolero/
 	obj-y	+= cs35l41/
-	obj-y	+= rouleur/
-	obj-y	+= wsa883x/
-	obj-y	+= sdm660_cdc/
 	obj-y	+= tfa98xx/
 endif
 # Module information used by KBuild framework

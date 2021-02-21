@@ -1,6 +1,6 @@
 /**
 * Copyright Elliptic Labs
-* Copyright (C) 2021 XiaoMi, Inc.
+* Copyright (C) 2020 XiaoMi, Inc.
 *
 */
 /* #define DEBUG */
@@ -759,12 +759,14 @@ int __init elliptic_driver_init(void)
 	if (elliptic_userspace_ctrl_driver_init())
 		goto fail;
 
-        wake_source = wakeup_source_register(NULL, "elliptic_wake_source");
+	wake_source = kmalloc(sizeof(struct wakeup_source), GFP_KERNEL);
 
 	if (!wake_source) {
 		EL_PRINT_E("failed to allocate wake source");
 		return -ENOMEM;
 	}
+
+	wakeup_source_init(wake_source, "elliptic_wake_source");
 
 #ifdef ELLIPTIC_LOAD_CALIBRATION_DATA_FROM_FILESYSTEM
 	/* Code to send calibration to engine */
@@ -784,7 +786,8 @@ fail:
 void elliptic_driver_exit(void)
 {
 	if (wake_source) {
-		wakeup_source_unregister(wake_source);
+		wakeup_source_trash(wake_source);
+		kfree(wake_source);
 	}
 
 	elliptic_cleanup_sysfs();

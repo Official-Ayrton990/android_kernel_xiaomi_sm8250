@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2013-2020, Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2013-2019, Linux Foundation. All rights reserved.
  */
 #include <linux/fs.h>
 #include <linux/mutex.h>
@@ -29,6 +28,7 @@
 #include "adsp_err.h"
 
 #define APR_TIMEOUT	(HZ)
+#define LSM_ALIGN_BOUNDARY 512
 #define LSM_SAMPLE_RATE 16000
 #define QLSM_PARAM_ID_MINOR_VERSION 1
 #define QLSM_PARAM_ID_MINOR_VERSION_2 2
@@ -118,7 +118,6 @@ static int q6lsm_callback(struct apr_client_data *data, void *priv)
 	struct lsm_client *client = (struct lsm_client *)priv;
 	uint32_t token;
 	uint32_t *payload;
-	unsigned long flags;
 
 	if (!client || !data) {
 		pr_err("%s: client %pK data %pK\n",
@@ -152,13 +151,6 @@ static int q6lsm_callback(struct apr_client_data *data, void *priv)
 		return 0;
 	}
 
-	spin_lock_irqsave(&lsm_session_lock, flags);
-	if (!client || !q6lsm_is_valid_lsm_client(client)) {
-		pr_err("%s: client already freed/invalid, return\n",
-			__func__);
-		spin_unlock_irqrestore(&lsm_session_lock, flags);
-		return -EINVAL;
-	}
 	payload = data->payload;
 	pr_debug("%s: Session %d opcode 0x%x token 0x%x payload size %d\n"
 			 "payload [0] = 0x%x\n", __func__, client->session,
@@ -172,7 +164,6 @@ static int q6lsm_callback(struct apr_client_data *data, void *priv)
 			pr_err("%s: read done error payload size %d expected size %zd\n",
 				__func__, data->payload_size,
 				sizeof(read_done));
-			spin_unlock_irqrestore(&lsm_session_lock, flags);
 			return -EINVAL;
 		}
 		pr_debug("%s: opcode %x status %x lsw %x msw %x mem_map handle %x\n",
@@ -189,60 +180,7 @@ static int q6lsm_callback(struct apr_client_data *data, void *priv)
 					(void *)&read_done,
 					sizeof(read_done),
 					client->priv);
-		spin_unlock_irqrestore(&lsm_session_lock, flags);
 		return 0;
-	} else if (data->opcode == LSM_SESSION_CMDRSP_GET_PARAMS_V3 ||
-		data->opcode == LSM_SESSION_CMDRSP_GET_PARAMS_V2) {
-
-		uint32_t payload_min_size_expected = 0;
-		uint32_t param_size = 0, ret = 0;
-		/*
-		 * sizeof(uint32_t) is added to accomodate the status field
-		 * in adsp response payload
-		 */
-
-		if (data->opcode == LSM_SESSION_CMDRSP_GET_PARAMS_V3)
-			payload_min_size_expected  =  sizeof(uint32_t) +
-						sizeof(struct param_hdr_v3);
-		else
-			payload_min_size_expected  =  sizeof(uint32_t) +
-						sizeof(struct param_hdr_v2);
-
-		if (data->payload_size < payload_min_size_expected) {
-			pr_err("%s: invalid payload size %d expected size %d\n",
-				__func__, data->payload_size,
-				payload_min_size_expected);
-			ret = -EINVAL;
-			goto done;
-		}
-
-		if (data->opcode == LSM_SESSION_CMDRSP_GET_PARAMS_V3)
-			param_size = payload[4];
-		else
-			param_size = payload[3];
-
-		if (data->payload_size != payload_min_size_expected + param_size) {
-			pr_err("%s: cmdrsp_get_params error payload size %d expected size %d\n",
-				__func__, data->payload_size,
-				payload_min_size_expected + param_size);
-			ret = -EINVAL;
-			goto done;
-		}
-
-		if (client->param_size != param_size) {
-			pr_err("%s: response payload size %d mismatched with user requested %d\n",
-			    __func__, param_size, client->param_size);
-			ret = -EINVAL;
-			goto done;
-		}
-
-		memcpy((u8 *)client->get_param_payload,
-			(u8 *)payload + payload_min_size_expected, param_size);
-done:
-		spin_unlock_irqrestore(&lsm_session_lock, flags);
-		atomic_set(&client->cmd_state, CMD_STATE_CLEARED);
-		wake_up(&client->cmd_wait);
-		return ret;
 	} else if (data->opcode == APR_BASIC_RSP_RESULT) {
 		token = data->token;
 		switch (payload[0]) {
@@ -261,20 +199,16 @@ done:
 		case LSM_CMD_ADD_TOPOLOGIES:
 		case LSM_SESSION_CMD_SET_PARAMS_V2:
 		case LSM_SESSION_CMD_SET_PARAMS_V3:
-		case LSM_SESSION_CMD_GET_PARAMS_V2:
-		case LSM_SESSION_CMD_GET_PARAMS_V3:
 			if (token != client->session &&
 			    payload[0] !=
 				LSM_SESSION_CMD_DEREGISTER_SOUND_MODEL) {
 				pr_err("%s: Invalid session %d receivced expected %d\n",
 					__func__, token, client->session);
-				spin_unlock_irqrestore(&lsm_session_lock, flags);
 				return -EINVAL;
 			}
 			if (data->payload_size < 2 * sizeof(payload[0])) {
 				pr_err("%s: payload has invalid size[%d]\n",
 					__func__, data->payload_size);
-				spin_unlock_irqrestore(&lsm_session_lock, flags);
 				return -EINVAL;
 			}
 			client->cmd_err_code = payload[1];
@@ -292,7 +226,6 @@ done:
 				__func__, payload[0]);
 			break;
 		}
-		spin_unlock_irqrestore(&lsm_session_lock, flags);
 		return 0;
 	}
 
@@ -300,7 +233,6 @@ done:
 		client->cb(data->opcode, data->token, data->payload,
 				data->payload_size, client->priv);
 
-	spin_unlock_irqrestore(&lsm_session_lock, flags);
 	return 0;
 }
 
@@ -678,48 +610,6 @@ done:
 	return ret;
 }
 
-static int q6lsm_get_params_v2(struct lsm_client *client,
-				struct mem_mapping_hdr *mem_hdr,
-				struct param_hdr_v2 *param_hdr)
-{
-	struct lsm_session_cmd_get_params_v2 lsm_get_param;
-	uint16_t pkt_size = sizeof(lsm_get_param);
-
-	memset(&lsm_get_param, 0, pkt_size);
-	q6lsm_add_hdr(client, &lsm_get_param.apr_hdr, pkt_size, true);
-	lsm_get_param.apr_hdr.opcode = LSM_SESSION_CMD_GET_PARAMS_V2;
-
-	if (mem_hdr != NULL)
-		lsm_get_param.mem_hdr = *mem_hdr;
-
-	memcpy(&lsm_get_param.param_info, param_hdr,
-		sizeof(struct param_hdr_v2));
-
-	return q6lsm_apr_send_pkt(client, client->apr, &lsm_get_param, true,
-				 NULL);
-}
-
-static int q6lsm_get_params_v3(struct lsm_client *client,
-				struct mem_mapping_hdr *mem_hdr,
-				struct param_hdr_v3 *param_hdr)
-{
-	struct lsm_session_cmd_get_params_v3 lsm_get_param;
-	uint16_t pkt_size = sizeof(lsm_get_param);
-
-	memset(&lsm_get_param, 0, pkt_size);
-	q6lsm_add_hdr(client, &lsm_get_param.apr_hdr, pkt_size, true);
-	lsm_get_param.apr_hdr.opcode = LSM_SESSION_CMD_GET_PARAMS_V3;
-
-	if (mem_hdr != NULL)
-		lsm_get_param.mem_hdr = *mem_hdr;
-
-	memcpy(&lsm_get_param.param_info, param_hdr,
-		sizeof(struct param_hdr_v3));
-
-	return q6lsm_apr_send_pkt(client, client->apr, &lsm_get_param, true,
-				 NULL);
-}
-
 static int q6lsm_set_params(struct lsm_client *client,
 			    struct mem_mapping_hdr *mem_hdr,
 			    uint8_t *param_data, uint32_t param_size,
@@ -759,27 +649,6 @@ static int q6lsm_pack_and_set_params(struct lsm_client *client,
 
 done:
 	kfree(packed_data);
-	return ret;
-}
-
-static int q6lsm_get_params(struct lsm_client *client,
-				struct mem_mapping_hdr *mem_hdr,
-				struct param_hdr_v3 *param_info)
-
-{
-	struct param_hdr_v2 param_info_v2;
-	int ret = 0;
-	bool iid_supported = q6common_is_instance_id_supported();
-	memset(&param_info_v2, 0, sizeof(struct param_hdr_v2));
-
-	if (iid_supported)
-		ret = q6lsm_get_params_v3(client, mem_hdr, param_info);
-	else {
-		param_info_v2.module_id = param_info->module_id;
-		param_info_v2.param_id = param_info->param_id;
-		param_info_v2.param_size = param_info->param_size;
-		ret = q6lsm_get_params_v2(client, mem_hdr, &param_info_v2);
-	}
 	return ret;
 }
 
@@ -1230,7 +1099,7 @@ int q6lsm_set_afe_data_format(uint64_t fe_id, uint16_t afe_data_format)
 			lsm_client_afe_data[n].fe_id = fe_id;
 			lsm_client_afe_data[n].unprocessed_data =
 							afe_data_format;
-			pr_debug("%s: session ID is %d, fe_id is %llu\n",
+			pr_debug("%s: session ID is %d, fe_id is %d\n",
 				 __func__, n, fe_id);
 			return 0;
 		}
@@ -1263,7 +1132,7 @@ void q6lsm_get_afe_data_format(uint64_t fe_id, uint16_t *afe_data_format)
 		if (fe_id == lsm_client_afe_data[n].fe_id) {
 			*afe_data_format =
 				lsm_client_afe_data[n].unprocessed_data;
-			pr_debug("%s: session: %d, fe_id: %llu, afe data: %s\n",
+			pr_debug("%s: session: %d, fe_id: %d, afe data: %s\n",
 				__func__, n, fe_id,
 				*afe_data_format ? "unprocessed" : "processed");
 			return;
@@ -2104,7 +1973,7 @@ int q6lsm_snd_model_buf_alloc(struct lsm_client *client, size_t len,
 	size_t total_mem = 0;
 	struct lsm_sound_model *sm = NULL;
 
-	if (!client)
+	if (!client || len <= LSM_ALIGN_BOUNDARY)
 		return rc;
 
 	pr_debug("%s:Snd Model len = %zd, stage idx %d\n",
@@ -2431,36 +2300,6 @@ int q6lsm_set_one_param(struct lsm_client *client,
 }
 EXPORT_SYMBOL(q6lsm_set_one_param);
 
-int q6lsm_get_one_param(struct lsm_client *client,
-		struct lsm_params_get_info *p_info,
-		uint32_t param_type)
-{
-	struct param_hdr_v3 param_info;
-	int rc = 0;
-
-	memset(&param_info, 0, sizeof(param_info));
-
-	switch (param_type) {
-	case LSM_GET_CUSTOM_PARAMS: {
-		param_info.module_id = p_info->module_id;
-		param_info.instance_id = p_info->instance_id;
-		param_info.param_id = p_info->param_id;
-		param_info.param_size = p_info->param_size + sizeof(param_info);
-		rc = q6lsm_get_params(client, NULL, &param_info);
-		if (rc) {
-			pr_err("%s: LSM_GET_CUSTOM_PARAMS failed, rc %d\n",
-				__func__, rc);
-		}
-		break;
-
-	}
-	default:
-		pr_err("%s: wrong param_type 0x%x\n",
-			__func__, p_info->param_type);
-	}
-	return rc;
-}
-EXPORT_SYMBOL(q6lsm_get_one_param);
 
 /**
  * q6lsm_start -
@@ -2555,7 +2394,7 @@ int q6lsm_lab_control(struct lsm_client *client, u32 enable,
 	lab_config_hdr.param_id = LSM_PARAM_ID_LAB_CONFIG;
 	lab_config_hdr.param_size = sizeof(lab_config);
 	lab_config.minor_version = 1;
-	lab_config.wake_up_latency_ms = 40;
+	lab_config.wake_up_latency_ms = 250;
 	rc = q6lsm_pack_and_set_params(client, &lab_config_hdr,
 				       (uint8_t *) &lab_config,
 				       LSM_SESSION_CMD_SET_PARAMS);

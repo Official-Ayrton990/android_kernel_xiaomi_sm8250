@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #include <linux/of_platform.h>
@@ -15,7 +15,6 @@
 #include <soc/snd_event.h>
 #include <linux/pm_runtime.h>
 #include <soc/swr-common.h>
-#include <dsp/digital-cdc-rsc-mgr.h>
 #include "bolero-cdc.h"
 #include "internal.h"
 #include "bolero-clk-rsc.h"
@@ -103,11 +102,8 @@ static int __bolero_reg_read(struct bolero_priv *priv,
 		goto ssr_err;
 	}
 
-	if (priv->macro_params[VA_MACRO].dev) {
+	if (priv->macro_params[VA_MACRO].dev)
 		pm_runtime_get_sync(priv->macro_params[VA_MACRO].dev);
-		if (!bolero_check_core_votes(priv->macro_params[VA_MACRO].dev))
-			goto ssr_err;
-	}
 
 	if (priv->version < BOLERO_VERSION_2_0) {
 		/* Request Clk before register access */
@@ -154,11 +150,8 @@ static int __bolero_reg_write(struct bolero_priv *priv,
 		ret = -EINVAL;
 		goto ssr_err;
 	}
-	if (priv->macro_params[VA_MACRO].dev) {
+	if (priv->macro_params[VA_MACRO].dev)
 		pm_runtime_get_sync(priv->macro_params[VA_MACRO].dev);
-		if (!bolero_check_core_votes(priv->macro_params[VA_MACRO].dev))
-			goto ssr_err;
-	}
 
 	if (priv->version < BOLERO_VERSION_2_0) {
 		/* Request Clk before register access */
@@ -232,24 +225,6 @@ static int bolero_cdc_update_wcd_event(void *handle, u16 event, u32 data)
 			priv->macro_params[TX_MACRO].event_handler(
 				priv->component,
 				BOLERO_MACRO_EVT_BCS_CLK_OFF, data);
-		break;
-	case WCD_BOLERO_EVT_RX_PA_GAIN_UPDATE:
-		if (priv->macro_params[RX_MACRO].event_handler)
-			priv->macro_params[RX_MACRO].event_handler(
-				priv->component,
-				BOLERO_MACRO_EVT_RX_PA_GAIN_UPDATE, data);
-		break;
-	case WCD_BOLERO_EVT_HPHL_HD2_ENABLE:
-		if (priv->macro_params[RX_MACRO].event_handler)
-			priv->macro_params[RX_MACRO].event_handler(
-				priv->component,
-				BOLERO_MACRO_EVT_HPHL_HD2_ENABLE, data);
-		break;
-	case WCD_BOLERO_EVT_HPHR_HD2_ENABLE:
-		if (priv->macro_params[RX_MACRO].event_handler)
-			priv->macro_params[RX_MACRO].event_handler(
-				priv->component,
-				BOLERO_MACRO_EVT_HPHR_HD2_ENABLE, data);
 		break;
 	default:
 		dev_err(priv->dev, "%s: Invalid event %d trigger from wcd\n",
@@ -619,28 +594,6 @@ int bolero_dmic_clk_enable(struct snd_soc_component *component,
 }
 EXPORT_SYMBOL(bolero_dmic_clk_enable);
 
-bool bolero_is_va_macro_registered(struct device *dev)
-{
-	struct bolero_priv *priv;
-
-	if (!dev) {
-		pr_err("%s: dev is null\n", __func__);
-		return false;
-	}
-	if (!bolero_is_valid_child_dev(dev)) {
-		dev_err(dev, "%s: child device calling is not added yet\n",
-			__func__);
-		return false;
-	}
-	priv = dev_get_drvdata(dev->parent);
-	if (!priv) {
-		dev_err(dev, "%s: priv is null\n", __func__);
-		return false;
-	}
-	return priv->macros_supported[VA_MACRO];
-}
-EXPORT_SYMBOL(bolero_is_va_macro_registered);
-
 /**
  * bolero_register_macro - Registers macro to bolero
  *
@@ -702,7 +655,7 @@ int bolero_register_macro(struct device *dev, u16 macro_id,
 	priv->num_macros_registered++;
 	priv->macros_supported[macro_id] = true;
 
-	dev_info(dev, "%s: register macro successful:%d\n", __func__, macro_id);
+	dev_dbg(dev, "%s: register macro successful:%d\n", macro_id);
 
 	if (priv->num_macros_registered == priv->num_macros) {
 		ret = bolero_copy_dais_from_macro(priv);
@@ -776,7 +729,7 @@ void bolero_unregister_macro(struct device *dev, u16 macro_id)
 }
 EXPORT_SYMBOL(bolero_unregister_macro);
 
-void bolero_wsa_pa_on(struct device *dev, bool adie_lb)
+void bolero_wsa_pa_on(struct device *dev)
 {
 	struct bolero_priv *priv;
 
@@ -794,12 +747,8 @@ void bolero_wsa_pa_on(struct device *dev, bool adie_lb)
 		dev_err(dev, "%s: priv is null\n", __func__);
 		return;
 	}
-	if (adie_lb)
-		bolero_cdc_notifier_call(priv,
-			BOLERO_WCD_EVT_PA_ON_POST_FSCLK_ADIE_LB);
-	else
-		bolero_cdc_notifier_call(priv,
-			BOLERO_WCD_EVT_PA_ON_POST_FSCLK);
+
+	bolero_cdc_notifier_call(priv, BOLERO_WCD_EVT_PA_ON_POST_FSCLK);
 }
 EXPORT_SYMBOL(bolero_wsa_pa_on);
 
@@ -880,19 +829,6 @@ static int bolero_ssr_enable(struct device *dev, void *data)
 				priv->component,
 				BOLERO_MACRO_EVT_CLK_RESET, 0x0);
 	}
-	trace_printk("%s: clk count reset\n", __func__);
-
-	if (priv->rsc_clk_cb)
-		priv->rsc_clk_cb(priv->clk_dev, BOLERO_MACRO_EVT_SSR_GFMUX_UP);
-
-	for (macro_idx = START_MACRO; macro_idx < MAX_MACRO; macro_idx++) {
-		if (!priv->macro_params[macro_idx].event_handler)
-			continue;
-		priv->macro_params[macro_idx].event_handler(
-			priv->component,
-			BOLERO_MACRO_EVT_PRE_SSR_UP, 0x0);
-	}
-
 	regcache_cache_only(priv->regmap, false);
 	mutex_lock(&priv->clk_lock);
 	priv->dev_up = true;
@@ -903,7 +839,6 @@ static int bolero_ssr_enable(struct device *dev, void *data)
 	/* Add a 100usec sleep to ensure last register write is done */
 	usleep_range(100,110);
 	bolero_clk_rsc_enable_all_clocks(priv->clk_dev, false);
-	trace_printk("%s: regcache_sync done\n", __func__);
 	/* call ssr event for supported macros */
 	for (macro_idx = START_MACRO; macro_idx < MAX_MACRO; macro_idx++) {
 		if (!priv->macro_params[macro_idx].event_handler)
@@ -912,7 +847,6 @@ static int bolero_ssr_enable(struct device *dev, void *data)
 			priv->component,
 			BOLERO_MACRO_EVT_SSR_UP, 0x0);
 	}
-	trace_printk("%s: SSR up events processed by all macros\n", __func__);
 	bolero_cdc_notifier_call(priv, BOLERO_WCD_EVT_SSR_UP);
 	return 0;
 }
@@ -921,12 +855,6 @@ static void bolero_ssr_disable(struct device *dev, void *data)
 {
 	struct bolero_priv *priv = data;
 	int macro_idx;
-
-	if (!priv->dev_up) {
-		dev_err_ratelimited(priv->dev,
-				    "%s: already disabled\n", __func__);
-		return;
-	}
 
 	bolero_cdc_notifier_call(priv, BOLERO_WCD_EVT_PA_OFF_PRE_SSR);
 	regcache_cache_only(priv->regmap, true);
@@ -1283,9 +1211,10 @@ static void bolero_add_child_devices(struct work_struct *work)
 		pdev->dev.parent = priv->dev;
 		pdev->dev.of_node = node;
 
-		priv->dev->platform_data = platdata;
-		if (split_codec)
+		if (split_codec) {
+			priv->dev->platform_data = platdata;
 			priv->wcd_dev = &pdev->dev;
+		}
 
 		ret = platform_device_add(pdev);
 		if (ret) {
@@ -1421,7 +1350,6 @@ static int bolero_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
 int bolero_runtime_resume(struct device *dev)
 {
 	struct bolero_priv *priv = dev_get_drvdata(dev->parent);
@@ -1434,7 +1362,7 @@ int bolero_runtime_resume(struct device *dev)
 	}
 
 	if (priv->core_hw_vote_count == 0) {
-		ret = digital_cdc_rsc_mgr_hw_vote_enable(priv->lpass_core_hw_vote);
+		ret = clk_prepare_enable(priv->lpass_core_hw_vote);
 		if (ret < 0) {
 			dev_err(dev, "%s:lpass core hw enable failed\n",
 				__func__);
@@ -1442,8 +1370,6 @@ int bolero_runtime_resume(struct device *dev)
 		}
 	}
 	priv->core_hw_vote_count++;
-	trace_printk("%s: hw vote count %d\n",
-		__func__, priv->core_hw_vote_count);
 
 audio_vote:
 	if (priv->lpass_audio_hw_vote == NULL) {
@@ -1452,7 +1378,7 @@ audio_vote:
 	}
 
 	if (priv->core_audio_vote_count == 0) {
-		ret = digital_cdc_rsc_mgr_hw_vote_enable(priv->lpass_audio_hw_vote);
+		ret = clk_prepare_enable(priv->lpass_audio_hw_vote);
 		if (ret < 0) {
 			dev_err(dev, "%s:lpass audio hw enable failed\n",
 				__func__);
@@ -1460,8 +1386,6 @@ audio_vote:
 		}
 	}
 	priv->core_audio_vote_count++;
-	trace_printk("%s: audio vote count %d\n",
-		__func__, priv->core_audio_vote_count);
 
 done:
 	mutex_unlock(&priv->vote_lock);
@@ -1477,35 +1401,28 @@ int bolero_runtime_suspend(struct device *dev)
 	mutex_lock(&priv->vote_lock);
 	if (priv->lpass_core_hw_vote != NULL) {
 		if (--priv->core_hw_vote_count == 0)
-			digital_cdc_rsc_mgr_hw_vote_disable(
-					priv->lpass_core_hw_vote);
+			clk_disable_unprepare(priv->lpass_core_hw_vote);
 		if (priv->core_hw_vote_count < 0)
 			priv->core_hw_vote_count = 0;
 	} else {
 		dev_dbg(dev, "%s: Invalid lpass core hw node\n",
 			__func__);
 	}
-	trace_printk("%s: hw vote count %d\n",
-		__func__, priv->core_hw_vote_count);
 
 	if (priv->lpass_audio_hw_vote != NULL) {
 		if (--priv->core_audio_vote_count == 0)
-			digital_cdc_rsc_mgr_hw_vote_disable(
-					priv->lpass_audio_hw_vote);
+			clk_disable_unprepare(priv->lpass_audio_hw_vote);
 		if (priv->core_audio_vote_count < 0)
 			priv->core_audio_vote_count = 0;
 	} else {
 		dev_dbg(dev, "%s: Invalid lpass audio hw node\n",
 			__func__);
 	}
-	trace_printk("%s: audio vote count %d\n",
-		__func__, priv->core_audio_vote_count);
 
 	mutex_unlock(&priv->vote_lock);
 	return 0;
 }
 EXPORT_SYMBOL(bolero_runtime_suspend);
-#endif /* CONFIG_PM */
 
 bool bolero_check_core_votes(struct device *dev)
 {

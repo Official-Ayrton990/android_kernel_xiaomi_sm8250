@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015-2016, 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2016, 2018-2019, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/clk.h>
-#include <linux/clk-provider.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/slab.h>
@@ -398,14 +397,9 @@ static int wsa881x_boost_ctrl(struct snd_soc_component *component, bool enable)
 			snd_soc_component_update_bits(component,
 					WSA881X_BOOST_SLOPE_COMP_ISENSE_FB,
 					0x03, 0x00);
-			if (snd_soc_component_read32(component, WSA881X_OTP_REG_0))
-				snd_soc_component_update_bits(component,
-					WSA881X_BOOST_PRESET_OUT1,
-					0xF0, 0x70);
-			else
-				snd_soc_component_update_bits(component,
-					WSA881X_BOOST_PRESET_OUT1,
-					0xF0, 0xB0);
+			snd_soc_component_update_bits(component,
+						WSA881X_BOOST_PRESET_OUT1,
+						0xF0, 0x70);
 			snd_soc_component_update_bits(component,
 						WSA881X_ANA_CTL, 0x03, 0x01);
 			snd_soc_component_update_bits(component,
@@ -1033,8 +1027,7 @@ static int wsa881x_shutdown(struct wsa881x_pdata *pdata)
 		return ret;
 	}
 
-	if (__clk_is_enabled(pdata->wsa_mclk))
-		clk_disable_unprepare(pdata->wsa_mclk);
+	clk_disable_unprepare(pdata->wsa_mclk);
 
 	ret = msm_cdc_pinctrl_select_sleep_state(pdata->wsa_clk_gpio_p);
 	if (ret) {

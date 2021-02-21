@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
- * Copyright (C) 2021 XiaoMi, Inc.
+ * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #ifndef __Q6_INIT_H__
@@ -27,11 +27,6 @@ int msm_mdf_init(void);
 void msm_mdf_exit(void);
 #else
 int elliptic_driver_init(void);
-/* for mius start */
-#ifdef CONFIG_US_PROXIMITY
-int mius_driver_init(void);
-#endif
-/* for mius end */
 static inline int msm_mdf_init(void)
 {
 	return 0;
@@ -75,11 +70,6 @@ int elliptic_driver_exit(void);
 int audio_slimslave_init(void);
 void audio_slimslave_exit(void);
 #else
-/* for mius start */
-#ifdef CONFIG_US_PROXIMITY
-int mius_driver_exit(void);
-#endif
-/* for mius end */
 static inline int audio_slimslave_init(void)
 {
 	return 0;
@@ -102,19 +92,5 @@ static inline void voice_mhi_exit(void)
 	return;
 }
 #endif
-
-#ifdef CONFIG_DIGITAL_CDC_RSC_MGR
-void digital_cdc_rsc_mgr_init(void);
-void digital_cdc_rsc_mgr_exit(void);
-#else
-static inline void digital_cdc_rsc_mgr_init(void)
-{
-}
-
-static inline void digital_cdc_rsc_mgr_exit(void)
-{
-}
-#endif /* CONFIG_DIGITAL_CDC_RSC_MGR */
-
 #endif
 
