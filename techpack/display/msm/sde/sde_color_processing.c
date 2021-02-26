@@ -231,7 +231,7 @@ static int set_dspp_pcc_feature(struct sde_hw_dspp *hw_dspp,
 {
 	int ret = 0;
 	struct drm_msm_pcc *pcc_cfg;
-	DRM_INFO("layer_flag %d %d\n", hw_crtc->mi_dimlayer_type, hw_cfg->mi_dimlayer_type);
+	/*DRM_INFO("layer_flag %d %d\n", hw_crtc->mi_dimlayer_type, hw_cfg->mi_dimlayer_type);*/
 
 	if (!hw_dspp || !hw_dspp->ops.setup_pcc)
 		ret = -EINVAL;
@@ -239,13 +239,13 @@ static int set_dspp_pcc_feature(struct sde_hw_dspp *hw_dspp,
 
 		if (hw_cfg->payload) {
 			pcc_cfg = hw_cfg->payload;
-			DRM_INFO("pcc payload"
+			/*DRM_INFO("pcc payload"
 				"r_c=%d r_r=%d r_g=%d r_b=%d"
 				"g_c=%d g_r=%d g_g=%d g_b=%d"
 				"b_c=%d b_r=%d b_g=%d b_b=%d\n",
 				pcc_cfg->r.c, pcc_cfg->r.r, pcc_cfg->r.g, pcc_cfg->r.b,
 				pcc_cfg->g.c, pcc_cfg->g.r, pcc_cfg->g.g, pcc_cfg->g.b,
-				pcc_cfg->b.c, pcc_cfg->b.r, pcc_cfg->b.g, pcc_cfg->b.b);
+				pcc_cfg->b.c, pcc_cfg->b.r, pcc_cfg->b.g, pcc_cfg->b.b);*/
 		}
 
 		if (hw_crtc->mi_dimlayer_type & MI_DIMLAYER_FOD_HBM_OVERLAY) {
