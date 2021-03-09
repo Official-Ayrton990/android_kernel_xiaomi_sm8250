@@ -946,12 +946,12 @@ ERROR:
 int production_test_initialization(u8 type)
 {
 	int res;
-	logError(1, "%s INITIALIZATION Production test is starting,type:%d\n", tag, type);
+	MI_TOUCH_LOGI(1, "%s %s: starting,type:%d\n", tag, __func__, type);
 
 	if (type != SPECIAL_PANEL_INIT && type != SPECIAL_FULL_PANEL_INIT) {
-		logError(1,
-			 "%s production_test_initialization: Type incompatible! Type = %02X ERROR %08X \n",
-			 tag, type,
+		MI_TOUCH_LOGE(1,
+			 "%s %s: Type incompatible! Type = %02X ERROR %08X \n",
+			 tag, __func__, type,
 			 ERROR_OP_NOT_ALLOW | ERROR_PROD_TEST_INITIALIZATION);
 		return (ERROR_OP_NOT_ALLOW | ERROR_PROD_TEST_INITIALIZATION);
 	}
@@ -959,27 +959,28 @@ int production_test_initialization(u8 type)
 	res = fts_system_reset();
 
 	if (res < 0) {
-		logError(1, "%s production_test_initialization: ERROR %08X \n",
-			 tag, ERROR_PROD_TEST_INITIALIZATION);
+		MI_TOUCH_LOGE(1, "%s %s: ERROR %08X \n",
+			 tag, __func__, ERROR_PROD_TEST_INITIALIZATION);
 		return (res | ERROR_PROD_TEST_INITIALIZATION);
 	}
 
-	logError(0, "%s INITIALIZATION command sent... %02X \n", tag, type);
+	MI_TOUCH_LOGI(0, "%s %s: INITIALIZATION command sent... %02X \n",
+		tag, __func__, type);
 	res = writeSysCmd(SYS_CMD_SPECIAL, &type, 1);
 
 	if (res < OK) {
-		logError(1, "%s production_test_initialization: ERROR %08X \n",
-			 tag, (res | ERROR_PROD_TEST_INITIALIZATION));
+		MI_TOUCH_LOGE(1, "%s %s: ERROR %08X \n",
+			 tag, __func__, (res | ERROR_PROD_TEST_INITIALIZATION));
 		return (res | ERROR_PROD_TEST_INITIALIZATION);
 	}
 
-	logError(0, "%s Refresh Sys Info...\n", tag);
+	MI_TOUCH_LOGI(0, "%s %s: Refresh Sys Info...\n", tag, __func__);
 	res |= readSysInfo(1);
 
 	if (res < 0) {
-		logError(1,
-			 "%s production_test_initialization: read sys info ERROR %08X\n",
-			 tag, ERROR_PROD_TEST_INITIALIZATION);
+		MI_TOUCH_LOGE(1,
+			 "%s %s: read sys info ERROR %08X\n",
+			 tag, __func__, ERROR_PROD_TEST_INITIALIZATION);
 		res = (res | ERROR_PROD_TEST_INITIALIZATION);
 	}
 
@@ -3273,7 +3274,8 @@ ERROR_LIMITS:
 }
 
 int production_test_ss_hover_raw(const char *path_limits, int stop_on_fail,
-			      TestToDo *todo){
+			      TestToDo *todo)
+{
 	int ret;
 	int rows, columns;
 	int *thresholds = NULL;
@@ -3286,7 +3288,7 @@ int production_test_ss_hover_raw(const char *path_limits, int stop_on_fail,
 	ret = fts_write_dma_safe(hover_cnt, sizeof(hover_cnt));
 	if (ret != OK) {
 		logError(1,
-			 "%s hover clear count ERROR = %d\n",tag, ret);
+			 "%s hover clear count ERROR = %d\n", tag, ret);
 		goto ERROR_LIMITS;
 	}
 
@@ -3319,7 +3321,7 @@ int production_test_ss_hover_raw(const char *path_limits, int stop_on_fail,
 		ret = checkLimitsMinMax(ssHoverRawFrame.force_data, rows, columns, thresholds[0], thresholds[1]);
 		if (ret != OK) {
 			logError(1,
-				 "%s production_test_data: checkLimitsMinMax SS HOVER RAW FORCE failed... ERROR COUNT = %d\n",tag, ret);
+				 "%s production_test_data: checkLimitsMinMax SS HOVER RAW FORCE failed... ERROR COUNT = %d\n", tag, ret);
 			logError(0,
 				 "%s SS Hover RAW FORCE MIN MAX TEST:.................FAIL\n\n", tag);
 			count_fail += 1;
@@ -3390,7 +3392,7 @@ int production_test_ss_hover_raw(const char *path_limits, int stop_on_fail,
 			}
 		} else
 			logError(0,
-				 "%s SS Hover RAW SENSE MIN MAX TEST:.................OK\n",tag);
+				 "%s SS Hover RAW SENSE MIN MAX TEST:.................OK\n", tag);
 
 		kfree(thresholds);
 		thresholds = NULL;
@@ -4147,7 +4149,8 @@ ERROR_LIMITS:
 	return ret;
 }
 
-int production_test_ss_hover_ix(const char *path_limits, int stop_on_fail, TestToDo *todo) {
+int production_test_ss_hover_ix(const char *path_limits, int stop_on_fail, TestToDo *todo)
+{
 	TotSelfSenseData ssHoverCompData;
 	int ret;
 	int trows, tcolumns;
@@ -4160,16 +4163,17 @@ int production_test_ss_hover_ix(const char *path_limits, int stop_on_fail, TestT
 	/* read the SS compensation data */
 	if (ret < 0) {
 		logError(1,
-		"%s production_test_data: readSelfSenseCompensationData failed... ERROR %08X\n",tag, ERROR_PROD_TEST_DATA);
+		"%s production_test_data: readSelfSenseCompensationData failed... ERROR %08X\n", tag, ERROR_PROD_TEST_DATA);
 		return ret | ERROR_PROD_TEST_DATA;
 	}
 
 	logError(0, "%s SS Hover TOTAL IX FORCE TEST:\n", tag);
 	logError(0, "%s SS Hover TOTAL IX FORCE MIN MAX TEST:\n", tag);
 	if (todo->SelfHoverForceIxTotal == 1) {
-		ret = parseProductionTestLimits(path_limits, &limit_file, SS_HOVER_TOTAL_IX_FORCE_MAP_MIN, &thresholds_min, &trows, &tcolumns);
+		ret = parseProductionTestLimits(path_limits, &limit_file,
+			SS_HOVER_TOTAL_IX_FORCE_MAP_MIN, &thresholds_min, &trows, &tcolumns);
 					/* load the min thresholds */
-		if (ret < 0 || (trows != ssHoverCompData.header.force_node ||tcolumns != 1)) {
+		if (ret < 0 || (trows != ssHoverCompData.header.force_node || tcolumns != 1)) {
 			logError(1,
 				 "%s production_test_data: parseProductionTestLimits SS_TOTAL_IX_FORCE_MAP_MIN failed... ERROR %08X\n",
 				 tag, ERROR_PROD_TEST_DATA);
@@ -4177,7 +4181,8 @@ int production_test_ss_hover_ix(const char *path_limits, int stop_on_fail, TestT
 			goto ERROR_LIMITS;
 		}
 
-		ret = parseProductionTestLimits(path_limits, &limit_file, SS_TOTAL_IX_FORCE_MAP_MAX, &thresholds_max, &trows, &tcolumns);
+		ret = parseProductionTestLimits(path_limits, &limit_file,
+			SS_TOTAL_IX_FORCE_MAP_MAX, &thresholds_max, &trows, &tcolumns);
 					/* load the max thresholds */
 		if (ret < 0 || (trows !=
 				ssHoverCompData.header.force_node ||
@@ -4189,7 +4194,7 @@ int production_test_ss_hover_ix(const char *path_limits, int stop_on_fail, TestT
 			goto ERROR_LIMITS;
 		}
 
-		ret = checkLimitsMapTotalFromU(ssHoverCompData.ix_fm,ssHoverCompData.header.
+		ret = checkLimitsMapTotalFromU(ssHoverCompData.ix_fm, ssHoverCompData.header.
 						   force_node, 1,
 						   thresholds_min,
 						   thresholds_max);

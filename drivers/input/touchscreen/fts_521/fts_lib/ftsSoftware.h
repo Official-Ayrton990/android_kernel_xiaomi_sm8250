@@ -377,4 +377,7 @@ typedef enum {
 #define FTS_KEY_6							0x40	/*Key 6 bit*/
 #define FTS_KEY_7							0x80	/*Key 7 bit*/
 
+#define FOD_LONGPRESS_EVENT 0x01
+#define FOD_SINGLETAP_EVENT 0x02
+
 #endif

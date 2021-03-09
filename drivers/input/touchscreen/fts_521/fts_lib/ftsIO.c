@@ -422,7 +422,7 @@ int fts_write_dma_safe(u8 *cmd, int cmdLength)
 		if (unlikely(cmdLength > PAGE_SIZE)) {
 			tmpBuf = kzalloc(cmdLength, GFP_KERNEL);
 			if (!tmpBuf) {
-				logError(1, "%s %s:Error alloc mem failed!", tag, __func__);
+				MI_TOUCH_LOGE(1, "%s %s:Error alloc mem failed!", tag, __func__);
 				mutex_unlock(&dma->dmaBufLock);
 				return -ENOMEM;
 			}
@@ -697,7 +697,7 @@ int fts_writeReadU8UX(u8 cmd, AddrSize addrSize, u64 address, u8 *outBuf,
 		if (hasDummyByte == 1) {
 			if (fts_writeRead
 			    (finalCmd, 1 + addrSize, buff, toRead + 1) < OK) {
-				logError(1,
+				MI_TOUCH_LOGE(1,
 					 "%s %s: read error... ERROR %08X \n",
 					 tag, __func__, ERROR_BUS_WR);
 				mutex_unlock(&rw_lock);
@@ -707,7 +707,7 @@ int fts_writeReadU8UX(u8 cmd, AddrSize addrSize, u64 address, u8 *outBuf,
 		} else {
 			if (fts_writeRead(finalCmd, 1 + addrSize, buff, toRead)
 			    < OK) {
-				logError(1,
+				MI_TOUCH_LOGE(1,
 					 "%s %s: read error... ERROR %08X \n",
 					 tag, __func__, ERROR_BUS_WR);
 				mutex_unlock(&rw_lock);
