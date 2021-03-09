@@ -91,7 +91,7 @@ int fts_system_reset(void)
 	u8 data[1] = { SYSTEM_RESET_VALUE };
 	event_to_search = (int)EVT_ID_CONTROLLER_READY;
 
-	logError(1, "%s System resetting...\n", tag);
+	MI_TOUCH_LOGI(1, "%s %s: enter\n", tag, __func__);
 	if (fts_info) {
 		reinit_completion(&fts_info->tp_reset_completion);
 		atomic_set(&fts_info->system_is_resetting, 1);
@@ -112,15 +112,11 @@ int fts_system_reset(void)
 			res = OK;
 		}
 		if (res < OK) {
-			logError(1, "%s fts_system_reset: ERROR %08X\n", tag,
-				 ERROR_BUS_W);
+			MI_TOUCH_LOGE(1, "%s %s: ERROR %08X\n", tag, __func__, ERROR_BUS_W);
 		} else {
-			res =
-			    pollForEvent(&event_to_search, 1, readData,
-					 GENERAL_TIMEOUT);
+			res = pollForEvent(&event_to_search, 1, readData, GENERAL_TIMEOUT);
 			if (res < OK) {
-				logError(1, "%s fts_system_reset: ERROR %08X\n",
-					 tag, res);
+				MI_TOUCH_LOGE(1, "%s %s: ERROR %08X\n", tag, __func__, res);
 			}
 		}
 	}
@@ -129,12 +125,11 @@ int fts_system_reset(void)
 		atomic_set(&fts_info->system_is_resetting, 0);
 	}
 	if (res < OK) {
-		logError(1,
-			 "%s fts_system_reset...failed after 3 attempts: ERROR %08X\n",
-			 tag, (res | ERROR_SYSTEM_RESET_FAIL));
+		MI_TOUCH_LOGE(1, "%s %s: failed after 3 attempts: ERROR %08X\n",
+			tag, __func__, (res | ERROR_SYSTEM_RESET_FAIL));
 		return (res | ERROR_SYSTEM_RESET_FAIL);
 	} else {
-		logError(1, "%s System reset DONE!\n", tag);
+		MI_TOUCH_LOGI(1, "%s %s: exit\n", tag, __func__);
 		system_reseted_down = 1;
 		system_reseted_up = 1;
 		return OK;
@@ -340,17 +335,17 @@ int setScanMode(u8 mode, u8 settings)
 	u8 cmd[3] = { FTS_CMD_SCAN_MODE, mode, settings };
 	int ret, size = 3;
 
-	logError(0, "%s %s: Setting scan mode: mode = %02X settings = %02X !\n",
+	MI_TOUCH_LOGD(1, "%s %s: Setting scan mode: mode = %02X settings = %02X !\n",
 		 tag, __func__, mode, settings);
 	if (mode == SCAN_MODE_LOW_POWER)
 		size = 2;
 	ret = fts_write_dma_safe(cmd, size);
 	if (ret < OK) {
-		logError(1, "%s %s: write failed...ERROR %08X !\n", tag,
+		MI_TOUCH_LOGE(1, "%s %s: write failed...ERROR %08X !\n", tag,
 			 __func__, ret);
 		return ret | ERROR_SET_SCAN_MODE_FAIL;
 	}
-	logError(0, "%s %s: Setting scan mode OK!\n", tag, __func__);
+	MI_TOUCH_LOGD(0, "%s %s: Setting scan mode OK!\n", tag, __func__);
 	return OK;
 }
 
@@ -779,17 +774,17 @@ int readConfig(u16 offset, u8 *outBuf, int len)
 int fts_disableInterrupt(void)
 {
 	if (getClient() != NULL) {
-		logError(0, "%s Number of disable = %d \n", tag,
-			 disable_irq_count);
+		MI_TOUCH_LOGD(0, "%s %s: Number of disable = %d \n",
+			tag, __func__, disable_irq_count);
 		if (disable_irq_count == 0) {
-			logError(0, "%s Excecuting Disable... \n", tag);
+			MI_TOUCH_LOGD(0, "%s %s: Excecuting Disable... \n", tag, __func__);
 			disable_irq(getClient()->irq);
 			disable_irq_count++;
-			logError(1, "%s Interrupt Disabled!\n", tag);
+			MI_TOUCH_LOGI(1, "%s %s: Interrupt Disabled!\n", tag, __func__);
 		}
 		return OK;
 	} else {
-		logError(1, "%s %s: Impossible get client irq... ERROR %08X\n",
+		MI_TOUCH_LOGE(1, "%s %s: Impossible get client irq... ERROR %08X\n",
 			 tag, __func__, ERROR_OP_NOT_ALLOW);
 		return ERROR_OP_NOT_ALLOW;
 	}
@@ -839,18 +834,17 @@ int fts_resetDisableIrqCount(void)
 int fts_enableInterrupt(void)
 {
 	if (getClient() != NULL) {
-
-		logError(0, "%s Number of re-enable = %d \n", tag,
-			 disable_irq_count);
+		MI_TOUCH_LOGN(0, "%s %s: Number of re-enable = %d \n",
+			tag, __func__, disable_irq_count);
 		while (disable_irq_count > 0) {
-			logError(0, "%s Excecuting Enable... \n", tag);
+			MI_TOUCH_LOGI(1, "%s %s: Excecuting Enable... \n", tag, __func__);
 			enable_irq(getClient()->irq);
 			disable_irq_count--;
-			logError(1, "%s Interrupt Enabled!\n", tag);
+			MI_TOUCH_LOGI(1, "%s %s: Interrupt Enabled!\n", tag, __func__);
 		}
 		return OK;
 	} else {
-		logError(1, "%s %s: Impossible get client irq... ERROR %08X\n",
+		MI_TOUCH_LOGE(1, "%s %s: Impossible get client irq... ERROR %08X\n",
 			 tag, __func__, ERROR_OP_NOT_ALLOW);
 		return ERROR_OP_NOT_ALLOW;
 	}
@@ -875,46 +869,46 @@ int fts_crc_check(void)
 	    fts_writeReadU8UX(FTS_CMD_HW_REG_R, ADDR_SIZE_HW_REG, ADDR_CRC,
 			      &val, 1, DUMMY_HW_REG);
 	if (res < OK) {
-		logError(1, "%s %s Cannot read crc status ERROR %08X\n", tag,
+		MI_TOUCH_LOGE(1, "%s %s: Cannot read crc status ERROR %08X\n", tag,
 			 __func__, res);
 		return res;
 	}
 
 	crc_status = val & CRC_MASK;
 	if (crc_status != OK) {
-		logError(1, "%s %s CRC ERROR = %02X \n", tag, __func__,
+		MI_TOUCH_LOGE(1, "%s %s: CRC ERROR = %02X \n", tag, __func__,
 			 crc_status);
 		return CRC_CODE;
 	}
 
-	logError(1, "%s %s: Verifying if Config CRC Error...\n", tag, __func__);
+	MI_TOUCH_LOGI(1, "%s %s: Verifying if Config CRC Error...\n", tag, __func__);
 	res = fts_system_reset();
 	if (res >= OK) {
 		res = pollForErrorType(error_to_search, 2);
 		if (res < OK) {
-			logError(1, "%s %s: No Config CRC Error Found! \n", tag,
+			MI_TOUCH_LOGI(1, "%s %s: No Config CRC Error Found! \n", tag,
 				 __func__);
-			logError(1, "%s %s: Verifying if Cx CRC Error...\n",
+			MI_TOUCH_LOGI(1, "%s %s: Verifying if Cx CRC Error...\n",
 				 tag, __func__);
 			res = pollForErrorType(&error_to_search[2], 4);
 			if (res < OK) {
-				logError(1, "%s %s: No Cx CRC Error Found! \n",
+				MI_TOUCH_LOGI(1, "%s %s: No Cx CRC Error Found! \n",
 					 tag, __func__);
 				return OK;
 			} else {
-				logError(1,
+				MI_TOUCH_LOGE(1,
 					 "%s %s: Cx CRC Error found! CRC ERROR = %02X\n",
 					 tag, __func__, res);
 				return CRC_CX;
 			}
 		} else {
-			logError(1,
+			MI_TOUCH_LOGE(1,
 				 "%s %s: Config CRC Error found! CRC ERROR = %02X\n",
 				 tag, __func__, res);
 			return CRC_CONFIG;
 		}
 	} else {
-		logError(1,
+		MI_TOUCH_LOGE(1,
 			 "%s %s: Error while executing system reset! ERROR %08X\n",
 			 tag, __func__, res);
 		return res;
@@ -1145,8 +1139,8 @@ int writeLockDownInfo(u8 *data, int size, u8 lock_id)
 		mdelay(5);
 		ret = checkEcho(lockdown_save, 3);
 		if (ret < OK) {
-			logError(1, "%s No Echo received.. ERROR %08X !\n", tag,
-				 ret);
+			logError(1, "%s %s: No Echo received.. ERROR %08X !\n",
+				tag, __func__, ret);
 			continue;
 		} else {
 			logError(1, "%s Echo FOUND... OK!\n", tag, ret);
@@ -1283,19 +1277,20 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 
 	if (info == NULL)
 		return ERROR_LOCKDOWN_CODE;
+	MI_TOUCH_LOGI(1, "%s %s:enter", tag, __func__);
 	if (info->lockdown_is_ok) {
-		logError(1, "%s %s aleady get,skip\n", tag, __func__);
+		MI_TOUCH_LOGI(1, "%s %s: aleady get,skip\n", tag, __func__);
 		return OK;
 	}
-	logError(0, "%s %s:enter", tag, __func__);
+
 	if (lock_id < 0x70 || lock_id > 0x77) {
-		logError(1, "%s the lock id type is not support\n", tag);
+		MI_TOUCH_LOGE(1, "%s %s: the lock id type is not support\n", tag, __func__);
 		return ERROR_LOCKDOWN_CODE;
 	}
 
 	temp = (u8 *) kmalloc(1024 * sizeof(u8), GFP_KERNEL);
 	if (temp == NULL) {
-		logError(1, "FTS temp alloc  memory failed \n");
+		MI_TOUCH_LOGE(1, "%s %s: alloc  memory failed\n", tag, __func__);
 		return -ENOMEM;
 	}
 	memset(temp, 0, 1024 * sizeof(u8));
@@ -1309,7 +1304,7 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 				      ADDR_LOCKDOWN, temp, LOCKDOWN_HEAD_LENGTH,
 				      DUMMY_CONFIG);
 		if (ret < OK) {
-			logError(1,
+			MI_TOUCH_LOGE(1,
 				 "%s %s: error while reading data ERROR %08X \n",
 				 tag, __func__, ret);
 			goto END;
@@ -1320,11 +1315,11 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 		mdelay(10);
 		ret = checkEcho(cmd_lockdown, 3);
 		if (ret < OK) {
-			logError(1, "%s No Echo received.. ERROR %08X !\n", tag,
-				 ret);
+			MI_TOUCH_LOGE(1, "%s %s: No Echo received.. ERROR %08X !\n", tag,
+				__func__, ret);
 			continue;
 		} else {
-			logError(1, "%s Echo FOUND... OK!\n", tag, ret);
+			MI_TOUCH_LOGI(1, "%s %s: Echo FOUND... OK!\n", tag, __func__, ret);
 		}
 		ret =
 		    fts_writeReadU8UX(LOCKDOWN_WRITEREAD_CMD, BITS_16,
@@ -1332,7 +1327,7 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 				      size + LOCKDOWN_DATA_OFFSET,
 				      DUMMY_CONFIG);
 		if (ret < OK) {
-			logError(1,
+			MI_TOUCH_LOGE(1,
 				 "%s %s: error while reading data ERROR %08X \n",
 				 tag, __func__, ret);
 			goto END;
@@ -1342,15 +1337,15 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 		    (int)((temp[3] & 0xFF) << 8) + (temp[2] & 0xFF);
 		if (temp[4] == EVT_TYPE_ERROR_LOCKDOWN_FLASH
 		    || temp[4] == EVT_TYPE_ERROR_LOCKDOWN_NO_DATA) {
-			logError(1,
+			MI_TOUCH_LOGE(1,
 				 "%s %s: can not read the lockdown code ERROR type:%02X\n",
 				 tag, __func__, temp[4]);
 			ret = ERROR_LOCKDOWN_CODE;
 			goto END;
 		}
 
-		logError(1,
-			 "%s %s signature:%02X id:%02X %02X beforecnt:%d,aftercnt:%d\n",
+		MI_TOUCH_LOGE(1,
+			 "%s %s: signature:%02X id:%02X %02X beforecnt:%d,aftercnt:%d\n",
 			 tag, __func__, temp[0], temp[1], lock_id, loaded_cnt,
 			 loaded_cnt_after);
 		if (loaded_cnt_after == loaded_cnt + 1) {
@@ -1363,7 +1358,7 @@ int fts_get_lockdown_info(u8 *lockData, struct fts_ts_info *info)
 
 	datatemp = printHex_data("Lockdown Code = ", lockData, size);
 	if (datatemp != NULL) {
-		logError(0, "%s %s", tag, datatemp);
+		MI_TOUCH_LOGE(1, "%s %s: %s", tag, __func__, datatemp);
 		kfree(datatemp);
 	}
 

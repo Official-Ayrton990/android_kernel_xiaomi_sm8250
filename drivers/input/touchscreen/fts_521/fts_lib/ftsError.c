@@ -333,7 +333,7 @@ int pollForErrorType(u8 *list, int size)
 	int i = 0, j = 0, find = 0;
 	int count = getErrorListCount();
 
-	logError(0, "%s %s: Starting to poll ErrorList... count = %d \n", tag,
+	MI_TOUCH_LOGD(1, "%s %s: Starting to poll ErrorList... count = %d \n", tag,
 		 __func__, count);
 	while (find != 1 && i < count) {
 		for (j = 0; j < size; j++) {
@@ -345,11 +345,11 @@ int pollForErrorType(u8 *list, int size)
 		i++;
 	}
 	if (find == 1) {
-		logError(1, "%s %s: Error Type %02X into ErrorList! \n", tag,
+		MI_TOUCH_LOGE(1, "%s %s: Error Type %02X into ErrorList! \n", tag,
 			 __func__, list[j]);
 		return list[j];
 	} else {
-		logError(0,
+		MI_TOUCH_LOGE(0,
 			 "%s %s: Error Type Not Found into ErrorList! ERROR %08X \n",
 			 tag, __func__, ERROR_TIMEOUT);
 		return ERROR_TIMEOUT;
