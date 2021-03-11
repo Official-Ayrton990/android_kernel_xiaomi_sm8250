@@ -286,7 +286,7 @@
 	mi,mdss-dsi-white-point-info-length = <8>;
 	mi,mdss-dsi-panel-dc-type = <0>;
 
-	mi,mdss-panel-on-dimming-delay = <120>;
+	mi,mdss-panel-on-dimming-delay = <0>;
 
 	mi,mdss-dsi-panel-fod-dimlayer-enabled;
 	mi,mdss-panel-delay-before-fod-hbm-on;
@@ -363,7 +363,8 @@
 				/* Dimming Off */
 				15 00 00 00 00 00 02 53 20
 				/* HBM Mode */
-				39 01 00 00 00 00 03 51 0F FF];
+				39 01 00 00 00 00 03 51 0F FF
+				39 01 00 00 00 00 03 51 05 21];
 			mi,mdss-dsi-hbm-fod-off-command = [
 				/* Dimming Off */
 				15 01 00 00 00 00 02 53 20
@@ -456,7 +457,8 @@
 				/* Dimming Off */
 				15 00 00 00 00 00 02 53 20
 				/* HBM Mode */
-				39 01 00 00 00 00 03 51 0F FF];
+				39 01 00 00 00 00 03 51 0F FF
+				39 01 00 00 00 00 03 51 05 21];
 			mi,mdss-dsi-hbm-fod-off-command = [
 				/* Dimming Off */
 				15 01 00 00 00 00 02 53 20
