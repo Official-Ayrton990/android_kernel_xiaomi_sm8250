@@ -4834,7 +4834,7 @@ static void smblib_conn_therm_work(struct work_struct *work)
 		wdog_timeout = THERM_REG_RECHECK_DELAY_10S;
 	}
 
-	smblib_dbg(chg, PR_OEM, "CONN TEMP thermal_status=%d, chip->thermal_status=%d, connect_temp= %d\n", thermal_status, chg->thermal_status, chg->connector_temp);
+	//smblib_dbg(chg, PR_OEM, "CONN TEMP thermal_status=%d, chip->thermal_status=%d, connect_temp= %d\n", thermal_status, chg->thermal_status, chg->connector_temp);
 	if (thermal_status != chg->thermal_status) {
 		chg->thermal_status = thermal_status;
 		if (thermal_status == TEMP_ABOVE_RANGE) {
