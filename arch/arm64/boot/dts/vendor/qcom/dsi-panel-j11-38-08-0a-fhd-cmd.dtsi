@@ -252,6 +252,7 @@
 				39 01 00 00 00 00 03 F0 A5 A5
 				/* HBM on */
 				39 01 00 00 01 00 02 53 E0
+				39 01 00 00 00 00 03 51 05 21
 				/* HBM ON 800nit */
 				39 01 00 00 01 00 03 51 03 FF];
 			mi,mdss-dsi-hbm-fod-on-command-state = "dsi_hs_mode";
@@ -461,6 +462,7 @@
 				15 01 00 00 00 00 03 F0 A5 A5
 				/* HBM on */
 				39 01 00 00 01 00 02 53 E0
+                                39 01 00 00 00 00 03 51 05 21
 				/* HBM ON 800nit */
 				39 01 00 00 01 00 03 51 03 FF];
 			mi,mdss-dsi-hbm-fod-on-command-state = "dsi_hs_mode";
