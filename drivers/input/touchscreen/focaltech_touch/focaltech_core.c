@@ -131,7 +131,7 @@ int fts_wait_tp_to_valid(struct i2c_client *client)
 		if ((ret < 0) || (reg_value != chip_id)) {
 			FTS_DEBUG("TP Not Ready, ReadData = 0x%x", reg_value);
 		} else if (reg_value == chip_id) {
-			FTS_INFO("TP Ready, Device ID = 0x%x", reg_value);
+			FTS_DEBUG("TP Ready, Device ID = 0x%x", reg_value);
 			return 0;
 		}
 		cnt++;
@@ -216,7 +216,7 @@ static int fts_get_ic_information(struct fts_ts_data *ts_data)
 	} while ((cnt * INTERVAL_READ_REG) < TIMEOUT_READ_REG);
 
 	if ((cnt * INTERVAL_READ_REG) >= TIMEOUT_READ_REG) {
-		FTS_INFO("fw is invalid, need read boot id");
+		FTS_DEBUG("fw is invalid, need read boot id");
 		if (ts_data->ic_info.hid_supported) {
 			fts_i2c_hid2std(client);
 		}
@@ -248,7 +248,7 @@ static int fts_get_ic_information(struct fts_ts_data *ts_data)
 		}
 	}
 	ts_data->chipid = (short)(chip_id[0] << 8 | chip_id[1]);
-	FTS_INFO("get ic information, chip id = 0x%02x%02x", ts_data->ic_info.ids.chip_idh,
+	FTS_DEBUG("get ic information, chip id = 0x%02x%02x", ts_data->ic_info.ids.chip_idh,
 		 ts_data->ic_info.ids.chip_idl);
 
 	return 0;
@@ -300,7 +300,7 @@ int fts_reset_proc(int hdelayms)
 	while(read_time){
 		ret = fts_i2c_read_reg(client, FTS_REG_CHIP_ID, &chip_id[0]);
 		ret = fts_i2c_read_reg(client, FTS_REG_CHIP_ID2, &chip_id[1]);
-		FTS_INFO("chip_id[0] = 0x%x chip_id[1] = 0x%x\n",chip_id[0], chip_id[1]);
+		FTS_DEBUG("chip_id[0] = 0x%x chip_id[1] = 0x%x\n",chip_id[0], chip_id[1]);
 		if( chip_id[0] == 0x54 && chip_id[1] == 0x52)
 			break;
 		mdelay(15);
@@ -350,7 +350,7 @@ void fts_irq_disable_sync(void)
 
 	if (!fts_data->irq_disabled) {
 		disable_irq(fts_data->irq);
-		FTS_INFO("irq is disabled\n");
+		FTS_DEBUG("irq is disabled\n");
 		fts_data->irq_disabled = true;
 	}
 
@@ -372,7 +372,7 @@ void fts_irq_enable(void)
 
 	if (fts_data->irq_disabled) {
 		enable_irq(fts_data->irq);
-		FTS_INFO("irq is enabled\n");
+		FTS_DEBUG("irq is enabled\n");
 		fts_data->irq_disabled = false;
 	}
 	spin_unlock_irqrestore(&fts_data->irq_lock, irqflags);
@@ -608,7 +608,7 @@ static int fts_input_report_b(struct fts_ts_data *data)
 
 	if (!data->fod_point_released && data->point_num == 0) {
 		fts_release_all_finger();
-		FTS_INFO("%s Normal report release all fingers\n", __func__);
+		FTS_DEBUG("%s Normal report release all fingers\n", __func__);
 		data->fod_point_released = true;
 	}
 
@@ -635,7 +635,7 @@ static int fts_input_report_b(struct fts_ts_data *data)
 			data->touchs |= BIT(events[i].id);
 			if (data->point_id_changed && data->old_point_id != 0xff
 				&& data->fod_status == 0 && data->old_point_id != events[i].id) {
-				FTS_INFO("%s FOD finger ID is Changed, release old id\n", __func__);
+				FTS_DEBUG("%s FOD finger ID is Changed, release old id\n", __func__);
 				input_mt_slot(data->input_dev, data->old_point_id);
 				input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER, 0);
 				input_sync(data->input_dev);
@@ -689,7 +689,7 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 	x = (buf[5] << 8) | buf[6];
 	y = (buf[7] << 8) | buf[8];
 	z = buf[4];
-	pr_info("FTS:read fod data: 0x%x    0x%x    0x%x    overlap_area=0x%x\
+	pr_debug("FTS:read fod data: 0x%x    0x%x    0x%x    overlap_area=0x%x\
 			0x%x    0x%x    0x%x    0x%x    0x%x    anxis_x: %d anxis_y: %d\n",
 			buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7], buf[8], buf[9], x, y);
 	if (ret < 0) {
@@ -706,14 +706,14 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 		 * */
 		switch (buf[2]) {
 		case 0x24:
-			FTS_INFO("DoubleClick Gesture detected, Wakeup panel\n");
+			FTS_DEBUG("DoubleClick Gesture detected, Wakeup panel\n");
 			input_report_key(data->input_dev, KEY_WAKEUP, 1);
 			input_sync(data->input_dev);
 			input_report_key(data->input_dev, KEY_WAKEUP, 0);
 			input_sync(data->input_dev);
 			break;
 		case 0x25:
-			FTS_INFO("FOD status report KEY_GOTO\n");
+			FTS_DEBUG("FOD status report KEY_GOTO\n");
 			input_report_key(data->input_dev, KEY_GOTO, 1);
 			input_sync(data->input_dev);
 			input_report_key(data->input_dev, KEY_GOTO, 0);
@@ -725,7 +725,7 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 				if (!data->fod_finger_skip) {
 					input_report_key(data->input_dev, BTN_INFO, 1);
 					input_sync(data->input_dev);
-					FTS_INFO("Report_0x152 DOWN for FingerPrint\n");
+					FTS_DEBUG("Report_0x152 DOWN for FingerPrint\n");
 					/* data->overlap_area = 100; */
 					fod_overlap_aera = 100;
 				}
@@ -738,12 +738,12 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 				}
 				data->finger_in_fod = true;
 				if (data->suspended && data->fod_status == 0) {
-					FTS_INFO("Panel off and fod status : %d, don't report touch down event\n", data->fod_status);
+					FTS_DEBUG("Panel off and fod status : %d, don't report touch down event\n", data->fod_status);
 					mutex_unlock(&data->report_mutex);
 					return 0;
 				}
 				if (!data->suspended) {
-					pr_info("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
+					pr_debug("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
 					mutex_unlock(&data->report_mutex);
 					return -EINVAL;
 				}
@@ -766,12 +766,12 @@ static int fts_read_and_report_foddata(struct fts_ts_data *data)
 				data->fod_finger_skip = false;
 				data->old_point_id = 0xff;
 				data->point_id_changed = false;
-				FTS_INFO("set fod finger skip false, set old_point_id as default value\n");
-				FTS_INFO("Report_0x152 UP for FingerPrint\n");
+				FTS_DEBUG("set fod finger skip false, set old_point_id as default value\n");
+				FTS_DEBUG("Report_0x152 UP for FingerPrint\n");
 				/* data->overlap_area = 0; */
 				fod_overlap_aera = 0;
 				if (!data->suspended) {
-					pr_info("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
+					pr_debug("FTS:touch is not in suspend state, report x,y value by touch nomal report\n");
 					return -EINVAL;
 				}
 				mutex_lock(&data->report_mutex);
@@ -818,7 +818,7 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 #if FTS_GESTURE_EN
 #ifdef CONFIG_TOUCHSCREEN_FTS_FOD
 	if (fts_read_and_report_foddata(data) == 0) {
-		FTS_INFO("succuss to get fod data in irq handler");
+		FTS_DEBUG("succuss to get fod data in irq handler");
 		ret = fts_i2c_read_reg(fts_data->client, FTS_REG_INT_ACK, &reg_value);
 		if (ret < 0)
 			FTS_ERROR("read int ack error");
@@ -827,7 +827,7 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 	}
 #else
 	if (0 == fts_gesture_readdata(data)) {
-		FTS_INFO("succuss to get gesture data in irq handler");
+		FTS_DEBUG("succuss to get gesture data in irq handler");
 		return 1;
 	}
 #endif
@@ -856,13 +856,13 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 
 	if ((data->point_num == 0x0F) && (buf[1] == 0xFF) && (buf[2] == 0xFF)
 		&& (buf[3] == 0xFF) && (buf[4] == 0xFF) && (buf[5] == 0xFF) && (buf[6] == 0xFF)) {
-		FTS_INFO("touch buff is 0xff, need recovery state");
+		FTS_DEBUG("touch buff is 0xff, need recovery state");
 		fts_tp_state_recovery(client);
 		return -EIO;
 	}
 
 	if (data->point_num > max_touch_num) {
-		FTS_INFO("invalid point_num(%d)", data->point_num);
+		FTS_DEBUG("invalid point_num(%d)", data->point_num);
 		data->point_num = max_touch_num;
 		return -EIO;
 	}
@@ -890,12 +890,12 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 		events[i].p = buf[FTS_TOUCH_PRE_POS + base];
 
 		if (EVENT_DOWN(events[i].flag) && (data->point_num == 0)) {
-			FTS_INFO("abnormal touch data from fw");
+			FTS_DEBUG("abnormal touch data from fw");
 			return -EIO;
 		}
 	}
 	if (data->touch_point == 0) {
-		FTS_INFO("no touch point information");
+		FTS_DEBUG("no touch point information");
 		return -EIO;
 	}
 
@@ -977,13 +977,13 @@ static int fts_irq_registration(struct fts_ts_data *ts_data)
 	struct fts_ts_platform_data *pdata = ts_data->pdata;
 
 	ts_data->irq = gpio_to_irq(pdata->irq_gpio);
-	FTS_INFO("irq in ts_data:%d irq in client:%d", ts_data->irq, ts_data->client->irq);
+	FTS_DEBUG("irq in ts_data:%d irq in client:%d", ts_data->irq, ts_data->client->irq);
 	if (ts_data->irq != ts_data->client->irq)
 		FTS_ERROR("IRQs are inconsistent, please check <interrupts> & <focaltech,irq-gpio> in DTS");
 
 	if (0 == pdata->irq_gpio_flags)
 		pdata->irq_gpio_flags = IRQF_TRIGGER_FALLING;
-	FTS_INFO("irq flag:%x", pdata->irq_gpio_flags);
+	FTS_DEBUG("irq flag:%x", pdata->irq_gpio_flags);
 	ret =
 		request_threaded_irq(ts_data->irq, NULL, fts_ts_interrupt, pdata->irq_gpio_flags | IRQF_ONESHOT | IRQF_PRIME_AFFINE,
 				 ts_data->client->name, ts_data);
@@ -998,7 +998,7 @@ static void fts_switch_mode_work(struct work_struct *work)
 	unsigned char value = ms->mode;
 	bool enable = false;
 
-	FTS_INFO("%s mode %d", __func__, value);
+	FTS_DEBUG("%s mode %d", __func__, value);
 
 	if (value >= INPUT_EVENT_WAKUP_MODE_OFF && value <= INPUT_EVENT_WAKUP_MODE_ON) {
 		enable = !!(value - INPUT_EVENT_WAKUP_MODE_OFF);
@@ -1017,7 +1017,7 @@ static int fts_input_event(struct input_dev *dev, unsigned int type, unsigned in
 	struct fts_ts_data *ts_data = input_get_drvdata(dev);
 	struct fts_mode_switch *ms;
 
-	FTS_INFO("set input event value = %d", value);
+	FTS_DEBUG("set input event value = %d", value);
 
 	if (!ts_data) {
 		FTS_ERROR("fts_ts_data is NULL");
@@ -1312,7 +1312,7 @@ static void fts_init_touchmode_data(void)
 
 
 	for (i = 0; i < Touch_Mode_NUM; i++) {
-		FTS_INFO("mode:%d, set cur:%d, get cur:%d, def:%d min:%d max:%d\n",
+		FTS_DEBUG("mode:%d, set cur:%d, get cur:%d, def:%d min:%d max:%d\n",
 			i,
 			xiaomi_touch_interfaces.touch_mode[i][SET_CUR_VALUE],
 			xiaomi_touch_interfaces.touch_mode[i][GET_CUR_VALUE],
@@ -1425,7 +1425,7 @@ static void fts_update_touchmode_data(int mode)
 static int fts_set_cur_value(int mode, int value)
 {
 
-	FTS_INFO("%s, mode:%d, value:%d\n", __func__, mode, value);
+	FTS_DEBUG("%s, mode:%d, value:%d\n", __func__, mode, value);
 	if (mode == Touch_Fod_Enable && fts_data && value >= 0) {
 		fts_data->fod_status = value;
 		return 0;
@@ -1462,7 +1462,7 @@ static int fts_set_cur_value(int mode, int value)
 static char fts_get_touch_vendor(void)
 {
 	char value = '3';
-	FTS_INFO("Get touch vendor: %c\n", value);
+	FTS_DEBUG("Get touch vendor: %c\n", value);
 	return value;
 }
 
@@ -1489,7 +1489,7 @@ static int fts_get_mode_all(int mode, int *value)
 	} else {
 		FTS_ERROR("%s, don't support\n",  __func__);
 	}
-	FTS_INFO("%s, mode:%d, value:%d:%d:%d:%d\n", __func__, mode, value[0],
+	FTS_DEBUG("%s, mode:%d, value:%d:%d:%d:%d\n", __func__, mode, value[0],
 					value[1], value[2], value[3]);
 
 	return 0;
@@ -1565,8 +1565,8 @@ static int fts_get_dt_coords(struct device *dev, char *name, struct fts_ts_platf
 		return -EINVAL;
 	}
 
-	FTS_INFO("display x(%d %d) y(%d %d)", pdata->x_min, pdata->x_max, pdata->y_min, pdata->y_max);
-	FTS_INFO("lockdown_info_addr = 0x%x\n", pdata->lockdown_info_addr);
+	FTS_DEBUG("display x(%d %d) y(%d %d)", pdata->x_min, pdata->x_max, pdata->y_min, pdata->y_max);
+	FTS_DEBUG("lockdown_info_addr = 0x%x\n", pdata->lockdown_info_addr);
 	return 0;
 }
 
@@ -1615,7 +1615,7 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
 		pdata->max_touch_number = FTS_MAX_POINTS_SUPPORT;
 	}
 
-	FTS_INFO("max touch number:%d, irq gpio:%d, reset gpio:%d", pdata->max_touch_number, pdata->irq_gpio,
+	FTS_DEBUG("max touch number:%d, irq gpio:%d, reset gpio:%d", pdata->max_touch_number, pdata->irq_gpio,
 		 pdata->reset_gpio);
 	ret = of_property_read_u32(np, "focaltech,avdd-load", &temp_val);
 	if (ret == 0) {
@@ -1669,7 +1669,7 @@ static ssize_t fts_gamemode_test_store(struct device *dev,
 {
 	int mode, value;
 
-	FTS_INFO("%s,buf:%s,count:%zu\n", __func__, buf, count);
+	FTS_DEBUG("%s,buf:%s,count:%zu\n", __func__, buf, count);
 	sscanf(buf, "%d %d", &mode, &value);
 	fts_set_cur_value(mode, value);
 	return count;
@@ -1840,12 +1840,12 @@ static void fts_power_supply_work(struct work_struct *work)
 	is_usb_exist = !!power_supply_is_system_supplied();
 	if (is_usb_exist != ts_data->is_usb_exist || ts_data->is_usb_exist < 0) {
 		ts_data->is_usb_exist = is_usb_exist;
-		FTS_INFO("%s %d\n", __func__, is_usb_exist);
+		FTS_DEBUG("%s %d\n", __func__, is_usb_exist);
 		if (is_usb_exist) {
-			FTS_INFO("%s USB is exist\n", __func__);
+			FTS_DEBUG("%s USB is exist\n", __func__);
 			fts_charger_mode_set(ts_data->client, true);
 		} else {
-			FTS_INFO("%s USB is not exist\n", __func__);
+			FTS_DEBUG("%s USB is not exist\n", __func__);
 			fts_charger_mode_set(ts_data->client, false);
 		}
 	}
@@ -1872,7 +1872,7 @@ static int fts_bl_state_chg_callback(struct notifier_block *nb,
 		return NOTIFY_OK;
 	if (data && ts_data) {
 		blank = *(int *)(data);
-		FTS_INFO("%s: val:%lu,blank:%u\n", __func__, val, blank);
+		FTS_DEBUG("%s: val:%lu,blank:%u\n", __func__, val, blank);
 		if (!ts_data->suspended && blank == BACKLIGHT_OFF) {
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 			if (ts_data->palm_sensor_switch) {
@@ -1911,14 +1911,14 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 		flush_workqueue(fts_data->event_wq);
 
 		if (*blank == MI_DRM_BLANK_UNBLANK) {
-			FTS_INFO("FTS do resume work\n");
+			FTS_DEBUG("FTS do resume work\n");
 			queue_work(fts_data->event_wq, &fts_data->resume_work);
 		} else if (*blank == MI_DRM_BLANK_POWERDOWN || *blank == MI_DRM_BLANK_LP1 || *blank == MI_DRM_BLANK_LP2) {
-			FTS_INFO("FTS do suspend work by event %s\n", *blank == MI_DRM_BLANK_POWERDOWN ? "POWER DOWN" : "LP");
+			FTS_DEBUG("FTS do suspend work by event %s\n", *blank == MI_DRM_BLANK_POWERDOWN ? "POWER DOWN" : "LP");
 			if (*blank == MI_DRM_BLANK_POWERDOWN && fts_data->finger_in_fod) {
-				FTS_INFO("fb_notifier_callback:fod_status = %d\n", fts_data->fod_status);
+				FTS_DEBUG("fb_notifier_callback:fod_status = %d\n", fts_data->fod_status);
 				if (fts_data->fod_status != -1 && fts_data->fod_status != 100) {
-					FTS_INFO("set fod finger skip true\n");
+					FTS_DEBUG("set fod finger skip true\n");
 					fts_data->fod_finger_skip = true;
 				}
 			}
@@ -1991,7 +1991,7 @@ static int check_is_focal_touch(struct fts_ts_data *ts_data)
 		return false;
 	}
 
-	FTS_INFO("read boot id:0x%02x%02x", val[0], val[1]);
+	FTS_DEBUG("read boot id:0x%02x%02x", val[0], val[1]);
 
 	return true;
 }
@@ -2479,7 +2479,7 @@ static int fts_ts_suspend(struct device *dev)
 #endif
 	FTS_FUNC_ENTER();
 	if (ts_data->suspended) {
-		FTS_INFO("Already in suspend state");
+		FTS_DEBUG("Already in suspend state");
 #ifdef CONFIG_TOUCHSCREEN_FTS_FOD
 		mutex_unlock(&ts_data->fod_mutex);
 #endif
@@ -2487,7 +2487,7 @@ static int fts_ts_suspend(struct device *dev)
 	}
 
 	if (ts_data->fw_loading) {
-		FTS_INFO("fw upgrade in process, can't suspend");
+		FTS_DEBUG("fw upgrade in process, can't suspend");
 #ifdef CONFIG_TOUCHSCREEN_FTS_FOD
 		mutex_unlock(&ts_data->fod_mutex);
 #endif
@@ -2518,7 +2518,7 @@ static int fts_ts_suspend(struct device *dev)
 		ts_data->suspended = true;
 		ts_data->old_point_id = 0xff;
 		ts_data->point_id_changed = false;
-		FTS_INFO("%s Tp enter suspend, set old_point_id as default value\n", __func__);
+		FTS_DEBUG("%s Tp enter suspend, set old_point_id as default value\n", __func__);
 		fts_irq_enable();
 		update_palm_sensor_value(0);
 		ret = fts_palm_enable(ts_data, 0);
@@ -2550,7 +2550,7 @@ static int fts_ts_suspend(struct device *dev)
 		ts_data->suspended = true;
 		ts_data->old_point_id = 0xff;
 		ts_data->point_id_changed = false;
-		FTS_INFO("%s Tp enter suspend, set old_point_id as default value\n", __func__);
+		FTS_DEBUG("%s Tp enter suspend, set old_point_id as default value\n", __func__);
 		update_palm_sensor_value(0);
 		ret = fts_palm_enable(ts_data, 0);
 		if (!ret)
@@ -2607,7 +2607,7 @@ static int fts_ts_resume(struct device *dev)
 
 
 #ifdef CONFIG_TOUCHSCREEN_FTS_FOD
-	FTS_INFO("%s finger_in_fod:%d fod_finger_skip:%d\n", __func__, ts_data->finger_in_fod, ts_data->fod_finger_skip);
+	FTS_DEBUG("%s finger_in_fod:%d fod_finger_skip:%d\n", __func__, ts_data->finger_in_fod, ts_data->fod_finger_skip);
 	if (ts_data->pdata->reset_when_resume && !ts_data->finger_in_fod && !ts_data->fod_finger_skip) {
 		FTS_ERROR("fod-----reset when resume");
 		fts_reset_proc(50);
@@ -2678,7 +2678,7 @@ static int fts_pm_suspend(struct device *dev)
 #endif
 		ret = enable_irq_wake(ts_data->irq);
 		if (ret) {
-			FTS_INFO("enable_irq_wake(irq:%d) failed", ts_data->irq);
+			FTS_DEBUG("enable_irq_wake(irq:%d) failed", ts_data->irq);
 		}
 #ifndef CONFIG_TOUCHSCREEN_FTS_FOD
 	}
@@ -2699,7 +2699,7 @@ static int fts_pm_resume(struct device *dev)
 #endif
 		ret = disable_irq_wake(ts_data->irq);
 		if (ret) {
-			FTS_INFO("disable_irq_wake(irq:%d) failed", ts_data->irq);
+			FTS_DEBUG("disable_irq_wake(irq:%d) failed", ts_data->irq);
 		}
 #ifndef CONFIG_TOUCHSCREEN_FTS_FOD
 	}
