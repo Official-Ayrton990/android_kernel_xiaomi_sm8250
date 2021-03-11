@@ -404,12 +404,12 @@
 	mi,mdss-dsi-panel-dc-threshold = <440>;
 	mi,mdss-dsi-panel-dc-type = <1>;
 
-	mi,mdss-panel-on-dimming-delay = <120>;
+	mi,mdss-panel-on-dimming-delay = <0>;
 
 	mi,mdss-dsi-panel-fod-dimlayer-enabled;
 	mi,mdss-panel-delay-before-fod-hbm-on;
 	mi,mdss-panel-delay-before-fod-hbm-off;
-	mi,mdss-panel-before-fod-hbm-on-60Hz-delay = <8000>;
+	mi,mdss-panel-before-fod-hbm-on-60Hz-delay = <0>;
 
 	mi,mdss-dsi-dimlayer-brightness-alpha-lut-item-count = <21>;
 	mi,mdss-dsi-dimlayer-brightness-alpha-lut =
@@ -481,7 +481,8 @@
 				39 00 00 00 00 00 02 B5 93
 				39 01 00 00 00 00 03 F0 A5 A5
 				/* HBM Mode On transition(60Hz) */
-				15 01 00 00 00 00 02 53 E0];
+				15 01 00 00 00 00 02 53 E0
+				39 01 00 00 00 00 03 51 05 21];
 			mi,mdss-dsi-hbm-fod-off-command = [
 				/* DLY On */
 				39 00 00 00 00 00 03 F0 5A 5A
@@ -619,7 +620,8 @@
 				39 00 00 00 00 00 02 B5 93
 				39 01 00 00 00 00 03 F0 A5 A5
 				/* HBM Mode On transition(90Hz) */
-				15 01 00 00 00 00 02 53 F0];
+				15 01 00 00 00 00 02 53 F0
+				39 01 00 00 00 00 03 51 05 21];
 			mi,mdss-dsi-hbm-fod-off-command = [
 				/* DLY On */
 				39 00 00 00 00 00 03 F0 5A 5A
