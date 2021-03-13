@@ -494,6 +494,7 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 
 	switch (bdf_type) {
 	case CNSS_BDF_ELF:
+#if 0
 		if (plat_priv->board_info.board_id == 0xFF)
 			snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME);
 		else if (plat_priv->board_info.board_id < 0xFF)
@@ -505,6 +506,9 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 				 BDF_FILE_NAME_PREFIX "%02x.e%02x",
 				 plat_priv->board_info.board_id >> 8 & 0xFF,
 				 plat_priv->board_info.board_id & 0xFF);
+#else
+		snprintf(filename_tmp, filename_len, "bd_j11gl.elf");
+#endif
 		break;
 	case CNSS_BDF_BIN:
 		if (plat_priv->board_info.board_id == 0xFF)
@@ -520,7 +524,11 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 				 plat_priv->board_info.board_id & 0xFF);
 		break;
 	case CNSS_BDF_REGDB:
+#if 0
 		snprintf(filename_tmp, filename_len, REGDB_FILE_NAME);
+#else
+		snprintf(filename_tmp, filename_len, "regdb_j11.bin");
+#endif
 		break;
 	case CNSS_BDF_DUMMY:
 		cnss_pr_dbg("CNSS_BDF_DUMMY is set, sending dummy BDF\n");
