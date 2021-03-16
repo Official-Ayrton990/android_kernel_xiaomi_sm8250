@@ -407,13 +407,13 @@ int dsi_panel_parse_mi_config(struct dsi_panel *panel,
 		}
 
 		arr = utils->get_property(utils->data,
-				"mi,mdss-dsi-dimlayer-brightness-alpha-lut", &length);
+				"qcom,disp-fod-dim-lut", &length);
 
 		length = length / sizeof(u32);
 
 		pr_info("length: %d\n", length);
 		if (!arr || length & 0x1 || length != mi_cfg->brightnes_alpha_lut_item_count * 2) {
-			pr_err("read mi,mdss-dsi-dimlayer-brightness-alpha-lut failed\n");
+			pr_err("read qcom,disp-fod-dim-lut failed\n");
 			mi_cfg->fod_dimlayer_enabled = false;
 			goto skip_dimlayer_parse;
 		}
@@ -425,10 +425,10 @@ int dsi_panel_parse_mi_config(struct dsi_panel *panel,
 			goto skip_dimlayer_parse;
 		}
 
-		rc = utils->read_u32_array(utils->data, "mi,mdss-dsi-dimlayer-brightness-alpha-lut",
+		rc = utils->read_u32_array(utils->data, "qcom,disp-fod-dim-lut",
 			(u32 *)mi_cfg->brightness_alpha_lut, length);
 		if (rc) {
-			pr_err("cannot read mi,mdss-dsi-dimlayer-brightness-alpha-lut\n");
+			pr_err("cannot read qcom,disp-fod-dim-lut\n");
 			mi_cfg->fod_dimlayer_enabled = false;
 			kfree(mi_cfg->brightness_alpha_lut);
 			goto skip_dimlayer_parse;
