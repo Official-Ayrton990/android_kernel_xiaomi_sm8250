@@ -15,6 +15,14 @@
 enum {
 	/* panel: power on */
 	MSM_DRM_BLANK_UNBLANK,
+	/* panel: LP1 */
+	MSM_DRM_BLANK_LP1,
+	/* panel: LP2 */
+	MSM_DRM_BLANK_LP2,
+	/* panel: standby */
+	MSM_DRM_BLANK_STANDBY,
+	/* panel: suspend */
+	MSM_DRM_BLANK_SUSPEND,
 	/* panel: power off */
 	MSM_DRM_BLANK_POWERDOWN,
 	/* panel power on for tp */
@@ -47,6 +55,7 @@ int dsi_panel_backlight_get(void);
 #ifdef CONFIG_DRM_MSM
 int msm_drm_register_client(struct notifier_block *nb);
 int msm_drm_unregister_client(struct notifier_block *nb);
+int msm_drm_notifier_call_chain(unsigned long val, void *v);
 #else
 static inline int msm_drm_register_client(struct notifier_block *nb)
 {
@@ -54,6 +63,11 @@ static inline int msm_drm_register_client(struct notifier_block *nb)
 }
 
 static inline int msm_drm_unregister_client(struct notifier_block *nb)
+{
+	return 0;
+}
+
+static inline int msm_drm_notifier_call_chain(unsigned long val, void *v)
 {
 	return 0;
 }
