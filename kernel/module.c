@@ -3081,6 +3081,7 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
 		modmagic = NULL;
 
 	/* This is allowed: modprobe --force will invalidate it. */
+#if 0
 	if (!modmagic) {
 		err = try_to_force_load(mod, "bad vermagic");
 		if (err)
@@ -3090,7 +3091,7 @@ static int check_modinfo(struct module *mod, struct load_info *info, int flags)
 		       info->name, modmagic, vermagic);
 		return -ENOEXEC;
 	}
-
+#endif
 	if (!get_modinfo(info, "intree")) {
 		if (!test_taint(TAINT_OOT_MODULE))
 			pr_warn("%s: loading out-of-tree module taints kernel.\n",
