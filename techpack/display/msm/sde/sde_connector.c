@@ -3227,14 +3227,7 @@ int sde_connector_pre_hbm_ctl(struct drm_connector *connector)
 
 static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, uint32_t yb)
 {
-	uint32_t bf;
-
-	bf = ya - (ya - yb) * (x - xa) / (xb - xa);
-
-	SDE_DEBUG("backlight brightness:%d, [i-1]bl:%d, [i]bl:%d, [i-1]alpha:%d, [i]alpha:%d, bf:%d",
-			x, xa, xb, ya, yb, bf);
-
-	return bf;
+	return ya - (ya - yb) * (x - xa) / (xb - xa);
 }
 
 static uint32_t brightness_to_alpha(struct dsi_panel_mi_cfg *mi_cfg, uint32_t brightness)
