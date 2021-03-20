@@ -124,7 +124,6 @@ struct va_macro_swr_ctrl_platform_data {
 	int (*write)(void *handle, int reg, int val);
 	int (*bulk_write)(void *handle, u32 *reg, u32 *val, size_t len);
 	int (*clk)(void *handle, bool enable);
-	int (*core_vote)(void *handle, bool enable);
 	int (*handle_irq)(void *handle,
 			  irqreturn_t (*swrm_irq_handler)(int irq,
 							  void *data),
@@ -688,26 +687,6 @@ done:
 				TX_CORE_CLK,
 				false);
 	return ret;
-}
-
-static int va_macro_core_vote(void *handle, bool enable)
-{
-	struct va_macro_priv *va_priv = (struct va_macro_priv *) handle;
-
-	if (va_priv == NULL) {
-		pr_err("%s: va priv data is NULL\n", __func__);
-		return -EINVAL;
-	}
-	if (enable) {
-		pm_runtime_get_sync(va_priv->dev);
-		pm_runtime_put_autosuspend(va_priv->dev);
-		pm_runtime_mark_last_busy(va_priv->dev);
-	}
-
-	if (bolero_check_core_votes(va_priv->dev))
-		return 0;
-	else
-		return -EINVAL;
 }
 
 static int va_macro_swrm_clock(void *handle, bool enable)
@@ -2813,15 +2792,6 @@ static int va_macro_init(struct snd_soc_component *component)
 	}
 	va_priv->component = component;
 
-	if (va_priv->version == BOLERO_VERSION_2_1) {
-		snd_soc_component_update_bits(component,
-			BOLERO_CDC_VA_TOP_CSR_SWR_MIC_CTL0, 0xEE, 0xCC);
-		snd_soc_component_update_bits(component,
-			BOLERO_CDC_VA_TOP_CSR_SWR_MIC_CTL1, 0xEE, 0xCC);
-		snd_soc_component_update_bits(component,
-			BOLERO_CDC_VA_TOP_CSR_SWR_MIC_CTL2, 0xEE, 0xCC);
-	}
-
 	return 0;
 }
 
@@ -3148,7 +3118,6 @@ static int va_macro_probe(struct platform_device *pdev)
 		va_priv->swr_plat_data.write = NULL;
 		va_priv->swr_plat_data.bulk_write = NULL;
 		va_priv->swr_plat_data.clk = va_macro_swrm_clock;
-		va_priv->swr_plat_data.core_vote = va_macro_core_vote;
 		va_priv->swr_plat_data.handle_irq = NULL;
 		mutex_init(&va_priv->swr_clk_lock);
 	}

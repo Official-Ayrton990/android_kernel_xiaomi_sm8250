@@ -29,6 +29,8 @@
 	codec_info.type = type; \
 	codec_info.ctrl_id = codec_data->ctl[dai_id]; \
 	codec_info.stream_id = codec_data->stream[dai_id]; \
+	msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev, \
+				&codec_info)
 
 enum {
         DP_CONTROLLER0 = 0,
@@ -101,9 +103,7 @@ static int msm_ext_disp_edid_ctl_info(struct snd_kcontrol *kcontrol,
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai_id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
-	if (!codec_data->ext_disp_ops.get_audio_edid_blk || rc) {
+	if (!codec_data->ext_disp_ops.get_audio_edid_blk) {
 		dev_dbg(component->dev, "%s: get_audio_edid_blk() is NULL\n",
 			__func__);
 		uinfo->type = SNDRV_CTL_ELEM_TYPE_BYTES;
@@ -153,9 +153,7 @@ static int msm_ext_disp_edid_get(struct snd_kcontrol *kcontrol,
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai_id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
-	if (!codec_data->ext_disp_ops.get_audio_edid_blk || rc) {
+	if (!codec_data->ext_disp_ops.get_audio_edid_blk) {
 		dev_err(component->dev, "%s: codec_data or get_audio_edid_blk() is NULL\n",
 			__func__);
 		mutex_unlock(&codec_data->dp_ops_lock);
@@ -219,11 +217,9 @@ static int msm_ext_disp_audio_type_get(struct snd_kcontrol *kcontrol,
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai_id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
 
 	if (!codec_data->ext_disp_ops.get_audio_edid_blk ||
-	    !codec_data->ext_disp_ops.get_intf_id || rc) {
+	    !codec_data->ext_disp_ops.get_intf_id) {
 		dev_err(component->dev, "%s: get_audio_edid_blk() or get_intf_id is NULL\n",
 			__func__);
 		rc = -EINVAL;
@@ -311,10 +307,8 @@ static int msm_ext_disp_audio_ack_set(struct snd_kcontrol *kcontrol,
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai_id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
 
-	if (!codec_data->ext_disp_ops.acknowledge || rc) {
+	if (!codec_data->ext_disp_ops.acknowledge) {
 		dev_err(component->dev,
 			"%s: codec_data ops acknowledge() is NULL\n",
 			__func__);
@@ -509,7 +503,7 @@ static int msm_ext_disp_audio_codec_rx_dai_startup(
 		struct snd_pcm_substream *substream,
 		struct snd_soc_dai *dai)
 {
-	int ret = 0, rc = 0;
+	int ret = 0;
 	struct msm_ext_disp_codec_id codec_info;
 	struct msm_ext_disp_audio_codec_rx_data *codec_data =
 			dev_get_drvdata(dai->component->dev);
@@ -531,10 +525,8 @@ static int msm_ext_disp_audio_codec_rx_dai_startup(
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai->id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
 
-	if (!codec_data->ext_disp_ops.cable_status || rc) {
+	if (!codec_data->ext_disp_ops.cable_status) {
 		dev_err(dai->dev, "%s() cable_status is null\n",
 			__func__);
 		mutex_unlock(&codec_data->dp_ops_lock);
@@ -592,10 +584,8 @@ static int msm_ext_disp_audio_codec_rx_dai_hw_params(
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai->id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
 
-	if (!codec_data->ext_disp_ops.audio_info_setup || rc) {
+	if (!codec_data->ext_disp_ops.audio_info_setup) {
 		dev_err(dai->dev, "%s: audio_info_setup is null\n",
 			__func__);
 		mutex_unlock(&codec_data->dp_ops_lock);
@@ -662,13 +652,8 @@ static int msm_ext_disp_audio_codec_rx_dai_hw_params(
 
 	mutex_lock(&codec_data->dp_ops_lock);
 	SWITCH_DP_CODEC(codec_info, codec_data, dai->id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
-	if (rc)
-		goto end;
 	rc = codec_data->ext_disp_ops.audio_info_setup(
 			codec_data->ext_disp_core_pdev, &audio_setup_params);
-end:
 	mutex_unlock(&codec_data->dp_ops_lock);
 	if (rc < 0) {
 		dev_err_ratelimited(dai->dev,
@@ -706,11 +691,9 @@ static void msm_ext_disp_audio_codec_rx_dai_shutdown(
 	else
 		type = EXT_DISPLAY_TYPE_DP;
 	SWITCH_DP_CODEC(codec_info, codec_data, dai->id, type);
-	rc = msm_ext_disp_select_audio_codec(codec_data->ext_disp_core_pdev,
-						 &codec_info);
 
 	if (!codec_data->ext_disp_ops.teardown_done ||
-	    !codec_data->ext_disp_ops.cable_status || rc) {
+	    !codec_data->ext_disp_ops.cable_status) {
 		dev_err(dai->dev, "%s: teardown_done or cable_status is null\n",
 			__func__);
 		mutex_unlock(&codec_data->dp_ops_lock);

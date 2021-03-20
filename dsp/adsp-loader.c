@@ -324,14 +324,14 @@ static int adsp_loader_probe(struct platform_device *pdev)
 {
 	struct adsp_loader_private *priv = NULL;
 	struct nvmem_cell *cell;
-	size_t len;
+	ssize_t len;
 	u32 *buf;
 	const char **adsp_fw_name_array = NULL;
 	int adsp_fw_cnt;
 	u32* adsp_fw_bit_values = NULL;
 	int i;
 	int fw_name_size;
-	u32 adsp_var_idx = 0;
+	u32 adsp_var_idx;
 	int ret = 0;
 	u32 adsp_fuse_not_supported = 0;
 	const char *adsp_fw_name;
@@ -398,7 +398,7 @@ static int adsp_loader_probe(struct platform_device *pdev)
 		kfree(buf);
 		goto wqueue;
 	}
-	memcpy(&adsp_var_idx, buf, len);
+	adsp_var_idx = (*buf);
 	kfree(buf);
 
 	/* Get count of fw images */

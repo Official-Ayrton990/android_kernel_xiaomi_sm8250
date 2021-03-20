@@ -100,6 +100,7 @@ struct wsa883x_priv {
 	bool ext_vdd_spk;
 	bool dapm_bias_off;
 	struct swr_port port[WSA883X_MAX_SWR_PORTS];
+	int pd_gpio;
 	int global_pa_cnt;
 	int dev_mode;
 	struct mutex res_lock;
@@ -109,11 +110,8 @@ struct wsa883x_priv {
 	struct device_node *wsa_rst_np;
 	int pa_mute;
 	int curr_temp;
-	int variant;
 	int version;
 	u8 pa_gain;
-	struct irq_domain *virq;
-	struct wcd_irq_info irq_info;
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_dent;
 	struct dentry *debugfs_peek;
