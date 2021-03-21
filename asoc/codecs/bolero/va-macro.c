@@ -1881,7 +1881,7 @@ static const struct snd_soc_dapm_widget va_macro_dapm_widgets_v2[] = {
 		VA_MACRO_AIF3_CAP, 0,
 		va_aif3_cap_mixer_v2, ARRAY_SIZE(va_aif3_cap_mixer_v2)),
 
-	SND_SOC_DAPM_SUPPLY_S("VA_SWR_PWR", -1, SND_SOC_NOPM, 0, 0,
+	SND_SOC_DAPM_SUPPLY_S("VA_SWR_PWR", -2, SND_SOC_NOPM, 0, 0,
 			      va_macro_swr_pwr_event_v2,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
@@ -1923,7 +1923,7 @@ static const struct snd_soc_dapm_widget va_macro_dapm_widgets_v3[] = {
 			   SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMU |
 			   SND_SOC_DAPM_PRE_PMD | SND_SOC_DAPM_POST_PMD),
 
-	SND_SOC_DAPM_SUPPLY_S("VA_SWR_PWR", -1, SND_SOC_NOPM, 0, 0,
+	SND_SOC_DAPM_SUPPLY_S("VA_SWR_PWR", -2, SND_SOC_NOPM, 0, 0,
 			      va_macro_swr_pwr_event,
 			      SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 };
