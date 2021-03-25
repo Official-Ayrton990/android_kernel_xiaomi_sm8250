@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2009-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #ifndef _ARCH_ARM_MACH_MSM_SOCINFO_H_
@@ -211,10 +212,20 @@ enum pmic_model {
 #define HARDWARE_PLATFORM_CMI  1
 #define HARDWARE_PLATFORM_UMI  2
 #define HARDWARE_PLATFORM_LMI  3
+#define HARDWARE_PLATFORM_URD  4
+#define HARDWARE_PLATFORM_VERTHANDI  5
+#define HARDWARE_PLATFORM_SKULD  6
 #define HARDWARE_PLATFORM_CAS  7
 #define HARDWARE_PLATFORM_APOLLO  8
+#define HARDWARE_PLATFORM_ALIOTH  9
+#define HARDWARE_PLATFORM_THYME  10
+#define HARDWARE_PLATFORM_ENUMA  11
+#define HARDWARE_PLATFORM_ELISH  12
+
 #define HW_MAJOR_VERSION_B  9
 #define HW_MINOR_VERSION_B  1
+
+
 #define HW_MAJOR_VERSION_SHIFT 16
 #define HW_MAJOR_VERSION_MASK  0xFFFF0000
 #define HW_MINOR_VERSION_SHIFT 0
