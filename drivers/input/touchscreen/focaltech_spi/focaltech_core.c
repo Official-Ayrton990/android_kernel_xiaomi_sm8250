@@ -72,7 +72,6 @@ static int fts_ts_suspend(struct device *dev);
 static int fts_ts_resume(struct device *dev);
 
 #define LPM_EVENT_INPUT 0x1
-extern void lpm_disable_for_dev(bool on, char event_dev);
 extern void touch_irq_boost(void);
 
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
@@ -405,7 +404,6 @@ void fts_release_all_finger(void)
 #endif
 	input_report_key(input_dev, BTN_TOUCH, 0);
 	input_sync(input_dev);
-	lpm_disable_for_dev(false, LPM_EVENT_INPUT);
 
 	fts_data->touchs = 0;
 	fts_data->key_state = 0;
@@ -530,7 +528,6 @@ static int fts_input_report_b(struct fts_ts_data *data)
 				FTS_DEBUG("[B]Points All Up!");
 			}
 			input_report_key(data->input_dev, BTN_TOUCH, 0);
-			lpm_disable_for_dev(false, LPM_EVENT_INPUT);
 		} else {
 			input_report_key(data->input_dev, BTN_TOUCH, 1);
 		}
@@ -758,7 +755,6 @@ static irqreturn_t fts_irq_handler(int irq, void *data)
 #endif
 
 	pm_stay_awake(fts_data->dev);
-	lpm_disable_for_dev(true, LPM_EVENT_INPUT);
 	fts_irq_read_report();
 	pm_relax(fts_data->dev);
 	return IRQ_HANDLED;
