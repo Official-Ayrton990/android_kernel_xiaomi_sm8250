@@ -821,12 +821,12 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 	int rc = 0;
 
 	if (status) {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_ON);
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_HBM_ON);
 		if (rc)
 			pr_err("[%s] failed to send DSI_CMD_SET_HBM_ON cmd, rc=%d\n",
 					panel->name, rc);
 	} else {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_HBM_OFF);
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_HBM_OFF);
 		if (rc)
 			pr_err("[%s] failed to send DSI_CMD_SET_HBM_OFF cmd, rc=%d\n",
 					panel->name, rc);
