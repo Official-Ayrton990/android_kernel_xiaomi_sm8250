@@ -904,17 +904,6 @@ int cnss_pci_link_down(struct device *dev)
 		return -EINVAL;
 	}
 
-	plat_priv = pci_priv->plat_priv;
-	if (!plat_priv) {
-		cnss_pr_err("plat_priv is NULL\n");
-		return -ENODEV;
-	}
-
-	if (pci_priv->drv_connected_last &&
-	    of_property_read_bool(plat_priv->plat_dev->dev.of_node,
-				  "cnss-enable-self-recovery"))
-		plat_priv->ctrl_params.quirks |= BIT(LINK_DOWN_SELF_RECOVERY);
-
 	cnss_pr_err("PCI link down is detected by drivers\n");
 
 	ret = msm_pcie_pm_control(MSM_PCIE_HANDLE_LINKDOWN,
@@ -2458,8 +2447,6 @@ static void cnss_pci_event_cb(struct msm_pcie_notify *notify)
 {
 	struct pci_dev *pci_dev;
 	struct cnss_pci_data *pci_priv;
-	struct cnss_plat_data *plat_priv = NULL;
-	int ret = 0;
 
 	if (!notify)
 		return;
@@ -2473,23 +2460,6 @@ static void cnss_pci_event_cb(struct msm_pcie_notify *notify)
 		return;
 
 	switch (notify->event) {
-	case MSM_PCIE_EVENT_LINK_RECOVER:
-		cnss_pr_dbg("PCI link recover callback\n");
-
-		plat_priv = pci_priv->plat_priv;
-		if (!plat_priv) {
-			cnss_pr_err("plat_priv is NULL\n");
-			return;
-		}
-
-		plat_priv->ctrl_params.quirks |= BIT(LINK_DOWN_SELF_RECOVERY);
-
-		ret = msm_pcie_pm_control(MSM_PCIE_HANDLE_LINKDOWN,
-					  pci_dev->bus->number, pci_dev, NULL,
-					  PM_OPTIONS_DEFAULT);
-		if (ret)
-			cnss_pci_handle_linkdown(pci_priv);
-		break;
 	case MSM_PCIE_EVENT_LINKDOWN:
 		cnss_pr_dbg("PCI link down event callback\n");
 		cnss_pci_handle_linkdown(pci_priv);
