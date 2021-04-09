@@ -1174,55 +1174,6 @@ static int longpress_kthread(void *_pon)
 	return 0;
 }
 
-static void collect_d_work_func(struct work_struct *work)
-{
-	int rc;
-	int tmp_console = console_loglevel;
-	uint pon_rt_sts = 0;
-	struct qpnp_pon *pon =
-		container_of(work, struct qpnp_pon, collect_d_work.work);
-	bool volp_scan = 0;
-	struct qpnp_pon_config *cfg = NULL;
-
-	volp_scan = !pmic_gpio_get_external("c440000.qcom,spmi:qcom,pm8150@0:pinctrl@c000", 2);
-
-	/* Scan volp to decide whether to enable k_r S2 reset */
-	cfg = qpnp_get_cfg(pon, PON_KPDPWR_RESIN);
-	if (cfg != NULL) {
-		if(volp_scan == 1) {
-			// enable
-			qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
-					QPNP_PON_S2_CNTL_EN, QPNP_PON_S2_CNTL_EN);
-			printk(KERN_ERR "3-combo-keys detected, enable s2 reset\n");
-		} else {
-			// disable
-			qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
-					QPNP_PON_S2_CNTL_EN, 0);
-			printk(KERN_ERR "volp key not detected, disable s2 reset\n");
-			goto err_return;
-		}
-	}
-
-	/* check the RT status to get the current status of the line */
-	rc = regmap_read(pon->regmap, QPNP_PON_RT_STS(pon), &pon_rt_sts);
-	if (rc) {
-		dev_err(pon->dev, "Unable to read PON RT status\n");
-		goto err_return;
-	}
-
-	if ((pon_rt_sts & QPNP_PON_KPDPWR_RESIN_N_SET) == QPNP_PON_KPDPWR_RESIN_N_SET) {
-		console_verbose();
-		pr_info("------ collect D&R-state processes info before long comb key ------\n");
-		show_state_filter_single(TASK_UNINTERRUPTIBLE);
-		show_state_filter_single(TASK_RUNNING);
-		pr_info("------ end collecting D&R-state processes info ------\n");
-		console_loglevel = tmp_console;
-	}
-err_return:
-	pon->collect_d_in_progress = false;
-	return;
-}
-
 static irqreturn_t qpnp_kpdpwr_irq(int irq, void *_pon)
 {
 	int rc;
@@ -2640,9 +2591,6 @@ static int qpnp_pon_probe(struct platform_device *pdev)
 	dev_set_drvdata(dev, pon);
 
 	INIT_DELAYED_WORK(&pon->bark_work, bark_work_func);
-
-	pon->collect_d_in_progress = false;
-	INIT_DELAYED_WORK(&pon->collect_d_work, collect_d_work_func);
 
 	rc = qpnp_pon_parse_dt_power_off_config(pon);
 	if (rc)
