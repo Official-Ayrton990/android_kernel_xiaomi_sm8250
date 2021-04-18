@@ -69,6 +69,7 @@
 #include "focaltech_common.h"
 #include <linux/firmware.h>
 #include <linux/power_supply.h>
+#include <linux/pm_qos.h>
 
 /*****************************************************************************
 * Private constant and macro definitions using #define
@@ -153,6 +154,7 @@ struct fts_ts_data {
 	struct regulator *avdd;
 	spinlock_t irq_lock;
 	struct mutex report_mutex;
+	struct pm_qos_request pm_qos_req;
 	int irq;
 	bool suspended;
 	bool fw_loading;
