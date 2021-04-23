@@ -87,7 +87,9 @@ extern int dsi_panel_lockdown_info_read(unsigned char *plockdowninfo);
 extern void dsi_panel_doubleclick_enable(bool on);
 static int32_t nvt_check_palm(uint8_t input_id, uint8_t *data);
 extern void lpm_disable_for_dev(bool on, char event_dev);
+#if XIAOMI_ROI
 extern void xiaomi_touch_send_btn_tap_key(int status);
+#endif
 uint32_t ENG_RST_ADDR  = 0x7FFF80;
 uint32_t SWRST_N8_ADDR = 0; /* read from dtsi */
 uint32_t SPI_RD_FAST_ADDR = 0;	/* read from dtsi */
