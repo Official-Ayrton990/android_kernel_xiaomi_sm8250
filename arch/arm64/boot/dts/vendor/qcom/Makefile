@@ -2,14 +2,20 @@ ifeq ($(CONFIG_MACH_XIAOMI),y)
 
 ifeq ($(CONFIG_MACH_XIAOMI_SM8250),y)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-        dtbo-$(CONFIG_ARCH_KONA) += \
-                alioth-sm8250-overlay.dtbo \
-                apollo-sm8250-overlay.dtbo \
-                cas-sm8250-overlay.dtbo \
-                cmi-sm8250-overlay.dtbo \
-                lmi-sm8250-overlay.dtbo \
-                thyme-sm8250-overlay.dtbo \
-                umi-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_ALIOTH) += \
+             alioth-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_APOLLO) += \
+             apollo-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_CAS) += \
+             cas-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_CMI) += \
+             cmi-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_LMI) += \
+             lmi-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_THYME) += \
+             thyme-sm8250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_UMI) += \
+             umi-sm8250-overlay.dtbo
 
 alioth-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
 apollo-sm8250-overlay.dtbo-base := kona.dtb kona-v2.dtb kona-v2.1.dtb
@@ -23,10 +29,12 @@ endif # CONFIG_MACH_XIAOMI_SM8250
 
 ifeq ($(CONFIG_MACH_XIAOMI_SM7250),y)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
-        dtbo-$(CONFIG_ARCH_LITO) += \
-                monet-sm7250-overlay.dtbo \
-                picasso-sm7250-overlay.dtbo \
-                vangogh-sm7250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_MONET) += \
+             monet-sm7250-overlay.dtbo
+	dtbo-$(CONFIG_MACH_XIAOMI_PICASSO) += \
+             picasso-sm7250-overlay.dtbo
+        dtbo-$(CONFIG_MACH_XIAOMI_VANGOGH) += \
+             vangogh-sm7250-overlay.dtbo
 
 monet-sm7250-overlay.dtbo-base := lito.dtb lito-v2.dtb
 picasso-sm7250-overlay.dtbo-base := lito.dtb lito-v2.dtb
