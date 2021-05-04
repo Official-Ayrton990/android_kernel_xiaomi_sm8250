@@ -2473,22 +2473,18 @@ static bool is_charging_paused(struct smb_charger *chg)
 int smblib_get_prop_battery_charging_enabled(struct smb_charger *chg,
 					union power_supply_propval *val)
 {
-	int icl = 0;
-	if (chg->is_qc_class_a && !chg->qc3_raise_done)
-		icl = MAIN_ICL_MIN;
+	int rc;
+	u8 reg;
 
-	if (chg->six_pin_step_charge_enable) {
-		val->intval = !(get_client_vote(chg->usb_icl_votable, MAIN_ICL_MIN_VOTER)
-				== MAIN_ICL_MIN);
+	rc = smblib_read(chg, CHARGING_ENABLE_CMD_REG, &reg);
+	if (rc < 0) {
+		smblib_err(chg,
+			"Couldn't read battery CHARGING_ENABLE_CMD rc=%d\n", rc);
+		return rc;
 	}
-	else {
-		if (chg->power_good_en)
-			val->intval = !(get_client_vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER)
-					== MAIN_CHG_SUSPEND_ICL);
-		else
-			val->intval = !(get_client_vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER)
-					== icl);
-	}
+
+	reg = reg & CHARGING_ENABLE_CMD_BIT;
+	val->intval = (reg == CHARGING_ENABLE_CMD_BIT);
 	return 0;
 }
 
@@ -3505,22 +3501,24 @@ int smblib_set_prop_system_temp_level(struct smb_charger *chg,
 int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
 				const union power_supply_propval *val)
 {
-	int icl = 0;
-	if (chg->is_qc_class_a && !chg->qc3_raise_done)
-		icl = MAIN_ICL_MIN;
 
-	if (val->intval == 0) {
-		if (chg->six_pin_step_charge_enable) {
-			vote(chg->usb_icl_votable, MAIN_ICL_MIN_VOTER,
-						true, MAIN_ICL_MIN);
+	int rc;
+
+	smblib_dbg(chg, PR_MISC, "%s intval= %x\n", __func__, val->intval);
+
+	if (val->intval == 1) {
+		rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
+			CHARGING_ENABLE_CMD_BIT, CHARGING_ENABLE_CMD_BIT);
+		if (rc < 0) {
+			smblib_err(chg, "Couldn't enable charging rc=%d\n", rc);
+			return rc;
 		}
-		else {
-			if (chg->power_good_en)
-				vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER,
-						true, MAIN_CHG_SUSPEND_ICL);
-			else
-				vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER,
-						true, icl);
+	} else if (val->intval == 0) {
+		rc = smblib_masked_write(chg, CHARGING_ENABLE_CMD_REG,
+			CHARGING_ENABLE_CMD_BIT, 0);
+		if (rc < 0) {
+			smblib_err(chg, "Couldn't disable charging rc=%d\n", rc);
+			return rc;
 		}
 #ifndef CONFIG_FUEL_GAUGE_BQ27Z561
 			schedule_delayed_work(&chg->reduce_fcc_work,
@@ -3528,12 +3526,7 @@ int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
 #endif
 
 	} else {
-		if (chg->six_pin_step_charge_enable)
-			vote(chg->usb_icl_votable, MAIN_ICL_MIN_VOTER,
-						false, 0);
-		else
-			vote(chg->usb_icl_votable, MAIN_CHG_SUSPEND_VOTER,
-						false, 0);
+		smblib_err(chg, "Couldn't disable charging rc=%d\n", rc);
 #ifndef CONFIG_FUEL_GAUGE_BQ27Z561
 		if (is_client_vote_enabled(chg->fcc_votable, ESR_WORK_VOTER))
 			vote(chg->fcc_votable, ESR_WORK_VOTER, false, 0);
