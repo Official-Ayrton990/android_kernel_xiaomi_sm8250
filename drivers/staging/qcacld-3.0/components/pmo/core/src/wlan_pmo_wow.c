@@ -237,6 +237,44 @@ void pmo_core_disable_wakeup_event(struct wlan_objmgr_psoc *psoc,
 }
 
 /**
+ * pmo_is_beaconing_vdev_up(): check if a beaconning vdev is up
+ * @psoc: objmgr psoc handle
+ *
+ * Return TRUE if beaconning vdev is up
+ */
+static
+bool pmo_is_beaconing_vdev_up(struct wlan_objmgr_psoc *psoc)
+{
+	int vdev_id;
+	struct wlan_objmgr_vdev *vdev;
+	enum QDF_OPMODE vdev_opmode;
+	bool is_beaconing;
+	QDF_STATUS status;
+
+	/* Iterate through VDEV list */
+	for (vdev_id = 0; vdev_id < WLAN_UMAC_PSOC_MAX_VDEVS; vdev_id++) {
+		vdev = pmo_psoc_get_vdev(psoc, vdev_id);
+		if (!vdev)
+			continue;
+
+		status = pmo_vdev_get_ref(vdev);
+		if (QDF_IS_STATUS_ERROR(status))
+			continue;
+
+		vdev_opmode = pmo_get_vdev_opmode(vdev);
+		is_beaconing = pmo_is_vdev_in_beaconning_mode(vdev_opmode) &&
+			       QDF_IS_STATUS_SUCCESS(wlan_vdev_is_up(vdev));
+
+		pmo_vdev_put_ref(vdev);
+
+		if (is_beaconing)
+			return true;
+	}
+
+	return false;
+}
+
+/**
  * pmo_support_wow_for_beaconing: wow query for beaconning
  * @psoc: objmgr psoc handle
  *
@@ -245,9 +283,85 @@ void pmo_core_disable_wakeup_event(struct wlan_objmgr_psoc *psoc,
  *
  * Return: true if we need to enable wow for beaconning offload
  */
+static
+bool pmo_support_wow_for_beaconing(struct wlan_objmgr_psoc *psoc)
+{
+	/*
+	 * if (wmi_service_enabled(wma->wmi_handle,
+	 *			wmi_service_beacon_offload))
+	 */
+	return pmo_is_beaconing_vdev_up(psoc);
+}
 
 bool pmo_core_is_wow_applicable(struct wlan_objmgr_psoc *psoc)
 {
+	int vdev_id;
+	struct wlan_objmgr_vdev *vdev;
+	bool is_wow_applicable = false;
+	QDF_STATUS status;
+
+	if (!psoc) {
+		pmo_err("psoc is null");
+		return false;
+	}
+
+	if (pmo_support_wow_for_beaconing(psoc)) {
+		pmo_debug("one of vdev is in beaconning mode, enabling wow");
+		return true;
+	}
+
+	if (wlan_reg_is_11d_scan_inprogress(psoc)) {
+		pmo_debug("11d scan is in progress, enabling wow");
+		return true;
+	}
+
+	if (pmo_core_is_lpass_enabled(psoc)) {
+		pmo_info("lpass enabled, enabling wow");
+		return true;
+	}
+
+	if (cfg_nan_get_enable(psoc)) {
+		pmo_debug("nan enabled, enabling wow");
+		return true;
+	}
+
+	/* Iterate through VDEV list */
+	for (vdev_id = 0; vdev_id < WLAN_UMAC_PSOC_MAX_VDEVS; vdev_id++) {
+		vdev = pmo_psoc_get_vdev(psoc, vdev_id);
+		if (!vdev)
+			continue;
+
+		status = pmo_vdev_get_ref(vdev);
+		if (QDF_IS_STATUS_ERROR(status))
+			continue;
+
+		if (wlan_vdev_is_up(vdev) == QDF_STATUS_SUCCESS) {
+			pmo_debug("STA is connected, enabling wow");
+			is_wow_applicable = true;
+		} else if (ucfg_scan_get_pno_in_progress(vdev)) {
+			pmo_debug("NLO is in progress, enabling wow");
+			is_wow_applicable = true;
+		} else if (pmo_core_is_extscan_in_progress(vdev)) {
+			pmo_debug("EXT is in progress, enabling wow");
+			is_wow_applicable = true;
+		} else if (pmo_core_is_p2plo_in_progress(vdev)) {
+			pmo_debug("P2P LO is in progress, enabling wow");
+			is_wow_applicable = true;
+		} else if (pmo_core_get_vdev_op_mode(vdev) == QDF_NDI_MODE) {
+			pmo_debug("vdev %d is in NAN data mode, enabling wow",
+				  vdev_id);
+			is_wow_applicable = true;
+		}
+
+		pmo_vdev_put_ref(vdev);
+
+		if (is_wow_applicable)
+			return true;
+	}
+
+	pmo_debug("All vdev are in disconnected state\n"
+		  "and pno/extscan is not in progress, skipping wow");
+
 	return false;
 }
 
