@@ -139,18 +139,39 @@ static ssize_t nvt_display_maker_show(struct device *dev,
 }
 
 
+static ssize_t nvt_panel_gesture_enable_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+        const char c = ts->gesture_enabled ? '1' : '0';
+        return sprintf(buf, "%c\n", c);
+}
 
+
+static ssize_t nvt_panel_gesture_enable_store(struct device *dev,
+				     struct device_attribute *attr, const char *buf, size_t count)
+{
+	int i;
+
+	if (sscanf(buf, "%u", &i) == 1 && i < 2) {
+		ts->gesture_enabled = i;
+		return count;
+	} else {
+		dev_dbg(dev, "gesture_enable write error\n");
+		return -EINVAL;
+	}
+}
 
 static DEVICE_ATTR(cg_color, (S_IRUGO), nvt_cg_color_show, NULL);
 static DEVICE_ATTR(cg_maker, (S_IRUGO), nvt_cg_maker_show, NULL);
 static DEVICE_ATTR(display_maker, (S_IRUGO), nvt_display_maker_show, NULL);
-
-
+static DEVICE_ATTR(gesture_enable, S_IWUSR | S_IRUSR,
+		nvt_panel_gesture_enable_show, nvt_panel_gesture_enable_store);
 
 struct attribute *nvt_panel_attr[] = {
 	&dev_attr_cg_color.attr,
 	&dev_attr_cg_maker.attr,
 	&dev_attr_display_maker.attr,
+	&dev_attr_gesture_enable.attr,
 	NULL,
 };
 
