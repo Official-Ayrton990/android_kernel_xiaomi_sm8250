@@ -2282,14 +2282,6 @@ static int fts_ts_probe(struct i2c_client *client, const struct i2c_device_id *i
 	}
 #endif
 
-#if FTS_TEST_EN
-	ret = fts_test_init(client);
-	if (ret) {
-		FTS_ERROR("init production test fail");
-		goto err_debugfs_create;
-	}
-#endif
-
 #if FTS_ESDCHECK_EN
 	ret = fts_esdcheck_init(ts_data);
 	if (ret) {
@@ -2455,10 +2447,6 @@ static int fts_ts_remove(struct i2c_client *client)
 
 #if FTS_AUTO_UPGRADE_EN
 	fts_fwupg_exit(ts_data);
-#endif
-
-#if FTS_TEST_EN
-	fts_test_exit(client);
 #endif
 
 #if FTS_ESDCHECK_EN
