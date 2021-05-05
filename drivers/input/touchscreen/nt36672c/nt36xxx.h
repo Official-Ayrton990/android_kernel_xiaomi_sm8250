@@ -236,6 +236,8 @@ struct nvt_ts_data {
 	bool palm_sensor_changed;
 	bool palm_sensor_switch;
 	uint8_t debug_flag;
+	int gesture_enabled;
+	struct proc_dir_entry *input_proc;
 };
 
 #if NVT_TOUCH_PROC
