@@ -46,6 +46,8 @@
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
+#define PROC_SYMLINK_PATH "touchpanel"
+
 #if NVT_TOUCH_ESD_PROTECT
 static struct delayed_work nvt_esd_check_work;
 static struct workqueue_struct *nvt_esd_check_wq;
@@ -174,6 +176,33 @@ struct attribute *nvt_panel_attr[] = {
 	&dev_attr_gesture_enable.attr,
 	NULL,
 };
+
+static ssize_t novatek_input_symlink(struct nvt_ts_data *ts) {
+	char *driver_path;
+	int ret = 0;
+	if (ts->input_proc) {
+		proc_remove(ts->input_proc);
+		ts->input_proc = NULL;
+	}
+	driver_path = kzalloc(PATH_MAX, GFP_KERNEL);
+	if (!driver_path) {
+		pr_err("%s: failed to allocate memory\n", __func__);
+		return -ENOMEM;
+	}
+
+	sprintf(driver_path, "/sys%s",
+			kobject_get_path(&ts->client->dev.kobj, GFP_KERNEL));
+
+	pr_err("%s: driver_path=%s\n", __func__, driver_path);
+
+	ts->input_proc = proc_symlink(PROC_SYMLINK_PATH, NULL, driver_path);
+
+	if (!ts->input_proc) {
+		ret = -ENOMEM;
+	}
+	kfree(driver_path);
+	return ret;
+}
 
 static uint8_t bTouchIsAwake = 0;
 /*******************************************************
@@ -2695,6 +2724,11 @@ static int32_t nvt_ts_probe(struct platform_device *pdev)
 	attrs_p->name = "panel_info";
 	attrs_p->attrs = nvt_panel_attr;
 	ret = sysfs_create_group(&pdev->dev.kobj, ts->attrs);
+
+	ret = novatek_input_symlink(ts);
+	if (ret < 0) {
+		NVT_ERR("Failed to symlink input device!\n");
+	}
 
 	ts->event_wq = alloc_workqueue("nvt-event-queue",
 		WQ_UNBOUND | WQ_HIGHPRI | WQ_CPU_INTENSIVE, 1);
