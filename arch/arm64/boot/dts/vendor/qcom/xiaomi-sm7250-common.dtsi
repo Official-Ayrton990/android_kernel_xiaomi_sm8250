@@ -24,6 +24,50 @@
 #include "dsi-panel-j9-38-0a-0a-fhd-video.dtsi"
 #include "lito-thermal-overlay.dtsi"
 
+// Overlayed CPU Frequency table
+cpufreq_hw: qcom,cpufreq-hw {
+	compatible = "qcom,cpufreq-hw";
+	reg = <0x18323000 0x1000>, <0x18325800 0x1000>,
+		<0x18327800 0x1000>;
+	reg-names = "freq-domain0", "freq-domain1",
+		    "freq-domain2";
+	clocks = <&rpmhcc RPMH_CXO_CLK>, <&gcc GPLL0>;
+	clock-names = "xo", "alternate";
+	qcom,no-accumulative-counter;
+	#freq-domain-cells = <2>;
+
+	qcom,cpufreq-table-0 =
+		< 300000>,
+		< 576000>,
+		< 614400>,
+		< 864000>,
+		<1075200>,
+		<1363200>,
+		<1516800>,
+		<1651200>,
+		<1804800>;
+
+	qcom,cpufreq-table-1 =
+		< 652800>,
+		< 940800>,
+		<1152000>,
+		<1478400>,
+		<1728000>,
+		<1900800>,
+		<2092800>,
+		<2208000>;
+
+	qcom,cpufreq-table-2 =
+		< 806400>,
+		<1094400>,
+		<1401600>,
+		<1766400>,
+		<1996800>,
+		<2188800>,
+		<2304000>,
+		<2400000>;
+};
+
 &soc {
 	gpio_keys {
 		compatible = "gpio-keys";
