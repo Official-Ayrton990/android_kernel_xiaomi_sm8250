@@ -929,11 +929,9 @@ static irqreturn_t fts_ts_interrupt(int irq, void *data)
 	int ret = 0;
 	struct fts_ts_data *ts_data = (struct fts_ts_data *)data;
 
-	pm_qos_update_request(&ts_data->pm_qos_req, 100);
-
 	if (!ts_data) {
 		FTS_ERROR("[INTR]: Invalid fts_ts_data");
-		goto handled;
+		return IRQ_HANDLED;
 	}
 	irq_num++;
 	if (irq_num%10 == 0){
@@ -949,7 +947,7 @@ static irqreturn_t fts_ts_interrupt(int irq, void *data)
 		ret = wait_for_completion_timeout(&ts_data->dev_pm_suspend_completion, msecs_to_jiffies(700));
 		if (!ret) {
 			FTS_ERROR("system(i2c) can't finished resuming procedure, skip it");
-			goto handled;
+			return IRQ_HANDLED;
 		}
 	}
 
@@ -963,8 +961,6 @@ static irqreturn_t fts_ts_interrupt(int irq, void *data)
 	fts_esdcheck_set_intr(0);
 #endif
 
-handled:
-	pm_qos_update_request(&ts_data->pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return IRQ_HANDLED;
 }
 
