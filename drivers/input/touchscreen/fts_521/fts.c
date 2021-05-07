@@ -73,6 +73,11 @@
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
 #include "../xiaomi/xiaomi_touch.h"
 #endif
+#ifdef GESTURE_MODE
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+#include <linux/input/tp_common.h>
+#endif
+#endif
 #include "fts.h"
 #include "fts_lib/ftsCompensation.h"
 #include "fts_lib/ftsCore.h"
@@ -493,6 +498,33 @@ static ssize_t fts_feature_enable_show(struct device *dev,
 	return count;
 }
 #else
+
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t double_tap_show(struct kobject *kobj,
+                               struct kobj_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", fts_gesture_data.mode);
+}
+
+static ssize_t double_tap_store(struct kobject *kobj,
+                                struct kobj_attribute *attr, const char *buf,
+                                size_t count)
+{
+    int rc, val;
+
+    rc = kstrtoint(buf, 10, &val);
+    if (rc)
+    return -EINVAL;
+
+    fts_gesture_data.mode = !!val;
+    return count;
+}
+
+static struct tp_common_ops double_tap_ops = {
+    .show = double_tap_show,
+    .store = double_tap_store
+};
+#endif
 
 #ifdef GRIP_MODE
 /**
@@ -7425,6 +7457,9 @@ static int fts_probe(struct spi_device *client)
 	int retval;
 	int skip_5_1 = 0;
 	u16 bus_type;
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+    int ret;
+#endif
 
 	MI_TOUCH_LOGI(1, "%s %s: Probe start\n", tag, __func__);
 
@@ -7642,6 +7677,13 @@ static int fts_probe(struct spi_device *client)
 	mutex_init(&(info->input_report_mutex));
 #ifdef GESTURE_MODE
 	mutex_init(&gestureMask_mutex);
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+    ret = tp_common_set_double_tap_ops(&double_tap_ops);
+    if (ret < 0) {
+        FTS_ERROR("%s: Failed to create double_tap node err=%d\n",
+                  __func__, ret);
+    }
+#endif
 #endif
 
 	spin_lock_init(&fts_int);
