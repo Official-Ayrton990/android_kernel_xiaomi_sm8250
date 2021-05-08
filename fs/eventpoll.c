@@ -1378,14 +1378,10 @@ static int reverse_path_check(void)
 static int ep_create_wakeup_source(struct epitem *epi)
 {
 	struct name_snapshot n;
-	char *event_name;
-	char *ws_name;
 	struct wakeup_source *ws;
 
 	if (!epi->ep->ws) {
-		event_name = kasprintf(GFP_KERNEL, "eventpoll-%s", current->comm);
-		epi->ep->ws = wakeup_source_register(NULL, event_name);
-		kfree(event_name);
+		epi->ep->ws = wakeup_source_register(NULL, "eventpoll");
 		if (!epi->ep->ws)
 			return -ENOMEM;
 	}
