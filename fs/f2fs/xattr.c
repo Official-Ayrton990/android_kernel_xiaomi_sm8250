@@ -131,6 +131,28 @@ static int f2fs_xattr_advise_set(const struct xattr_handler *handler,
 	return 0;
 }
 
+static struct inode *get_parent_inode(struct inode *inode)
+{
+	struct inode *dir = NULL;
+	struct dentry *dentry, *parent;
+
+	dentry = d_find_alias(inode);
+	if (!dentry)
+		goto out;
+
+	parent = dget_parent(dentry);
+	if (!parent)
+		goto out_dput;
+
+	dir = igrab(d_inode(parent));
+	dput(parent);
+
+out_dput:
+	dput(dentry);
+out:
+	return dir;
+}
+
 #ifdef CONFIG_F2FS_FS_SECURITY
 static int f2fs_initxattrs(struct inode *inode, const struct xattr *xattr_array,
 		void *page)
@@ -747,8 +769,6 @@ static int __f2fs_setxattr(struct inode *inode, int index,
 			!strcmp(name, F2FS_XATTR_NAME_ENCRYPTION_CONTEXT))
 		f2fs_set_encrypted_inode(inode);
 	f2fs_mark_inode_dirty_sync(inode, true);
-	if (!error && S_ISDIR(inode->i_mode))
-		set_sbi_flag(F2FS_I_SB(inode), SBI_NEED_CP);
 exit:
 	kvfree(base_addr);
 	return error;

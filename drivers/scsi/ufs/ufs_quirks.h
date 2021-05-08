@@ -156,7 +156,6 @@ struct ufs_dev_fix {
  */
 #define UFS_DEVICE_QUIRK_WAIT_AFTER_REF_CLK_UNGATE	(1 << 11)
 
-
 /*
  * Few samsung UFS device models advertise PA_HIBERN8TIME as
  * 200us during handshaking in link establishment b/w host and device but
