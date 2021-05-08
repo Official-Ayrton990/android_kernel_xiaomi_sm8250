@@ -452,7 +452,7 @@ static bool gic_check_wakeup_event(void *data)
 		else if (desc->action && desc->action->name)
 			name = desc->action->name;
 		ret = true;
-		log_wakeup_reason(irq);
+		log_irq_wakeup_reason(irq);
 	}
 
 	return ret;
