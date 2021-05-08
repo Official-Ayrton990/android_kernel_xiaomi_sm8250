@@ -1203,7 +1203,7 @@ static int  spmi_pmic_arb_check_interrupt(struct spmi_pmic_arb *pmic_arb, u16 ap
 			name = desc->action->name;
 
 		pr_warn("%s: interrupt %d\n", __func__, irq);
-		log_wakeup_reason(irq);
+		log_irq_wakeup_reason(irq);
 	}
 
 	return 0;

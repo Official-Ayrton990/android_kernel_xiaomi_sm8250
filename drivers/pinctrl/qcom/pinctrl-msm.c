@@ -1607,7 +1607,7 @@ static bool msm_pinctrl_check_wakeup_event(void *data)
 		val = readl_relaxed(pctrl->regs + g->intr_status_reg);
 		if (val & BIT(g->intr_status_bit)){
 			irq = irq_find_mapping(pctrl->chip.irq.domain, i);
-			log_wakeup_reason(irq);
+			log_irq_wakeup_reason(irq);
 			desc = irq_to_desc(irq);
 			if (desc == NULL)
 				name = "stray_irq";
