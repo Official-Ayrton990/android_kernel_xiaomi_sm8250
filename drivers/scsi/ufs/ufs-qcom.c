@@ -1286,10 +1286,7 @@ static void ufs_qcom_dev_ref_clk_ctrl(struct ufs_qcom_host *host, bool enable)
 		if (enable) {
 			if (host->hba->dev_info.quirks &
 			    UFS_DEVICE_QUIRK_WAIT_AFTER_REF_CLK_UNGATE) {
-				if (!oops_in_progress)
 					usleep_range(50, 60);
-				else
-					udelay(50);
 			}
 			else
 				udelay(1);
