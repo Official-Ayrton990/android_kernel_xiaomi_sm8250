@@ -756,11 +756,7 @@ static void ufshcd_print_cmd_log(struct ufs_hba *hba)
 				p->transfer_len, p->tag, p->doorbell,
 				p->outstanding_reqs, p->idn,
 				ktime_to_us(p->tstamp));
-
-			if (!oops_in_progress)
 					usleep_range(1000, 1100);
-				else
-					udelay(1000);
 		}
 	}
 }
