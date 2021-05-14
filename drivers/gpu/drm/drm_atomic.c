@@ -34,7 +34,6 @@
 #include <drm/drm_writeback.h>
 #include <linux/sync_file.h>
 #include <linux/devfreq_boost.h>
-#include <linux/sched/sysctl.h>
 
 #include "drm_crtc_internal.h"
 #include "drm_internal.h"
@@ -2579,7 +2578,7 @@ static int __drm_mode_atomic_ioctl(struct drm_device *dev, void *data,
 			(arg->flags & DRM_MODE_PAGE_FLIP_EVENT))
 		return -EINVAL;
 
-	if (!(arg->flags & DRM_MODE_ATOMIC_TEST_ONLY) && sysctl_sched_boost) {
+	if (!(arg->flags & DRM_MODE_ATOMIC_TEST_ONLY)) {
 		devfreq_boost_kick(DEVFREQ_MSM_CPU_LLCCBW);
 		devfreq_boost_kick(DEVFREQ_MSM_LLCCBW_DDR);
 	}
