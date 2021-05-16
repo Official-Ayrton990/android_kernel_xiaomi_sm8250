@@ -1,6 +1,6 @@
 ifeq ($(CONFIG_MACH_XIAOMI),y)
 
-ifeq ($(CONFIG_MACH_XIAOMI_SM8250),y)
+ifeq ($(CONFIG_MACH_XIAOMI),y)
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
         dtbo-$(CONFIG_MACH_XIAOMI_ALIOTH) += \
              alioth-sm8250-overlay.dtbo
