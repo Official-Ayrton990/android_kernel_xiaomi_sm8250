@@ -699,8 +699,23 @@ static int dwc3_gadget_set_ep_config(struct dwc3_ep *dep, unsigned int action)
 		params.param0 |= DWC3_DEPCFG_FIFO_NUMBER(dep->number >> 1);
 
 	if (desc->bInterval) {
-		params.param1 |= DWC3_DEPCFG_BINTERVAL_M1(desc->bInterval - 1);
-		dep->interval = 1 << (desc->bInterval - 1);
+		u8 bInterval_m1;
+
+		/*
+		 * Valid range for DEPCFG.bInterval_m1 is from 0 to 13, and it
+		 * must be set to 0 when the controller operates in full-speed.
+		 */
+		bInterval_m1 = min_t(u8, desc->bInterval - 1, 13);
+		if (dwc->gadget.speed == USB_SPEED_FULL)
+			bInterval_m1 = 0;
+
+		if (usb_endpoint_type(desc) == USB_ENDPOINT_XFER_INT &&
+		    dwc->gadget.speed == USB_SPEED_FULL)
+			dep->interval = desc->bInterval;
+		else
+			dep->interval = 1 << (desc->bInterval - 1);
+
+		params.param1 |= DWC3_DEPCFG_BINTERVAL_M1(bInterval_m1);
 	}
 
 	return dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_SETEPCONFIG, &params);
@@ -812,7 +827,7 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 	dbg_log_string("START for %s(%d)", dep->name, dep->number);
 	dwc3_stop_active_transfer(dwc, dep->number, true);
 
-	if (dep->number == 0 && dwc->ep0state != EP0_SETUP_PHASE) {
+	if (dep->number == 0) {
 		unsigned int dir;
 
 		dbg_log_string("CTRLPEND(%d)", dwc->ep0state);
@@ -1012,6 +1027,12 @@ static int dwc3_gadget_ep_enable(struct usb_ep *ep,
 					dep->name))
 		return 0;
 
+	if (pm_runtime_suspended(dwc->sysdev)) {
+		dev_err(dwc->dev, "fail ep_enable %s device is into LPM\n",
+					dep->name);
+		return -EINVAL;
+	}
+
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = __dwc3_gadget_ep_enable(dep, DWC3_DEPCFG_ACTION_INIT);
 	dbg_event(dep->number, "ENABLE", ret);
@@ -1040,10 +1061,13 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 					dep->name))
 		return 0;
 
+	pm_runtime_get_sync(dwc->sysdev);
 	spin_lock_irqsave(&dwc->lock, flags);
 	ret = __dwc3_gadget_ep_disable(dep);
 	dbg_event(dep->number, "DISABLE", ret);
 	spin_unlock_irqrestore(&dwc->lock, flags);
+	pm_runtime_mark_last_busy(dwc->sysdev);
+	pm_runtime_put_sync_autosuspend(dwc->sysdev);
 
 	return ret;
 }
@@ -1805,11 +1829,19 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 			 */
 			list_for_each_entry_safe(r, t, &dep->started_list, list)
 				dwc3_gadget_move_cancelled_request(r);
+			/* If GEN1 controller then cleanup the cancelled
+			 * requests from here as check for
+			 * DWC3_EP_END_TRANSFER_PENDING in EPCMDCMPLT
+			 * will prevent the request on cancelled list from
+			 * getting cleared there.
+			 */
+			if (!(dep->flags & DWC3_EP_END_TRANSFER_PENDING)) {
+				dbg_log_string("%s:giveback all request\n",
+								     __func__);
+				dwc3_gadget_ep_cleanup_cancelled_requests(dep);
+			}
 
-			if (dep->flags & DWC3_EP_TRANSFER_STARTED)
-				goto out0;
-			else
-				goto out1;
+			goto out0;
 		}
 		dev_err_ratelimited(dwc->dev, "request %pK was not queued to %s\n",
 				request, ep->name);
@@ -1817,7 +1849,6 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 		goto out0;
 	}
 
-out1:
 	dbg_ep_dequeue(dep->number, req);
 	dwc3_gadget_giveback(dep, req, -ECONNRESET);
 
@@ -3258,8 +3289,12 @@ static void dwc3_endpoint_interrupt(struct dwc3 *dwc,
 	case DWC3_DEPEVT_EPCMDCMPLT:
 		dep->dbg_ep_events.epcmdcomplete++;
 		cmd = DEPEVT_PARAMETER_CMD(event->parameters);
-
-		if (cmd == DWC3_DEPCMD_ENDTRANSFER) {
+		/* Prevent GEN1 controllers to cleanup cancelled
+		 * request twice (one from error path in kick_transfer
+		 * another from here).
+		 */
+		if (cmd == DWC3_DEPCMD_ENDTRANSFER &&
+			(dep->flags & DWC3_EP_END_TRANSFER_PENDING)) {
 			dep->flags &= ~(DWC3_EP_END_TRANSFER_PENDING |
 					DWC3_EP_TRANSFER_STARTED);
 			dwc3_gadget_ep_cleanup_cancelled_requests(dep);
@@ -3426,6 +3461,11 @@ int dwc3_stop_active_transfer_noioc(struct dwc3 *dwc, u32 epnum, bool force)
 
 	dbg_log_string("%s(%d): endxfer ret:%d)",
 			dep->name, dep->number, ret);
+
+	/* Clear DWC3_EP_TRANSFER_STARTED if endxfer fails */
+	if (ret)
+		dep->flags &= ~DWC3_EP_TRANSFER_STARTED;
+
 	return ret;
 }
 
