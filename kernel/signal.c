@@ -1098,12 +1098,6 @@ static int __send_signal(int sig, struct siginfo *info, struct task_struct *t,
 
 	result = TRACE_SIGNAL_IGNORED;
 
-	if ((sig == SIGKILL || sig == SIGABRT || sig == SIGSEGV
-			|| sig == SIGSTOP || sig == SIGTERM || sig == SIGCONT)
-			&& (!strcmp(t->comm, "sensors@1.0-ser"))) {
-		pr_err("Process %d:%s kill sig:%d %d:%s\n", current->pid,
-			current->comm, sig, t->pid, t->comm);
-	}
 
 	if (!prepare_signal(sig, t,
 			from_ancestor_ns || (info == SEND_SIG_PRIV) || (info == SEND_SIG_FORCED)))
@@ -1277,6 +1271,7 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 {
 	unsigned long flags;
 	int ret = -ESRCH;
+
 	if (lock_task_sighand(p, &flags)) {
 		ret = send_signal(sig, info, p, type);
 		unlock_task_sighand(p, &flags);
