@@ -52,6 +52,11 @@ enum dsi_backlight_type {
 	DSI_BACKLIGHT_MAX,
 };
 
+enum dsi_doze_mode_type {
+	DSI_DOZE_LPM = 0,
+	DSI_DOZE_HBM,
+};
+
 enum bl_update_flag {
 	BL_UPDATE_DELAY_UNTIL_FIRST_FRAME,
 	BL_UPDATE_NONE,
@@ -229,6 +234,9 @@ struct dsi_panel {
 
 	struct brightness_alpha_pair *fod_dim_lut;
 	uint32_t fod_dim_lut_count;
+
+	bool doze_enabled;
+	enum dsi_doze_mode_type doze_mode;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -369,4 +377,6 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status);
 
 uint32_t dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
 
+int dsi_panel_set_doze_status(struct dsi_panel *panel, bool status);
+int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mode);
 #endif /* _DSI_PANEL_H_ */
