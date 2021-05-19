@@ -15,7 +15,6 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/spmi.h>
-#include <linux/power_debug.h>
 #include <linux/wakeup_reason.h>
 #include <linux/syscore_ops.h>
 
@@ -1241,11 +1240,6 @@ static bool spmi_pmic_arb_check_wakeup_device(void *data)
 	return true;
 }
 
-static struct wakeup_device spmi_pmic_arb_wakeup_device = {
-	.name = "spmi-pmic-arb",
-	.check_wakeup_event = spmi_pmic_arb_check_wakeup_device,
-};
-
 static int spmi_pmic_arb_probe(struct platform_device *pdev)
 {
 	struct spmi_pmic_arb *pmic_arb;
@@ -1407,9 +1401,6 @@ static int spmi_pmic_arb_probe(struct platform_device *pdev)
 	err = spmi_controller_add(ctrl);
 	if (err)
 		goto err_domain_remove;
-
-	spmi_pmic_arb_wakeup_device.data = pmic_arb;
-	pm_register_wakeup_device(&spmi_pmic_arb_wakeup_device);
 
 	return 0;
 
