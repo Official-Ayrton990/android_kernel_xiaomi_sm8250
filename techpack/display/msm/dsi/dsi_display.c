@@ -5201,6 +5201,35 @@ error:
 	return ret == 0 ? count : ret;
 }
 
+bool is_dimlayer_hbm_enabled;
+static ssize_t sysfs_dimlayer_hbm_read(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	struct dsi_display *display = dev_get_drvdata(dev);
+	if (!display->panel)
+		return 0;
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", is_dimlayer_hbm_enabled);
+}
+
+static ssize_t sysfs_dimlayer_hbm_write(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret = 0;
+	struct dsi_display *display = dev_get_drvdata(dev);
+	if (!display->panel)
+		return ret;
+
+	sscanf(buf, "%d", &ret);
+
+	is_dimlayer_hbm_enabled = ret > 0;
+
+	return count;
+}
+
+static DEVICE_ATTR(dimlayer_hbm, 0664,
+			sysfs_dimlayer_hbm_read,
+			sysfs_dimlayer_hbm_write);
 
 static ssize_t sysfs_dimlayer_bl_read(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -5232,6 +5261,7 @@ static struct attribute *display_fs_attrs[] = {
 	&dev_attr_fod_ui.attr,
 	&dev_attr_hbm.attr,
 	&dev_attr_dimlayer_bl.attr,
+	&dev_attr_dimlayer_hbm.attr,
 	NULL,
 };
 static struct attribute_group display_fs_attrs_group = {

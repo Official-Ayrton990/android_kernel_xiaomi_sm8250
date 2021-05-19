@@ -4828,6 +4828,7 @@ int dsi_panel_dc_switch(struct dsi_panel *panel)
 	return rc;
 }
 
+extern bool is_dimlayer_hbm_enabled;
 int dsi_panel_enable(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -4896,6 +4897,8 @@ int dsi_panel_enable(struct dsi_panel *panel)
 
 	mutex_unlock(&panel->panel_lock);
 	display_utc_time_marker("DSI_CMD_SET_ON");
+
+	dsi_panel_set_fod_hbm(panel, is_dimlayer_hbm_enabled);
 
 	if (panel->hbm_mode)
 		dsi_panel_apply_hbm_mode(panel);
