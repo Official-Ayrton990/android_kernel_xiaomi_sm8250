@@ -992,7 +992,7 @@ static int fts_irq_registration(struct fts_ts_data *ts_data)
 		pdata->irq_gpio_flags = IRQF_TRIGGER_FALLING;
 	FTS_INFO("irq flag:%x", pdata->irq_gpio_flags);
 	ret =
-		request_threaded_irq(ts_data->irq, NULL, fts_ts_interrupt, pdata->irq_gpio_flags | IRQF_ONESHOT,
+		request_threaded_irq(ts_data->irq, NULL, fts_ts_interrupt, pdata->irq_gpio_flags | IRQF_ONESHOT | IRQF_PRIME_AFFINE,
 				 ts_data->client->name, ts_data);
 
 	return ret;
