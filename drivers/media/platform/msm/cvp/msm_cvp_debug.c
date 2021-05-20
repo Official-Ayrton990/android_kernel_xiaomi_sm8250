@@ -9,7 +9,7 @@
 #include "msm_cvp_common.h"
 #include "cvp_core_hfi.h"
 
-int msm_cvp_debug = CVP_ERR | CVP_WARN | CVP_FW;
+int msm_cvp_debug = CVP_ERR | CVP_WARN;
 EXPORT_SYMBOL(msm_cvp_debug);
 
 int msm_cvp_debug_out = CVP_OUT_PRINTK;
@@ -279,7 +279,9 @@ struct dentry *msm_cvp_debugfs_init_core(struct msm_cvp_core *core,
 	dir = debugfs_create_dir(debugfs_name, parent);
 	if (IS_ERR_OR_NULL(dir)) {
 		dir = NULL;
+#ifdef CONFIG_DEBUG_FS
 		dprintk(CVP_ERR, "Failed to create debugfs for msm_cvp\n");
+#endif
 		goto failed_create_dir;
 	}
 	if (!debugfs_create_file("info", 0444, dir, core, &core_info_fops)) {
@@ -426,7 +428,9 @@ struct dentry *msm_cvp_debugfs_init_inst(struct msm_cvp_inst *inst,
 	dir = debugfs_create_dir(debugfs_name, parent);
 	if (IS_ERR_OR_NULL(dir)) {
 		dir = NULL;
+#ifdef CONFIG_DEBUG_FS
 		dprintk(CVP_ERR, "Failed to create debugfs for msm_cvp\n");
+#endif
 		goto failed_create_dir;
 	}
 
