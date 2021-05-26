@@ -806,6 +806,16 @@ config LEDS_AW2015
 	  this option enables support for the AW2015 RGB LED connected
 	  through I2C. Say Y to enable support for the AW2015 LED.
 
+config LEDS_QPNP_VIBRATOR
+	tristate "Vibrator support for QPNP PMIC"
+	depends on LEDS_CLASS && MFD_SPMI_PMIC
+	help
+	  This option enables device driver support for the vibrator
+	  on the Qualcomm technologies Inc's QPNP PMICs. The vibrator
+	  is connected on the VIB_DRV_N line and can be controlled
+	  manually or by the DTEST lines.It uses the android timed-output
+	  framework.
+
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"
 
