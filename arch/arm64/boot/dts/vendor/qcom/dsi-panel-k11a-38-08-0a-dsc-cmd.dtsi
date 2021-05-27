@@ -296,6 +296,19 @@
 	mi,mdss-dsi-panel-hbm-brightness = <1>;
 	mi,mdss-dsi-panel-dc-threshold = <440>;
 	qcom,mdss-dsi-display-timings {
+
+	/* gamma update setting  */
+	mi,mdss-dsi-greenish-update-gamma-flag;
+	mi,mdss-dsi-greenish-update-gamma-offset = <0x14>;
+	mi,mdss-dsi-greenish-update-gamma-length = <2>;
+	mi,mdss-dsi-update-gamma-param-count = <6>;
+	mi,mdss-dsi-update-gamma-1st-index = <4>;
+	mi,mdss-dsi-update-gamma-2nd-index = <6>;
+	mi,mdss-dsi-update-gamma-3rd-index = <8>;
+	mi,mdss-dsi-update-gamma-4th-index = <10>;
+	mi,mdss-dsi-update-gamma-5th-index = <12>;
+	mi,mdss-dsi-update-gamma-6th-index = <14>;
+
 		timing@0{
 			mi,mdss-dsi-dimmingon-command = [39 01 00 00 00 00 02 53 28];
 			mi,mdss-dsi-dimmingon-command-state = "dsi_hs_mode";
