@@ -1375,6 +1375,12 @@
 				0A 06 03 04 00 1E 1A];
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;
+                };
+                timing@1{
+                        qcom,mdss-dsi-panel-phy-timings = [00 24 0A 0A 26 25 09
+                                0A 06 03 04 00 1E 1A];
+                        qcom,display-topology = <1 0 1>;
+                        qcom,default-topology-index = <0>;
 		};
 	};
 };
@@ -1405,7 +1411,6 @@
                 };
         };
 };
-
 
 &dsi_j1t_38_0c_0a_dsc_cmd {
     qcom,ulps-enabled;
