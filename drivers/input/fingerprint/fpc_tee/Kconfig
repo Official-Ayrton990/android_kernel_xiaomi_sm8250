@@ -7,4 +7,3 @@ config FINGERPRINT_FPC_TEE
 	  If unsure, say N.
 
 	  To compile this driver as a module, choose M here.
-
