@@ -766,20 +766,6 @@ error:
 	return rc;
 }
 
-static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
-{
-	u32 bl_level;
-
-	if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_HBM)
-		bl_level = panel->bl_config.bl_doze_hbm;
-	else if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_LPM)
-		bl_level = panel->bl_config.bl_doze_lpm;
-	else if (!panel->doze_enabled)
-		bl_level = panel->bl_config.bl_level;
-
-	return bl_level;
-}
-
 bool dc_skip_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	struct dsi_panel_mi_cfg *mi_cfg = &panel->mi_cfg;
@@ -830,21 +816,21 @@ uint32_t dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 			panel->fod_dim_lut[i - 1].alpha, panel->fod_dim_lut[i].alpha);
 }
 
-extern int dsi_panel_on_hbm;
 int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 {
 	int rc = 0;
-	int bl_lvl;
 
 	if (status) {
-        	bl_lvl = 1;
-        	dsi_panel_on_hbm = 1;
-    	} else {
-        	bl_lvl = 0;
-        	dsi_panel_on_hbm = 0
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_HBM_ON);
+		if (rc)
+			pr_err("[%s] failed to send DSI_CMD_SET_HBM_ON cmd, rc=%d\n",
+					panel->name, rc);
+	} else {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_MI_HBM_OFF);
+		if (rc)
+			pr_err("[%s] failed to send DSI_CMD_SET_HBM_OFF cmd, rc=%d\n",
+					panel->name, rc);
 	}
-
-	rc = dsi_panel_set_backlight_hbm(panel, bl_lvl)
 
 	return rc;
 }
