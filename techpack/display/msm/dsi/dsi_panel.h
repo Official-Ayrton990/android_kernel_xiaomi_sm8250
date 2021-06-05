@@ -233,6 +233,8 @@ struct dsi_panel {
 	int power_mode;
 	enum dsi_panel_physical_type panel_type;
 
+	int hbm_mode;
+
 	struct brightness_alpha_pair *fod_dim_lut;
 	uint32_t fod_dim_lut_count;
 
@@ -380,4 +382,6 @@ uint32_t dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel);
 
 int dsi_panel_set_doze_status(struct dsi_panel *panel, bool status);
 int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mode);
+int dsi_panel_apply_hbm_mode(struct dsi_panel *panel);
+
 #endif /* _DSI_PANEL_H_ */
