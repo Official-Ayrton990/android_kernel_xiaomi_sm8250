@@ -55,6 +55,10 @@ enum {
 	HW_PLATFORM_SBC = 24,
 	HW_PLATFORM_HDK = 31,
 	HW_PLATFORM_IDP = 34,
+	HW_PLATFORM_J2  = 35,
+	HW_PLATFORM_J1  = 36,
+	HW_PLATFORM_J11 = 37,
+	HW_PLATFORM_J1T = 39,
 	HW_PLATFORM_INVALID
 };
 
@@ -76,7 +80,11 @@ const char *hw_platform[] = {
 	[HW_PLATFORM_STP] = "STP",
 	[HW_PLATFORM_SBC] = "SBC",
 	[HW_PLATFORM_HDK] = "HDK",
-	[HW_PLATFORM_IDP] = "IDP"
+	[HW_PLATFORM_IDP] = "IDP",
+	[HW_PLATFORM_J2] = "UMI",
+	[HW_PLATFORM_J1] = "CMI",
+	[HW_PLATFORM_J11] = "LMI",
+	[HW_PLATFORM_J1T] = "VERTHANDI",
 };
 
 enum {
@@ -1620,6 +1628,22 @@ static void socinfo_select_format(void)
 		socinfo_format = socinfo->v0_1.format;
 	}
 }
+
+uint32_t get_hw_version_platform(void)
+{
+	uint32_t hw_type = socinfo_get_platform_type();
+	if (hw_type == HW_PLATFORM_J2)
+		return HARDWARE_PLATFORM_UMI;
+	if (hw_type == HW_PLATFORM_J1)
+		return HARDWARE_PLATFORM_CMI;
+	if (hw_type == HW_PLATFORM_J11)
+		return HARDWARE_PLATFORM_LMI;
+	if (hw_type == HW_PLATFORM_J1T)
+		return HARDWARE_PLATFORM_VERTHANDI;
+	else
+		return HARDWARE_PLATFORM_UNKNOWN;
+}
+EXPORT_SYMBOL(get_hw_version_platform);
 
 int __init socinfo_init(void)
 {
