@@ -4846,6 +4846,11 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	mi_cfg = &panel->mi_cfg;
 
 	rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_ON);
+
+	if (panel->hbm_mode || is_dimlayer_hbm_enabled) {
+    	dsi_panel_set_fod_hbm(panel, true);
+	}
+
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_ON cmds, rc=%d\n",
 		       panel->name, rc);
