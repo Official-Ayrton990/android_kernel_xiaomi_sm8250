@@ -192,7 +192,30 @@ enum pmic_model {
 #define HARDWARE_PLATFORM_LMI  3
 #define HARDWARE_PLATFORM_VERTHANDI  5
 
+#define HW_MAJOR_VERSION_B  9
+#define HW_MINOR_VERSION_B  1
+
+#define HW_MAJOR_VERSION_SHIFT 16
+#define HW_MAJOR_VERSION_MASK  0xFFFF0000
+#define HW_MINOR_VERSION_SHIFT 0
+#define HW_MINOR_VERSION_MASK  0x0000FFFF
+#define HW_COUNTRY_VERSION_MASK 0xFFF00000
+#define HW_COUNTRY_VERSION_SHIFT 20
+#define HW_BUILD_VERSION_MASK 0x000F0000
+#define HW_BUILD_VERSION_SHIFT 16
+
+typedef enum {
+  CountryCN = 0,
+  CountryGlobal = 1,
+  CountryIndia = 2,
+  INVALID,
+} CountryType;
+
 uint32_t get_hw_version_platform(void);
+uint32_t get_hw_country_version(void);
+uint32_t get_hw_version_major(void);
+uint32_t get_hw_version_minor(void);
+uint32_t get_hw_version_build(void);
 
 enum msm_cpu socinfo_get_msm_cpu(void);
 uint32_t socinfo_get_id(void);

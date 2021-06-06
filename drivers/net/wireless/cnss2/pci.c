@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #include <linux/cma.h>
 #include <linux/firmware.h>
@@ -406,11 +407,9 @@ static int cnss_pci_reg_read(struct cnss_pci_data *pci_priv,
 {
 	int ret;
 
-	if (!in_interrupt() && !irqs_disabled()) {
-		ret = cnss_pci_check_link_status(pci_priv);
-		if (ret)
-			return ret;
-	}
+	ret = cnss_pci_check_link_status(pci_priv);
+	if (ret)
+		return ret;
 
 	if (pci_priv->pci_dev->device == QCA6174_DEVICE_ID ||
 	    offset < MAX_UNWINDOWED_ADDRESS) {
@@ -433,11 +432,9 @@ static int cnss_pci_reg_write(struct cnss_pci_data *pci_priv, u32 offset,
 {
 	int ret;
 
-	if (!in_interrupt() && !irqs_disabled()) {
-		ret = cnss_pci_check_link_status(pci_priv);
-		if (ret)
-			return ret;
-	}
+	ret = cnss_pci_check_link_status(pci_priv);
+	if (ret)
+		return ret;
 
 	if (pci_priv->pci_dev->device == QCA6174_DEVICE_ID ||
 	    offset < MAX_UNWINDOWED_ADDRESS) {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2009-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 
 #define pr_fmt(fmt) "%s: " fmt, __func__
@@ -1629,6 +1630,14 @@ static void socinfo_select_format(void)
 	}
 }
 
+uint32_t get_hw_country_version(void)
+{
+	uint32_t version = socinfo_get_platform_version();
+	return (version & HW_COUNTRY_VERSION_MASK) >> HW_COUNTRY_VERSION_SHIFT;
+}
+
+EXPORT_SYMBOL(get_hw_country_version);
+
 uint32_t get_hw_version_platform(void)
 {
 	uint32_t hw_type = socinfo_get_platform_type();
@@ -1644,6 +1653,27 @@ uint32_t get_hw_version_platform(void)
 		return HARDWARE_PLATFORM_UNKNOWN;
 }
 EXPORT_SYMBOL(get_hw_version_platform);
+
+uint32_t get_hw_version_major(void)
+{
+	uint32_t version = socinfo_get_platform_version();
+	return (version & HW_MAJOR_VERSION_MASK) >> HW_MAJOR_VERSION_SHIFT;
+}
+EXPORT_SYMBOL(get_hw_version_major);
+
+uint32_t get_hw_version_minor(void)
+{
+	uint32_t version = socinfo_get_platform_version();
+	return (version & HW_MINOR_VERSION_MASK) >> HW_MINOR_VERSION_SHIFT;
+}
+EXPORT_SYMBOL(get_hw_version_minor);
+
+uint32_t get_hw_version_build(void)
+{
+	uint32_t version = socinfo_get_platform_version();
+	return (version & HW_BUILD_VERSION_MASK) >> HW_BUILD_VERSION_SHIFT;
+}
+EXPORT_SYMBOL(get_hw_version_build);
 
 int __init socinfo_init(void)
 {

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2016-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #ifndef _CNSS_MAIN_H
 #define _CNSS_MAIN_H
@@ -400,7 +401,7 @@ struct cnss_plat_data {
 	u64 dynamic_feature;
 	void *get_info_cb_ctx;
 	int (*get_info_cb)(void *ctx, void *event, int event_len);
-	u8 use_nv_mac;
+	bool use_nv_mac;
 	u8 set_wlaon_pwr_ctrl;
 };
 

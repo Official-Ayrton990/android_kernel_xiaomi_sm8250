@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2015-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #include <linux/firmware.h>
 #include <linux/module.h>
 #include <linux/soc/qcom/qmi.h>
+#include <soc/qcom/socinfo.h>
 
 #include "bus.h"
 #include "debug.h"
@@ -12,12 +14,24 @@
 
 #define WLFW_SERVICE_INS_ID_V01		1
 #define WLFW_CLIENT_ID			0x4b4e454c
+#define MAX_BDF_FILE_NAME		14
 #define BDF_FILE_NAME_PREFIX		"bdwlan"
 #define ELF_BDF_FILE_NAME		"bdwlan.elf"
+
+#define ELF_BDF_FILE_NAME_J11		"bd_j11.elf"
+#define ELF_BDF_FILE_NAME_J11_B_BOM		"bd_j11_b.elf"
+#define ELF_BDF_FILE_NAME_J11_INDIA		"bd_j11in.elf"
+#define ELF_BDF_FILE_NAME_J11_GLOBAL		"bd_j11gl.elf"
+
+#define ELF_BDF_FILE_NAME_GLOBAL	 "bd_j1gl.elf"
+#define ELF_BDF_FILE_NAME_INDIA		 "bd_j1in.elf"
+#define ELF_BDF_FILE_NAME_B_BOM		 "bd_j1_b.elf"
+
 #define ELF_BDF_FILE_NAME_PREFIX	"bdwlan.e"
 #define BIN_BDF_FILE_NAME		"bdwlan.bin"
 #define BIN_BDF_FILE_NAME_PREFIX	"bdwlan.b"
 #define REGDB_FILE_NAME			"regdb.bin"
+#define REGDB_FILE_NAME_J11		"regdb_j11.bin"
 #define DUMMY_BDF_FILE_NAME		"bdwlan.dmy"
 
 #define QMI_WLFW_TIMEOUT_MS		(plat_priv->ctrl_params.qmi_timeout)
@@ -168,8 +182,6 @@ static int cnss_wlfw_host_cap_send_sync(struct cnss_plat_data *plat_priv)
 	struct wlfw_host_cap_resp_msg_v01 *resp;
 	struct qmi_txn txn;
 	int ret = 0;
-	u64 iova_start = 0, iova_size = 0,
-	    iova_ipa_start = 0, iova_ipa_size = 0;
 
 	cnss_pr_dbg("Sending host capability message, state: 0x%lx\n",
 		    plat_priv->driver_state);
@@ -210,19 +222,6 @@ static int cnss_wlfw_host_cap_send_sync(struct cnss_plat_data *plat_priv)
 	req->cal_done_valid = 1;
 	req->cal_done = plat_priv->cal_done;
 	cnss_pr_dbg("Calibration done is %d\n", plat_priv->cal_done);
-
-	if (!cnss_bus_get_iova(plat_priv, &iova_start, &iova_size) &&
-	    !cnss_bus_get_iova_ipa(plat_priv, &iova_ipa_start,
-				   &iova_ipa_size)) {
-		req->ddr_range_valid = 1;
-		req->ddr_range[0].start = iova_start;
-		req->ddr_range[0].size = iova_size + iova_ipa_size;
-		cnss_pr_dbg("Sending iova starting 0x%llx with size 0x%llx\n",
-			    req->ddr_range[0].start, req->ddr_range[0].size);
-	}
-
-	req->host_build_type_valid = 1;
-	req->host_build_type = cnss_get_host_build_type();
 
 	ret = qmi_txn_init(&plat_priv->qmi_wlfw, &txn,
 			   wlfw_host_cap_resp_msg_v01_ei, resp);
@@ -475,11 +474,40 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 {
 	char filename_tmp[MAX_FIRMWARE_NAME_LEN];
 	int ret = 0;
+	int hw_platform_ver = -1;
+	uint32_t hw_country_ver = 0;
+
+	hw_platform_ver = get_hw_version_platform();
+	hw_country_ver = get_hw_country_version();
 
 	switch (bdf_type) {
 	case CNSS_BDF_ELF:
-		if (plat_priv->board_info.board_id == 0xFF)
-			snprintf(filename_tmp, filename_len, ELF_BDF_FILE_NAME);
+		if (plat_priv->board_info.board_id == 0xFF) {
+			if (hw_platform_ver == HARDWARE_PLATFORM_LMI) {
+				if (get_hw_country_version() == (uint32_t)CountryGlobal)
+				    snprintf(filename, filename_len, ELF_BDF_FILE_NAME_J11_GLOBAL);
+				else if (get_hw_country_version() == (uint32_t)CountryIndia)
+				    snprintf(filename, filename_len, ELF_BDF_FILE_NAME_J11_INDIA);
+				else {
+					if ((get_hw_version_minor() == (uint32_t)HW_MINOR_VERSION_B) && (get_hw_version_major() == (uint32_t)HW_MAJOR_VERSION_B))
+						snprintf(filename, filename_len, ELF_BDF_FILE_NAME_J11_B_BOM);
+					else
+						snprintf(filename, filename_len, ELF_BDF_FILE_NAME_J11);
+				}
+			}
+			else {
+				if (hw_country_ver == (uint32_t)CountryGlobal)
+					snprintf(filename, filename_len, ELF_BDF_FILE_NAME_GLOBAL);
+				else if (hw_country_ver == (uint32_t)CountryIndia)
+					snprintf(filename, filename_len, ELF_BDF_FILE_NAME_INDIA);
+				else {
+					if ((get_hw_version_minor() == (uint32_t)HW_MINOR_VERSION_B) && (get_hw_version_major() == (uint32_t)HW_MAJOR_VERSION_B))
+						snprintf(filename, filename_len, ELF_BDF_FILE_NAME_B_BOM);
+					else
+						snprintf(filename, filename_len, ELF_BDF_FILE_NAME);
+				}
+			}
+		}
 		else if (plat_priv->board_info.board_id < 0xFF)
 			snprintf(filename_tmp, filename_len,
 				 ELF_BDF_FILE_NAME_PREFIX "%02x",
@@ -504,7 +532,10 @@ static int cnss_get_bdf_file_name(struct cnss_plat_data *plat_priv,
 				 plat_priv->board_info.board_id & 0xFF);
 		break;
 	case CNSS_BDF_REGDB:
-		snprintf(filename_tmp, filename_len, REGDB_FILE_NAME);
+		if (hw_platform_ver == HARDWARE_PLATFORM_LMI)
+			snprintf(filename, filename_len, REGDB_FILE_NAME_J11);
+		else
+			snprintf(filename, filename_len, REGDB_FILE_NAME);
 		break;
 	case CNSS_BDF_DUMMY:
 		cnss_pr_dbg("CNSS_BDF_DUMMY is set, sending dummy BDF\n");
@@ -812,6 +843,10 @@ static int cnss_wlfw_wlan_mac_req_send_sync(struct cnss_plat_data *plat_priv,
 	}
 
 	cnss_pr_dbg("WLAN mac req completed\n");
+
+	kfree(req);
+	kfree(resp);
+	return 0;
 
 out:
 	kfree(req);
