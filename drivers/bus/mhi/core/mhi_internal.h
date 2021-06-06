@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #ifndef _MHI_INT_H
 #define _MHI_INT_H
@@ -300,7 +301,6 @@ enum mhi_cmd_type {
 	MHI_CMD_TYPE_STOP = 17,
 	MHI_CMD_TYPE_START = 18,
 	MHI_CMD_TYPE_TSYNC = 24,
-	MHI_CMD_TYPE_SFR_CFG = 73,
 };
 
 /* no operation command */
@@ -324,11 +324,6 @@ enum mhi_cmd_type {
 #define MHI_TRE_CMD_START_DWORD0 (0)
 #define MHI_TRE_CMD_START_DWORD1(chid) ((chid << 24) | \
 					(MHI_CMD_TYPE_START << 16))
-
-/* subsystem failure reason cfg command */
-#define MHI_TRE_CMD_SFR_CFG_PTR(ptr) (ptr)
-#define MHI_TRE_CMD_SFR_CFG_DWORD0(len) (len)
-#define MHI_TRE_CMD_SFR_CFG_DWORD1 (MHI_CMD_TYPE_SFR_CFG << 16)
 
 #define MHI_TRE_GET_CMD_CHID(tre) (((tre)->dword[1] >> 24) & 0xFF)
 #define MHI_TRE_GET_CMD_TYPE(tre) (((tre)->dword[1] >> 16) & 0xFF)
@@ -370,7 +365,6 @@ enum MHI_CMD {
 	MHI_CMD_RESET_CHAN,
 	MHI_CMD_START_CHAN,
 	MHI_CMD_STOP_CHAN,
-	MHI_CMD_SFR_CFG,
 };
 
 enum MHI_PKT_TYPE {
@@ -387,7 +381,6 @@ enum MHI_PKT_TYPE {
 	MHI_PKT_TYPE_RSC_TX_EVENT = 0x28,
 	MHI_PKT_TYPE_EE_EVENT = 0x40,
 	MHI_PKT_TYPE_TSYNC_EVENT = 0x48,
-	MHI_PKT_TYPE_SFR_CFG_CMD = 0x49,
 	MHI_PKT_TYPE_BW_REQ_EVENT = 0x50,
 	MHI_PKT_TYPE_STALE_EVENT, /* internal event */
 };
@@ -725,6 +718,9 @@ struct tsync_node {
 
 struct mhi_timesync {
 	void __iomem *time_reg;
+	void __iomem *db;
+	enum MHI_EV_CCS ccs;
+	struct completion completion;
 	u32 int_sequence;
 	u64 local_time;
 	u64 remote_time;
@@ -732,16 +728,8 @@ struct mhi_timesync {
 	bool db_response_pending;
 	struct completion db_completion;
 	spinlock_t lock; /* list protection */
+	struct mutex lpm_mutex; /* lpm protection */
 	struct list_head head;
-};
-
-struct mhi_sfr_info {
-	void *buf_addr;
-	dma_addr_t dma_addr;
-	size_t len;
-	char *str;
-	enum MHI_EV_CCS ccs;
-	struct completion completion;
 };
 
 struct mhi_bus {
@@ -846,7 +834,7 @@ void mhi_ring_chan_db(struct mhi_controller *mhi_cntrl,
 int mhi_get_capability_offset(struct mhi_controller *mhi_cntrl, u32 capability,
 			      u32 *offset);
 void *mhi_to_virtual(struct mhi_ring *ring, dma_addr_t addr);
-int mhi_init_sfr(struct mhi_controller *mhi_cntrl);
+int mhi_init_timesync(struct mhi_controller *mhi_cntrl);
 void mhi_create_sysfs(struct mhi_controller *mhi_cntrl);
 void mhi_destroy_sysfs(struct mhi_controller *mhi_cntrl);
 int mhi_early_notify_device(struct device *dev, void *data);

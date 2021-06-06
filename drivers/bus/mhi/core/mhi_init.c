@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #include <linux/debugfs.h>
 #include <linux/device.h>
@@ -777,7 +778,7 @@ static int mhi_get_er_index(struct mhi_controller *mhi_cntrl,
 	return -ENOENT;
 }
 
-static int mhi_init_timesync(struct mhi_controller *mhi_cntrl)
+int mhi_init_timesync(struct mhi_controller *mhi_cntrl)
 {
 	struct mhi_timesync *mhi_tsync;
 	u32 time_offset, time_cfg_offset;
@@ -825,42 +826,6 @@ static int mhi_init_timesync(struct mhi_controller *mhi_cntrl)
 	/* advertise host support */
 	mhi_cntrl->write_reg(mhi_cntrl, mhi_cntrl->regs, time_cfg_offset,
 			     MHI_TIMESYNC_DB_SETUP(er_index));
-
-	return 0;
-}
-
-int mhi_init_sfr(struct mhi_controller *mhi_cntrl)
-{
-	struct mhi_sfr_info *sfr_info = mhi_cntrl->mhi_sfr;
-	int ret = -EIO;
-
-	if (!sfr_info)
-		return ret;
-
-	/* do a clean-up if we reach here post SSR */
-	memset(sfr_info->str, 0, sfr_info->len);
-
-	sfr_info->buf_addr = mhi_alloc_coherent(mhi_cntrl, sfr_info->len,
-					&sfr_info->dma_addr, GFP_KERNEL);
-	if (!sfr_info->buf_addr) {
-		MHI_CNTRL_ERR("Failed to allocate memory for sfr\n");
-		return -ENOMEM;
-	}
-
-	init_completion(&sfr_info->completion);
-
-	ret = mhi_send_cmd(mhi_cntrl, NULL, MHI_CMD_SFR_CFG);
-	if (ret) {
-		MHI_CNTRL_ERR("Failed to send sfr cfg cmd\n");
-		return ret;
-	}
-
-	ret = wait_for_completion_timeout(&sfr_info->completion,
-			msecs_to_jiffies(mhi_cntrl->timeout_ms));
-	if (!ret || sfr_info->ccs != MHI_EV_CC_SUCCESS) {
-		MHI_CNTRL_ERR("Failed to get sfr cfg cmd completion\n");
-		return -EIO;
-	}
 
 	return 0;
 }
@@ -1528,7 +1493,6 @@ int of_register_mhi_controller(struct mhi_controller *mhi_cntrl)
 	struct mhi_chan *mhi_chan;
 	struct mhi_cmd *mhi_cmd;
 	struct mhi_device *mhi_dev;
-	struct mhi_sfr_info *sfr_info;
 	u32 soc_info;
 
 	if (!mhi_cntrl->of_node)
@@ -1653,23 +1617,6 @@ int of_register_mhi_controller(struct mhi_controller *mhi_cntrl)
 
 	mhi_cntrl->mhi_dev = mhi_dev;
 
-	if (mhi_cntrl->sfr_len) {
-		sfr_info = kzalloc(sizeof(*sfr_info), GFP_KERNEL);
-		if (!sfr_info) {
-			ret = -ENOMEM;
-			goto error_add_dev;
-		}
-
-		sfr_info->str = kzalloc(mhi_cntrl->sfr_len, GFP_KERNEL);
-		if (!sfr_info->str) {
-			ret = -ENOMEM;
-			goto error_alloc_sfr;
-		}
-
-		sfr_info->len = mhi_cntrl->sfr_len;
-		mhi_cntrl->mhi_sfr = sfr_info;
-	}
-
 	mhi_cntrl->parent = debugfs_lookup(mhi_bus_type.name, NULL);
 	mhi_cntrl->klog_lvl = MHI_MSG_LVL_ERROR;
 
@@ -1679,9 +1626,6 @@ int of_register_mhi_controller(struct mhi_controller *mhi_cntrl)
 	mutex_unlock(&mhi_bus.lock);
 
 	return 0;
-
-error_alloc_sfr:
-	kfree(sfr_info);
 
 error_add_dev:
 	mhi_dealloc_device(mhi_cntrl, mhi_dev);
@@ -1701,17 +1645,11 @@ EXPORT_SYMBOL(of_register_mhi_controller);
 void mhi_unregister_mhi_controller(struct mhi_controller *mhi_cntrl)
 {
 	struct mhi_device *mhi_dev = mhi_cntrl->mhi_dev;
-	struct mhi_sfr_info *sfr_info = mhi_cntrl->mhi_sfr;
 
 	kfree(mhi_cntrl->mhi_cmd);
 	kfree(mhi_cntrl->mhi_event);
 	vfree(mhi_cntrl->mhi_chan);
 	kfree(mhi_cntrl->mhi_tsync);
-
-	if (sfr_info) {
-		kfree(sfr_info->str);
-		kfree(sfr_info);
-	}
 
 	device_del(&mhi_dev->dev);
 	put_device(&mhi_dev->dev);

@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved. */
+/* Copyright (C) 2020 XiaoMi, Inc. */
 
 #ifndef _MHI_H_
 #define _MHI_H_
@@ -12,7 +13,6 @@ struct image_info;
 struct bhi_vec_entry;
 struct mhi_timesync;
 struct mhi_buf_info;
-struct mhi_sfr_info;
 
 #define REG_WRITE_QUEUE_LEN 1024
 
@@ -395,10 +395,6 @@ struct mhi_controller {
 	u64 local_timer_freq;
 	u64 remote_timer_freq;
 
-	/* subsytem failure reason retrieval feature */
-	struct mhi_sfr_info *mhi_sfr;
-	size_t sfr_len;
-
 	/* kernel log level */
 	enum MHI_DEBUG_LEVEL klog_lvl;
 
@@ -408,6 +404,8 @@ struct mhi_controller {
 	/* controller specific data */
 	const char *name;
 	bool power_down;
+	bool need_force_m3;
+	bool force_m3_done;
 	bool initiate_mhi_reset;
 	void *priv_data;
 	void *log_buf;
@@ -883,12 +881,6 @@ void mhi_control_error(struct mhi_controller *mhi_cntrl);
  * @mhi_cntrl: MHI controller
  */
 void mhi_debug_reg_dump(struct mhi_controller *mhi_cntrl);
-
-/**
- * mhi_get_restart_reason - retrieve the subsystem failure reason
- * @name: controller name
- */
-char *mhi_get_restart_reason(const char *name);
 
 #ifndef CONFIG_ARCH_QCOM
 
