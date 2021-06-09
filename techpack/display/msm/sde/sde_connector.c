@@ -871,7 +871,7 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 	c_conn = to_sde_connector(connector);
 
 	if (c_conn->connector_type != DRM_MODE_CONNECTOR_DSI)
-		return 0;
+		return -EINVAL;
 
 	dsi_display = (struct dsi_display *) c_conn->display;
 	if (!dsi_display || !dsi_display->panel) {
