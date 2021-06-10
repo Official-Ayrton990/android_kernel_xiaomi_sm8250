@@ -257,6 +257,14 @@ __LL_SC_PREFIX(__cmpxchg_case_##name##sz(volatile void *ptr,		\
 	unsigned long tmp;						\
 	u##sz oldval;							\
 									\
+	/*								\
+	 * Sub-word sizes require explicit casting so that the compare  \
+	 * part of the cmpxchg doesn't end up interpreting non-zero	\
+	 * upper bits of the register containing "old".			\
+	 */								\
+	if (sz < 32)							\
+		old = (u##sz)old;					\
+									\
 	asm volatile(							\
 	"	prfm	pstl1strm, %[v]\n"				\
 	"1:	ld" #acq "xr" #sfx "\t%" #w "[oldval], %[v]\n"		\
@@ -268,7 +276,7 @@ __LL_SC_PREFIX(__cmpxchg_case_##name##sz(volatile void *ptr,		\
 	"2:"								\
 	: [tmp] "=&r" (tmp), [oldval] "=&r" (oldval),			\
 	  [v] "+Q" (*(u##sz *)ptr)					\
-	: [old] #constraint "r" (old), [new] "r" (new)			\
+	: [old] "Kr" (old), [new] "r" (new)				\
 	: cl);								\
 									\
 	return oldval;							\

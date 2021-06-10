@@ -194,7 +194,8 @@ static void update_shadow(struct module *mod, unsigned long min_addr,
 	next->r.max_page = max_addr >> PAGE_SHIFT;
 
 	spin_lock(&shadow_update_lock);
-	prev = rcu_dereference_protected(cfi_shadow, 1);
+	prev = rcu_dereference_protected(cfi_shadow,
+					 mutex_is_locked(&shadow_update_lock));
 	prepare_next_shadow(prev, next);
 
 	fn(next, mod);
