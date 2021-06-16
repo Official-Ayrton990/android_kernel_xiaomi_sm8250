@@ -386,6 +386,12 @@ typedef struct sde_crtc_mi_dc_backlight
 	int32_t mi_dc_bl_layer_alpha;
 } sde_crtc_mi_dc_backlight;
 
+#ifdef CONFIG_DRM_SDE_EXPO
+enum sde_crtc_dirty_flags {
+	SDE_CRTC_DIRTY_DIM_LAYER_EXPO,
+};
+#endif
+
 typedef struct sde_crtc_mi_layer
 {
 	int32_t layer_index;
@@ -464,6 +470,9 @@ struct sde_crtc_state {
     /* Mi crtc state */
 	struct sde_crtc_mi_state mi_state;
 	uint32_t num_dim_layers_bank;
+#ifdef CONFIG_DRM_SDE_EXPO
+	struct sde_hw_dim_layer *exposure_dim_layer;
+#endif
 };
 
 enum sde_crtc_irq_state {
