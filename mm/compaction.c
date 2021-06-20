@@ -2820,8 +2820,6 @@ static int __init kcompactd_init(void)
 }
 subsys_initcall(kcompactd_init)
 
-extern struct drm_panel *lcd_active_panel;
-
 static int  __init scheduled_compaction_init(void)
 {
 	compaction_wq = create_freezable_workqueue("compaction_wq");
@@ -2831,10 +2829,7 @@ static int  __init scheduled_compaction_init(void)
 
 	INIT_DELAYED_WORK(&compaction_work, do_compaction);
 
-	if (lcd_active_panel) {
-		drm_panel_notifier_register(lcd_active_panel,
-					    &compaction_notifier_block);
-	}
+	msm_drm_register_client(&compaction_notifier_block);
 
 	return 0;
 }
