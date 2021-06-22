@@ -45,8 +45,13 @@
  * Marco
  *
  ******************************************************/
+#ifdef CONFIG_INPUT_QTI_SPOOF
+#define AW8697_I2C_NAME "qcom-hv-haptics"
+#define AW8697_HAPTIC_NAME "qcom-hv-haptics"
+#else
 #define AW8697_I2C_NAME "aw8697_haptic"
 #define AW8697_HAPTIC_NAME "aw8697_haptic"
+#endif
 
 #define AW8697_VERSION "v1.1.3"
 
