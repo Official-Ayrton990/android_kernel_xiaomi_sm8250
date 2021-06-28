@@ -889,6 +889,18 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 		return -EINVAL;
 	}
 
+	if (!c_conn->allow_bl_update) {
+		/*Skip 2 frames after panel on to avoid hbm flicker*/
+		if (mi_cfg->dc_type == 1 && dsi_display->panel->power_mode == SDE_MODE_DPMS_ON)
+			skip_frame_count = 2;
+		return 0;
+	}
+
+	if (skip_frame_count) {
+		SDE_INFO("skip_frame_count=%d\n", skip_frame_count);
+		skip_frame_count--;
+		return 0;
+	}
 
 	mi_cfg->layer_fod_unlock_success =
 			c_conn->mi_dimlayer_state.mi_dimlayer_type & MI_FOD_UNLOCK_SUCCESS;
@@ -921,6 +933,18 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 				c_conn->fod_frame_count = 0;
 			}
 			if (skip == false) {
+				/* dimming off before hbm ctl */
+				if (mi_cfg->prepare_before_fod_hbm_on && ((mi_cfg->panel_id >> 8) == 0x4A3232003808)) {
+					/* Set flags to disable dimming and backlight */
+					mi_cfg->dimming_state = STATE_DIM_BLOCK;
+					mi_cfg->fod_hbm_enabled = true;
+
+					sde_connector_pre_hbm_ctl(connector);
+					sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
+				}
+
+				if (mi_cfg->delay_before_fod_hbm_on)
+					sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
 
 				sde_connector_hbm_ctl(connector, DISPPARAM_HBM_FOD_ON);
 
@@ -937,6 +961,10 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 					}
 				}
 
+				if (mi_cfg->delay_after_fod_hbm_on) {
+					sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
+				}
+
 				/* Turn off crc after delay of hbm on can avoid flash high
 				 * brightness if DC on (MIUI-1755728) */
 				if (mi_cfg->dc_type == 2 && crc_off_after_delay_of_hbm_on) {
@@ -947,7 +975,8 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 				}
 
 				mi_cfg->fod_hbm_layer_enabled = true;
-			}	sde_crtc_fod_ui_ready(dsi_display, 1, 1);
+				/*sde_crtc_fod_ui_ready(dsi_display, 1, 1);*/
+			}
 		}
 	} else {
 		if (mi_cfg->fod_hbm_layer_enabled == true) {
@@ -963,7 +992,7 @@ static int _sde_connector_mi_dimlayer_hbm_fence(struct drm_connector *connector)
 				sde_encoder_wait_for_event(c_conn->encoder, MSM_ENC_VBLANK);
 
 			mi_cfg->fod_hbm_layer_enabled = false;
-			sde_crtc_fod_ui_ready(dsi_display, 1, 0);
+			/*sde_crtc_fod_ui_ready(dsi_display, 1, 0);*/
 		}
 	}
 #if 0
