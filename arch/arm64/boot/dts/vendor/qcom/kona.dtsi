@@ -347,7 +347,7 @@
 	};
 
 	chosen {
-		bootargs = "noirqdebug nodebugmon rcu_nocbs=0-7";
+		bootargs = "noirqdebug nodebugmon rcu_nocbs=0-7 kpti=off";
 	};
 
 	firmware: firmware {
@@ -2453,6 +2453,7 @@
 		#clock-cells = <1>;
 		mboxes = <&qmp_aop 0>;
 		mbox-names = "qdss_clk";
+		qcom,clk-stop-bimc-log;
 	};
 
 	clock_gcc: qcom,gcc@100000 {
@@ -4645,6 +4646,21 @@
 			qcom,dump-size = <0x1000>;
 			qcom,dump-id = <0x104>;
 		};
+
+		osm_reg {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x163>;
+		};
+
+		pcu_reg {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x164>;
+		};
+
+		fsm_data {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x165>;
+		};
 	};
 
 	qcom_tzlog: tz-log@146bf720 {
@@ -4834,6 +4850,7 @@
 		      <0xb2e5510 0x5c0>;
 		reg-names = "smmu_iova_ipa", "tcs_cmd";
 		wlan-en-gpio = <&tlmm 20 0>;
+		qcom,bt-en-gpio = <&tlmm 21 0>;
 		pinctrl-names = "wlan_en_active", "wlan_en_sleep";
 		pinctrl-0 = <&cnss_wlan_en_active>;
 		pinctrl-1 = <&cnss_wlan_en_sleep>;

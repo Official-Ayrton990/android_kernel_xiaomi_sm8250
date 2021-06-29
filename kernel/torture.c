@@ -75,6 +75,7 @@ static DEFINE_MUTEX(fullstop_mutex);
 static struct task_struct *onoff_task;
 static long onoff_holdoff;
 static long onoff_interval;
+static torture_ofl_func *onoff_f;
 static long n_offline_attempts;
 static long n_offline_successes;
 static unsigned long sum_offline;
@@ -118,6 +119,8 @@ bool torture_offline(int cpu, long *n_offl_attempts, long *n_offl_successes,
 			pr_alert("%s" TORTURE_FLAG
 				 "torture_onoff task: offlined %d\n",
 				 torture_type, cpu);
+		if (onoff_f)
+			onoff_f();
 		(*n_offl_successes)++;
 		delta = jiffies - starttime;
 		*sum_offl += delta;
@@ -231,13 +234,14 @@ stop:
 /*
  * Initiate online-offline handling.
  */
-int torture_onoff_init(long ooholdoff, long oointerval)
+int torture_onoff_init(long ooholdoff, long oointerval, torture_ofl_func *f)
 {
 	int ret = 0;
 
 #ifdef CONFIG_HOTPLUG_CPU
 	onoff_holdoff = ooholdoff;
 	onoff_interval = oointerval;
+	onoff_f = f;
 	if (onoff_interval <= 0)
 		return 0;
 	ret = torture_create_kthread(torture_onoff, NULL, onoff_task);
@@ -568,18 +572,21 @@ static void torture_shutdown_cleanup(void)
 static struct task_struct *stutter_task;
 static int stutter_pause_test;
 static int stutter;
+static int stutter_gap;
 
 /*
  * Block until the stutter interval ends.  This must be called periodically
  * by all running kthreads that need to be subject to stuttering.
  */
-void stutter_wait(const char *title)
+bool stutter_wait(const char *title)
 {
 	int spt;
+	bool ret = false;
 
 	cond_resched_tasks_rcu_qs();
 	spt = READ_ONCE(stutter_pause_test);
 	for (; spt; spt = READ_ONCE(stutter_pause_test)) {
+		ret = true;
 		if (spt == 1) {
 			schedule_timeout_interruptible(1);
 		} else if (spt == 2) {
@@ -590,6 +597,7 @@ void stutter_wait(const char *title)
 		}
 		torture_shutdown_absorb(title);
 	}
+	return ret;
 }
 EXPORT_SYMBOL_GPL(stutter_wait);
 
@@ -599,17 +607,24 @@ EXPORT_SYMBOL_GPL(stutter_wait);
  */
 static int torture_stutter(void *arg)
 {
+	int wtime;
+
 	VERBOSE_TOROUT_STRING("torture_stutter task started");
 	do {
 		if (!torture_must_stop() && stutter > 1) {
-			WRITE_ONCE(stutter_pause_test, 1);
-			schedule_timeout_interruptible(stutter - 1);
+			wtime = stutter;
+			if (stutter > HZ + 1) {
+				WRITE_ONCE(stutter_pause_test, 1);
+				wtime = stutter - HZ - 1;
+				schedule_timeout_interruptible(wtime);
+				wtime = HZ + 1;
+			}
 			WRITE_ONCE(stutter_pause_test, 2);
-			schedule_timeout_interruptible(1);
+			schedule_timeout_interruptible(wtime);
 		}
 		WRITE_ONCE(stutter_pause_test, 0);
 		if (!torture_must_stop())
-			schedule_timeout_interruptible(stutter);
+			schedule_timeout_interruptible(stutter_gap);
 		torture_shutdown_absorb("torture_stutter");
 	} while (!torture_must_stop());
 	torture_kthread_stopping("torture_stutter");
@@ -619,11 +634,12 @@ static int torture_stutter(void *arg)
 /*
  * Initialize and kick off the torture_stutter kthread.
  */
-int torture_stutter_init(int s)
+int torture_stutter_init(const int s, const int sgap)
 {
 	int ret;
 
 	stutter = s;
+	stutter_gap = sgap;
 	ret = torture_create_kthread(torture_stutter, NULL, stutter_task);
 	return ret;
 }
