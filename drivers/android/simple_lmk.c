@@ -11,7 +11,7 @@
 #include <linux/oom.h>
 #include <linux/sort.h>
 #include <linux/vmpressure.h>
-#include <linux/msm_drm_notify.h>
+#include <drm/drm_notifier_mi.h>
 #include <uapi/linux/sched/types.h>
 
 /* The minimum number of pages to free per reclaim */
@@ -327,10 +327,10 @@ static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
 static int msm_drm_notifier_callback(struct notifier_block *self,
 				unsigned long event, void *data)
 {
-	struct msm_drm_notifier *evdata = data;
+	struct mi_drm_notifier *evdata = data;
 	int *blank;
 
-	if (event != MSM_DRM_EVENT_BLANK)
+	if (event != MI_DRM_EVENT_BLANK)
 		goto out;
 
 	if (!evdata || !evdata->data || evdata->id != MSM_DRM_PRIMARY_DISPLAY)
@@ -338,14 +338,14 @@ static int msm_drm_notifier_callback(struct notifier_block *self,
 
 	blank = evdata->data;
 	switch (*blank) {
-	case MSM_DRM_BLANK_POWERDOWN:
-	case MSM_DRM_BLANK_LP:
+	case MI_DRM_BLANK_POWERDOWN:
+	case MI_DRM_BLANK_LP1:
 		if (!screen_on)
 			break;
 		screen_on = false;
 		atomic_set_release(&min_pressure, 95);
 		break;
-	case MSM_DRM_BLANK_UNBLANK:
+	case MI_DRM_BLANK_UNBLANK:
 		if (screen_on)
 			break;
 		screen_on = true;
@@ -377,7 +377,7 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 				     "simple_lmkd");
 		BUG_ON(IS_ERR(thread));
 		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
-		BUG_ON(msm_drm_register_client(&fb_notifier_block));
+		BUG_ON(mi_drm_register_client(&fb_notifier_block));
 	}
 
 	return 0;
