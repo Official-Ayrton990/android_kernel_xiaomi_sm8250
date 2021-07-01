@@ -11,6 +11,7 @@
 #include <linux/oom.h>
 #include <linux/sort.h>
 #include <linux/vmpressure.h>
+#include <drm/drm_notifier_mi.h>
 #include <uapi/linux/sched/types.h>
 
 /* The minimum number of pages to free per reclaim */
@@ -34,8 +35,10 @@ static DECLARE_WAIT_QUEUE_HEAD(oom_waitq);
 static DECLARE_COMPLETION(reclaim_done);
 static __cacheline_aligned_in_smp DEFINE_RWLOCK(mm_free_lock);
 static int nr_victims;
+static atomic_t min_pressure = ATOMIC_INIT(0);
 static atomic_t needs_reclaim = ATOMIC_INIT(0);
 static atomic_t nr_killed = ATOMIC_INIT(0);
+static bool screen_on = true;
 
 static int victim_cmp(const void *lhs_ptr, const void *rhs_ptr)
 {
@@ -299,18 +302,68 @@ void simple_lmk_mm_freed(struct mm_struct *mm)
 	read_unlock(&mm_free_lock);
 }
 
+static bool is_oom_conditions(unsigned long old_pressure, unsigned long new_pressure, unsigned long min_pressure)
+{
+	return old_pressure == min_pressure && new_pressure == old_pressure && new_pressure >= min_pressure;
+}
+
 static int simple_lmk_vmpressure_cb(struct notifier_block *nb,
 				    unsigned long pressure, void *data)
 {
-	if (pressure == 100 && !atomic_cmpxchg_acquire(&needs_reclaim, 0, 1))
+	unsigned long min_pressure_margin = atomic_read_acquire(&min_pressure);
+	static unsigned long new_pressure = 0;
+	static unsigned long old_pressure;
+
+	old_pressure = new_pressure;
+	new_pressure = pressure;
+
+	if (is_oom_conditions(old_pressure, new_pressure, min_pressure_margin) &&
+			!atomic_cmpxchg_acquire(&needs_reclaim, 0, 1))
 		wake_up(&oom_waitq);
 
+	return NOTIFY_OK;
+}
+
+static int msm_drm_notifier_callback(struct notifier_block *self,
+				unsigned long event, void *data)
+{
+	struct mi_drm_notifier *evdata = data;
+	int *blank;
+
+	if (event != MI_DRM_EVENT_BLANK)
+		goto out;
+
+	if (!evdata || !evdata->data || evdata->id != MSM_DRM_PRIMARY_DISPLAY)
+		goto out;
+
+	blank = evdata->data;
+	switch (*blank) {
+	case MI_DRM_BLANK_POWERDOWN:
+	case MI_DRM_BLANK_LP1:
+		if (!screen_on)
+			break;
+		screen_on = false;
+		atomic_set_release(&min_pressure, 95);
+		break;
+	case MI_DRM_BLANK_UNBLANK:
+		if (screen_on)
+			break;
+		screen_on = true;
+		atomic_set_release(&min_pressure, 100);
+		break;
+	}
+
+out:
 	return NOTIFY_OK;
 }
 
 static struct notifier_block vmpressure_notif = {
 	.notifier_call = simple_lmk_vmpressure_cb,
 	.priority = INT_MAX
+};
+
+static struct notifier_block fb_notifier_block = {
+	.notifier_call = msm_drm_notifier_callback,
 };
 
 /* Initialize Simple LMK when lmkd in Android writes to the minfree parameter */
@@ -324,6 +377,7 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 				     "simple_lmkd");
 		BUG_ON(IS_ERR(thread));
 		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
+		BUG_ON(mi_drm_register_client(&fb_notifier_block));
 	}
 
 	return 0;
