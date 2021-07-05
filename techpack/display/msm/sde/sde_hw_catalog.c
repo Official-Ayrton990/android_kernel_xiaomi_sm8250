@@ -8,7 +8,6 @@
 #include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/soc/qcom/llcc-qcom.h>
-#include <linux/pm_qos.h>
 
 #include "sde_hw_mdss.h"
 #include "sde_hw_catalog.h"
@@ -3834,19 +3833,6 @@ static int _sde_perf_parse_dt_cfg(struct device_node *np,
 
 		cfg->has_cdp = true;
 	}
-
-	cfg->perf.cpu_mask =
-			prop_exists[PERF_CPU_MASK] ?
-			PROP_VALUE_ACCESS(prop_value, PERF_CPU_MASK, 0) :
-			DEFAULT_CPU_MASK;
-	cfg->perf.cpu_dma_latency =
-			prop_exists[PERF_CPU_DMA_LATENCY] ?
-			PROP_VALUE_ACCESS(prop_value, PERF_CPU_DMA_LATENCY, 0) :
-			DEFAULT_CPU_DMA_LATENCY;
-	cfg->perf.cpu_irq_latency =
-			prop_exists[PERF_CPU_IRQ_LATENCY] ?
-			PROP_VALUE_ACCESS(prop_value, PERF_CPU_IRQ_LATENCY, 0) :
-			PM_QOS_DEFAULT_VALUE;
 
 	return 0;
 }
