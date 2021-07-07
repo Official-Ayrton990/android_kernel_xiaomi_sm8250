@@ -683,7 +683,7 @@ static void restart_usb_host_work(struct work_struct *w)
 	stop_usb_host(pd);
 
 	/* blocks until USB host is completely stopped */
-	ret = extcon_blocking_sync(pd->extcon, EXTCON_USB_HOST, STOP_USB_HOST);
+	ret = extcon_blocking_sync(pd->extcon, EXTCON_USB_HOST, 0);
 	if (ret) {
 		usbpd_err(&pd->dev, "err(%d) stopping host", ret);
 		return;
