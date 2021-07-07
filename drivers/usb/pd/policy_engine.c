@@ -431,7 +431,6 @@ struct usbpd {
 	struct notifier_block	psy_nb;
 
 	bool			batt_2s;
-	bool			fix_pdo_5v;
 
 	int			bms_charge_full;
 	int			bat_voltage_max;
@@ -775,7 +774,6 @@ static inline void pd_reset_protocol(struct usbpd *pd)
 	memset(pd->rx_msgid, -1, sizeof(pd->rx_msgid));
 	memset(pd->tx_msgid, 0, sizeof(pd->tx_msgid));
 	pd->send_request = false;
-	pd->send_get_status = false;
 	pd->send_pr_swap = false;
 	pd->send_dr_swap = false;
 }
@@ -3725,7 +3723,6 @@ static void handle_disconnect(struct usbpd *pd)
 	pd->forced_pr = POWER_SUPPLY_TYPEC_PR_NONE;
 
 	pd->current_state = PE_UNKNOWN;
-	pd_reset_protocol(pd);
 
 	kobject_uevent(&pd->dev.kobj, KOBJ_CHANGE);
 	typec_unregister_partner(pd->partner);
@@ -4805,7 +4802,7 @@ static ssize_t usbpd_verifed_store(struct device *dev,
 		}
 	}
 
-	if (!pd->verifed && !pd->pps_found && !pd->fix_pdo_5v)
+	if (!pd->verifed && !pd->pps_found)
 		schedule_delayed_work(&pd->fixed_pdo_work, 5 * HZ);
 
 	return size;
@@ -5512,10 +5509,6 @@ static void usbpd_pdo_workfunc(struct work_struct *w)
 	for (i = 0; i < ARRAY_SIZE(pd->received_pdos); i++) {
 		u32 pdo = pd->received_pdos[i];
 
-		if (pd->received_pdos[2] == 0) {
-			pd->fix_pdo_5v = true;
-			usbpd_info(&pd->dev,"fixed pdo [2]= %d",pd->fix_pdo_5v);
-			}
 		if (pdo == 0)
 			break;
 
