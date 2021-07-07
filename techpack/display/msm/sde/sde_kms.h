@@ -21,7 +21,6 @@
 
 #include <linux/msm_ion.h>
 #include <linux/pm_domain.h>
-#include <linux/pm_qos.h>
 
 #include "msm_drv.h"
 #include "msm_kms.h"
@@ -291,8 +290,6 @@ struct sde_kms {
 
 	bool first_kickoff;
 	bool qdss_enabled;
-
-	struct pm_qos_request pm_qos_irq_req;
 };
 
 /**
@@ -650,14 +647,4 @@ void sde_kms_timeline_status(struct drm_device *dev);
  * return: 0 on success; error code otherwise
  */
 int sde_kms_handle_recovery(struct drm_encoder *encoder);
-
-/**
- * sde_kms_update_pm_qos_irq_request - Update Qos vote for CPU receiving
- *					display IRQ
- * @sde_kms : pointer to sde_kms structure
- * @enable : indicates request to be enabled or disabled
- * @skip_lock : indicates if lock needs to be acquired
- */
-void sde_kms_update_pm_qos_irq_request(struct sde_kms *sde_kms,
-	 bool enable, bool skip_lock);
 #endif /* __sde_kms_H__ */
