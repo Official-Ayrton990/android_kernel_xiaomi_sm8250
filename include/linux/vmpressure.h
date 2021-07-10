@@ -42,6 +42,8 @@ extern bool vmpressure_inc_users(int order);
 extern void vmpressure_dec_users(void);
 extern void vmpressure_prio(gfp_t gfp, struct mem_cgroup *memcg, int prio,
 			    int order);
+extern bool vmpressure_inc_users(int order);
+extern void vmpressure_dec_users(void);
 
 #ifdef CONFIG_MEMCG
 extern void vmpressure_init(struct vmpressure *vmpr);
