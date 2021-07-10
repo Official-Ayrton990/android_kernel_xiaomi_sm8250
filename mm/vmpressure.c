@@ -386,7 +386,7 @@ static void vmpressure_global(gfp_t gfp, unsigned long scanned, bool critical,
 	if (critical)
 		scanned = calculate_vmpressure_win();
 
-	spin_lock_irqsave(&vmpr->sr_lock, flags);
+	spin_lock(&vmpr->sr_lock);
 	if (scanned) {
 		vmpr->scanned += scanned;
 		vmpr->reclaimed += reclaimed;
@@ -399,7 +399,7 @@ static void vmpressure_global(gfp_t gfp, unsigned long scanned, bool critical,
 		reclaimed = vmpr->reclaimed;
 
 		if (!critical && scanned < calculate_vmpressure_win()) {
-			spin_unlock_irqrestore(&vmpr->sr_lock, flags);
+			spin_unlock(&vmpr->sr_lock);
 			return;
 		}
 	}
