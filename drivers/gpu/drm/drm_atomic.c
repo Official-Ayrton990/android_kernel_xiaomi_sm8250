@@ -2580,7 +2580,6 @@ static int __drm_mode_atomic_ioctl(struct drm_device *dev, void *data,
 		return -EINVAL;
 
 	if (!(arg->flags & DRM_MODE_ATOMIC_TEST_ONLY)) {
-		devfreq_boost_kick(DEVFREQ_MSM_CPU_LLCCBW);
 		devfreq_boost_kick(DEVFREQ_MSM_LLCCBW_DDR);
 	}
 
