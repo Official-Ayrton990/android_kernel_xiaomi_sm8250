@@ -784,7 +784,16 @@ bool dc_skip_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 
 static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
 {
-	return panel->bl_config.bl_level;
+	u32 bl_level;
+
+	if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_HBM)
+		bl_level = panel->bl_config.bl_doze_hbm;
+	else if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_LPM)
+		bl_level = panel->bl_config.bl_doze_lpm;
+	else if (!panel->doze_enabled)
+		bl_level = panel->bl_config.bl_level;
+
+	return bl_level;
 }
 
 static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, uint32_t yb)
@@ -2820,6 +2829,24 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
     	rc = dsi_panel_parse_fod_dim_lut(panel, utils);
 	if (rc)
 		pr_err("[%s failed to parse fod dim lut\n", panel->name);
+
+	rc = utils->read_u32(utils->data,
+			"qcom,mdss-dsi-doze-lbm-brightness-value", &val);
+	if (rc) {
+		panel->bl_config.bl_doze_lpm = 0;
+		pr_debug("set doze lpm backlight to 0\n");
+	} else {
+		panel->bl_config.bl_doze_lpm = val;
+	}
+
+	rc = utils->read_u32(utils->data,
+			"qcom,mdss-dsi-doze-hbm-brightness-value", &val);
+	if (rc) {
+		panel->bl_config.bl_doze_hbm = 0;
+		pr_debug("set doze hbm backlight to 0\n");
+	} else {
+		panel->bl_config.bl_doze_hbm = val;
+	}
 
 	if (panel->bl_config.type == DSI_BACKLIGHT_PWM) {
 		rc = dsi_panel_parse_bl_pwm_config(panel);
