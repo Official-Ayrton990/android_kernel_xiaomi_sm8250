@@ -872,6 +872,8 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
                 if (rc)
                         pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_ON cmd, rc=%d\n",
                                         panel->name, rc);
+        } else if (panel->doze_enabled) {
+                dsi_panel_update_doze(panel);
         } else {
                 rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_OFF);
                 if (rc)
