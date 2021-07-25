@@ -99,6 +99,8 @@
 					39 01 00 00 00 00 02 53 20
 					05 01 00 00 00 00 02 29 00];
 				qcom,mdss-dsi-nolp-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-doze-hbm-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-doze-lbm-command-state = "dsi_lp_mode";
 			};
 		};
 	};
