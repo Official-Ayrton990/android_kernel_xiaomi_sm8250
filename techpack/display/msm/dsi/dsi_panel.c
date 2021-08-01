@@ -784,7 +784,16 @@ bool dc_skip_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 
 static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
 {
-	return panel->bl_config.bl_level;
+	u32 bl_level;
+
+	if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_HBM)
+		bl_level = panel->bl_config.bl_doze_hbm;
+	else if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_LPM)
+		bl_level = panel->bl_config.bl_doze_lpm;
+	else if (!panel->doze_enabled)
+		bl_level = panel->bl_config.bl_level;
+
+	return bl_level;
 }
 
 static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, uint32_t yb)
@@ -796,43 +805,86 @@ static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, u
 uint32_t dsi_panel_get_fod_dim_alpha(struct dsi_panel *panel)
 {
 	u32 brightness = dsi_panel_get_backlight(panel);
-	int i;
+	int i, alpha;
 
 	if (!panel->fod_dim_lut)
-		return 0;
+		alpha = 0;
 
 	for (i = 0; i < panel->fod_dim_lut_count; i++)
 		if (panel->fod_dim_lut[i].brightness >= brightness)
 			break;
 
 	if (i == 0)
-		return panel->fod_dim_lut[i].alpha;
+		alpha = panel->fod_dim_lut[0].alpha;
 
-	if (i == panel->fod_dim_lut_count)
-		return panel->fod_dim_lut[i - 1].alpha;
-
-	return interpolate(brightness,
-			panel->fod_dim_lut[i - 1].brightness, panel->fod_dim_lut[i].brightness,
-			panel->fod_dim_lut[i - 1].alpha, panel->fod_dim_lut[i].alpha);
+	else if (i == panel->fod_dim_lut_count)
+		alpha = panel->fod_dim_lut[brightness - 1].alpha;
+	else
+		alpha = interpolate(brightness,
+				panel->fod_dim_lut[i - 1].brightness,
+				panel->fod_dim_lut[i].brightness,
+				panel->fod_dim_lut[i - 1].alpha,
+				panel->fod_dim_lut[i].alpha);
+	return alpha;
 }
 
-int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
-{
+int dsi_panel_update_doze(struct dsi_panel *panel) {
 	int rc = 0;
 
-	if (status) {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_ON);
+	if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_HBM) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DOZE_HBM);
 		if (rc)
-			pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_ON cmd, rc=%d\n",
+			pr_err("[%s] failed to send DSI_CMD_SET_DOZE_HBM cmd, rc=%d\n",
 					panel->name, rc);
-	} else {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_OFF);
+	} else if (panel->doze_enabled && panel->doze_mode == DSI_DOZE_LPM) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DOZE_LBM);
 		if (rc)
-			pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_OFF cmd, rc=%d\n",
+			pr_err("[%s] failed to send DSI_CMD_SET_DOZE_LBM cmd, rc=%d\n",
+					panel->name, rc);
+	} else if (!panel->doze_enabled) {
+		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_NOLP);
+		if (rc)
+			pr_err("[%s] failed to send DSI_CMD_SET_NOLP cmd, rc=%d\n",
 					panel->name, rc);
 	}
 
 	return rc;
+}
+
+int dsi_panel_set_doze_status(struct dsi_panel *panel, bool status) {
+	if (panel->doze_enabled == status)
+		return 0;
+
+	panel->doze_enabled = status;
+
+	return dsi_panel_update_doze(panel);
+}
+
+int dsi_panel_set_doze_mode(struct dsi_panel *panel, enum dsi_doze_mode_type mode) {
+	if (panel->doze_mode == mode)
+		return 0;
+
+	panel->doze_mode = mode;
+
+	if (!panel->doze_enabled)
+		return 0;
+
+	return dsi_panel_update_doze(panel);
+}
+
+int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
+{
+        int rc = 0;
+
+	if (panel->doze_enabled)
+		rc = dsi_panel_update_doze(panel);
+
+	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_DISP_HBM_FOD_ON : DSI_CMD_SET_DISP_HBM_FOD_OFF);
+
+	if (rc)
+		pr_err("[%s] failed to send FOD HBM cmd, rc=%d\n",
+				panel->name, rc);
+        return rc;
 }
 
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
@@ -2042,6 +2094,8 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	/* xiaomi add end */
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command",
+	"qcom,mdss-dsi-doze-hbm-command",
+	"qcom,mdss-dsi-doze-lbm-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2139,6 +2193,8 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	/* xiaomi add end */
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command-state",
+	"qcom,mdss-dsi-doze-hbm-command-state",
+	"qcom,mdss-dsi-doze-lbm-command-state",
 };
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -2767,6 +2823,24 @@ static int dsi_panel_parse_bl_config(struct dsi_panel *panel)
     	rc = dsi_panel_parse_fod_dim_lut(panel, utils);
 	if (rc)
 		pr_err("[%s failed to parse fod dim lut\n", panel->name);
+
+	rc = utils->read_u32(utils->data,
+			"qcom,mdss-dsi-doze-lbm-brightness-value", &val);
+	if (rc) {
+		panel->bl_config.bl_doze_lpm = 0;
+		pr_debug("set doze lpm backlight to 0\n");
+	} else {
+		panel->bl_config.bl_doze_lpm = val;
+	}
+
+	rc = utils->read_u32(utils->data,
+			"qcom,mdss-dsi-doze-hbm-brightness-value", &val);
+	if (rc) {
+		panel->bl_config.bl_doze_hbm = 0;
+		pr_debug("set doze hbm backlight to 0\n");
+	} else {
+		panel->bl_config.bl_doze_hbm = val;
+	}
 
 	if (panel->bl_config.type == DSI_BACKLIGHT_PWM) {
 		rc = dsi_panel_parse_bl_pwm_config(panel);
@@ -3829,6 +3903,9 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 	if (rc)
 		DSI_DEBUG("failed to parse mi config, rc=%d\n", rc);
 
+	panel->doze_mode = DSI_DOZE_LPM;
+	panel->doze_enabled = false;
+
 	panel->power_mode = SDE_MODE_DPMS_OFF;
 	drm_panel_init(&panel->drm_panel);
 	panel->drm_panel.dev = &panel->mipi_device.dev;
@@ -4446,6 +4523,11 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP1 cmd, rc=%d\n",
 		       panel->name, rc);
 
+
+	rc = dsi_panel_set_doze_status(panel, true);
+	if (rc)
+		pr_err("unable to set doze on\n");
+
 exit:
 	mutex_unlock(&panel->panel_lock);
 	display_utc_time_marker("DSI_CMD_SET_LP1");
@@ -4472,6 +4554,10 @@ int dsi_panel_set_lp2(struct dsi_panel *panel)
 	if (rc)
 		DSI_ERR("[%s] failed to send DSI_CMD_SET_LP2 cmd, rc=%d\n",
 		       panel->name, rc);
+
+	rc = dsi_panel_set_doze_status(panel, true);
+	if (rc)
+		pr_err("unable to set doze on\n");
 
 exit:
 	mutex_unlock(&panel->panel_lock);
@@ -4540,6 +4626,10 @@ exit_skip:
 	mi_cfg->layer_fod_unlock_success = false;
 	mi_cfg->sysfs_fod_unlock_success = false;
 	fm_stat.idle_status = false;
+
+	rc = dsi_panel_set_doze_status(panel, false);
+	if (rc)
+		pr_err("unable to set doze on\n");
 
 exit:
 	mutex_unlock(&panel->panel_lock);
@@ -5147,6 +5237,7 @@ int dsi_panel_disable(struct dsi_panel *panel)
 	}
 	panel->panel_initialized = false;
 	panel->power_mode = SDE_MODE_DPMS_OFF;
+	panel->doze_enabled = false;
 
 	host = panel->host;
 	if (host && mi_cfg->fod_hbm_enabled) {
