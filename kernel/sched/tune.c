@@ -814,7 +814,7 @@ static void write_default_values(struct cgroup_subsys_state *css)
 	static struct st_data st_targets[] = {
 		{ "audio-app",	0, 0},
 		{ "background",	0, 0},
-		{ "foreground",	0, 0},
+		{ "foreground",	1, 1},
 		{ "rt",		0, 0},
 		{ "top-app",	10, 1},
 	};
