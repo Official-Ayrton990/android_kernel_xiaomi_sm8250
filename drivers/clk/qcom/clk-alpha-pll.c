@@ -510,9 +510,22 @@ alpha_pll_calc_rate(u64 prate, u32 l, u32 a, u32 alpha_width)
 	return (prate * l) + ((prate * a) >> ALPHA_SHIFT(alpha_width));
 }
 
+static void zonda_pll_adjust_l_val(unsigned long rate, unsigned long prate,
+									u32 *l)
+{
+	u64 remainder, quotient;
+
+	quotient = rate;
+	remainder = do_div(quotient, prate);
+	*l = quotient;
+
+	if ((remainder * 2) / prate)
+		*l = *l + 1;
+}
+
 static unsigned long
 alpha_pll_round_rate(unsigned long rate, unsigned long prate, u32 *l, u64 *a,
-		     u32 alpha_width)
+			u32 alpha_width)
 {
 	u64 remainder;
 	u64 quotient;
@@ -1305,12 +1318,13 @@ static int clk_zonda_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 {
 	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
 	unsigned long rrate;
-	u32 test_ctl_val;
+	u32 test_ctl_val, alpha_width = pll_alpha_width(pll);
 	u32 l;
 	u64 a;
 	int ret;
 
-	rrate = alpha_pll_round_rate(rate, prate, &l, &a, ALPHA_BITWIDTH);
+	rrate = alpha_pll_round_rate(rate, prate, &l, &a, alpha_width);
+
 	/*
 	 * Due to a limited number of bits for fractional rate programming, the
 	 * rounded up rate could be marginally higher than the requested rate.
@@ -1321,8 +1335,14 @@ static int clk_zonda_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 		return -EINVAL;
 	}
 
+	if (a && (a & BIT(15)))
+		zonda_pll_adjust_l_val(rate, prate, &l);
+
 	regmap_write(pll->clkr.regmap, PLL_ALPHA_VAL(pll), a);
 	regmap_write(pll->clkr.regmap, PLL_L_VAL(pll), l);
+
+	if (!clk_hw_is_enabled(hw))
+		return 0;
 
 	/* Wait before polling for the frequency latch */
 	udelay(5);
@@ -1345,16 +1365,33 @@ static int clk_zonda_pll_set_rate(struct clk_hw *hw, unsigned long rate,
 	return 0;
 }
 
+static unsigned long alpha_pll_adjust_calc_rate(u64 prate, u32 l, u32 frac,
+		u32 alpha_width)
+{
+	uint64_t tmp;
+
+	frac = 100 - DIV_ROUND_UP_ULL((frac * 100), BIT(alpha_width));
+
+	tmp = frac * prate;
+	do_div(tmp, 100);
+
+	return (l * prate) - tmp;
+}
+
 static unsigned long
 clk_zonda_pll_recalc_rate(struct clk_hw *hw, unsigned long parent_rate)
 {
 	struct clk_alpha_pll *pll = to_clk_alpha_pll(hw);
-	u32 l, frac;
+	u32 l, frac, alpha_width = pll_alpha_width(pll);
 
 	regmap_read(pll->clkr.regmap, PLL_L_VAL(pll), &l);
 	regmap_read(pll->clkr.regmap, PLL_ALPHA_VAL(pll), &frac);
 
-	return alpha_pll_calc_rate(parent_rate, l, frac, ALPHA_BITWIDTH);
+	if (frac & BIT(15))
+		return alpha_pll_adjust_calc_rate(parent_rate, l, frac,
+								alpha_width);
+	else
+		return alpha_pll_calc_rate(parent_rate, l, frac, alpha_width);
 }
 
 static void clk_zonda_pll_list_registers(struct seq_file *f, struct clk_hw *hw)
@@ -2682,8 +2719,7 @@ static int clk_alpha_pll_calibrate(struct clk_hw *hw)
 	 * So slew pll to the previously set frequency.
 	 */
 	freq_hz = alpha_pll_round_rate(clk_hw_get_rate(hw),
-			clk_hw_get_rate(parent), &l, &a, alpha_width);
-
+				clk_hw_get_rate(parent), &l, &a, alpha_width);
 
 	pr_debug("pll %s: setting back to required rate %lu, freq_hz %ld\n",
 				hw->init->name, clk_hw_get_rate(hw), freq_hz);

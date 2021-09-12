@@ -27,7 +27,6 @@
 static DEFINE_VDD_REGULATORS(vdd_cx, VDD_HIGH_L1 + 1, 1, vdd_corner);
 static DEFINE_VDD_REGULATORS(vdd_mx, VDD_HIGH_L1 + 1, 1, vdd_corner);
 
-
 enum {
 	P_BI_TCXO,
 	P_GPLL0_OUT_MAIN,
@@ -51,8 +50,8 @@ static const char * const gpu_cc_parent_names_0[] = {
 	"bi_tcxo",
 	"gpu_cc_pll0_out_main",
 	"gpu_cc_pll1",
-	"gpll0_out_main",
-	"gpll0_out_main_div",
+	"gcc_gpu_gpll0_clk_src",
+	"gcc_gpu_gpll0_div_clk_src",
 };
 
 static const struct parent_map gpu_cc_parent_map_1[] = {
@@ -70,7 +69,7 @@ static const char * const gpu_cc_parent_names_1[] = {
 	"gpu_cc_pll0",
 	"gpu_cc_pll1",
 	"gpu_cc_pll1",
-	"gpll0_out_main",
+	"gcc_gpu_gpll0_clk_src",
 };
 
 static struct pll_vco lucid_vco[] = {
@@ -88,7 +87,7 @@ static const struct alpha_pll_config gpu_cc_pll0_config = {
 	.config_ctl_val = 0x08200800,
 	.config_ctl_hi_val = 0x05022001,
 	.config_ctl_hi1_val = 0x00000010,
-	.user_ctl_val = 0x00000101,
+	.user_ctl_val = 0x01000101,
 };
 
 static struct clk_alpha_pll gpu_cc_pll0 = {
@@ -131,7 +130,7 @@ static struct clk_alpha_pll_postdiv gpu_cc_pll0_out_main = {
 		.parent_names = (const char *[]){ "gpu_cc_pll0" },
 		.num_parents = 1,
 		.flags = CLK_SET_RATE_PARENT,
-		.ops = &clk_alpha_pll_postdiv_zonda_ops,
+		.ops = &clk_alpha_pll_postdiv_ro_ops,
 	},
 };
 
@@ -158,7 +157,7 @@ static struct clk_alpha_pll gpu_cc_pll1 = {
 			.name = "gpu_cc_pll1",
 			.parent_names = (const char *[]){ "bi_tcxo" },
 			.num_parents = 1,
-			.ops = &clk_alpha_pll_ops,
+			.ops = &clk_alpha_pll_lucid_ops,
 			.vdd_class = &vdd_mx,
 			.num_rate_max = VDD_NUM,
 			.rate_max = (unsigned long[VDD_NUM]) {
@@ -202,7 +201,9 @@ static const struct freq_tbl ftbl_gpu_cc_gx_gfx3d_clk_src[] = {
 	F(600000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(785000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(820000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+	F(980000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1025000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
+	F(1100000000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	F(1114800000, P_GPU_CC_PLL0_OUT_MAIN, 1, 0, 0),
 	{ }
 };
@@ -226,7 +227,6 @@ static struct clk_rcg2 gpu_cc_gx_gfx3d_clk_src = {
 			[VDD_LOW] = 465000000,
 			[VDD_LOW_L1] = 600000000,
 			[VDD_NOMINAL] = 785000000,
-			[VDD_NOMINAL_L1] = 820000000,
 			[VDD_HIGH] = 1025000000,
 			[VDD_HIGH_L1] = 1114800000},
 	},

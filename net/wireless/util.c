@@ -257,7 +257,10 @@ bool cfg80211_valid_key_idx(struct cfg80211_registered_device *rdev,
 {
 	int max_key_idx;
 
-	if (pairwise)
+	if (wiphy_ext_feature_isset(&rdev->wiphy,
+				    NL80211_EXT_FEATURE_BEACON_PROTECTION))
+		max_key_idx = 7;
+	else if (pairwise)
 		max_key_idx = 3;
 	else if (cfg80211_igtk_cipher_supported(rdev))
 		max_key_idx = 5;
