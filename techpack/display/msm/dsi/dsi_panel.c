@@ -881,7 +881,7 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 	if (panel->doze_enabled)
 		rc = dsi_panel_update_doze(panel);
 
-	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_DISP_HBM_FOD_ON : DSI_CMD_SET_DISP_HBM_FOD_OFF);
+	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_MI_HBM_FOD_ON : DSI_CMD_SET_MI_HBM_FOD_OFF);
 
 	if (rc)
 		pr_err("[%s] failed to send FOD HBM cmd, rc=%d\n",
@@ -2115,10 +2115,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"mi,mdss-dsi-black-setting-command",
 	"mi,mdss-dsi-read-lockdown-info-command",
 	/* xiaomi add end */
-	"qcom,mdss-dsi-dispparam-hbm-fod-on-command",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-command",
-	"qcom,mdss-dsi-doze-hbm-command",
-	"qcom,mdss-dsi-doze-lbm-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2214,10 +2210,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"mi,mdss-dsi-black-setting-command-state",
 	"mi,mdss-dsi-read-lockdown-info-command-state",
 	/* xiaomi add end */
-	"qcom,mdss-dsi-dispparam-hbm-fod-on-command-state",
-	"qcom,mdss-dsi-dispparam-hbm-fod-off-command-state",
-	"qcom,mdss-dsi-doze-hbm-command-state",
-	"qcom,mdss-dsi-doze-lbm-command-state",
 };
 
 int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
