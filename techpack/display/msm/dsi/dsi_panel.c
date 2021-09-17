@@ -1901,7 +1901,7 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_LMI
+#ifdef CONFIG_COMMON_XIAOMI_FOD
 static unsigned int oss_fod;
 module_param(oss_fod, uint, 0444);
 #endif
@@ -1922,15 +1922,14 @@ static int dsi_panel_parse_phy_props(struct dsi_panel *panel)
 		props->panel_width_mm = 0;
 		rc = 0;
 	} else {
-		props->panel_width_mm = val;
+#ifdef CONFIG_COMMON_XIAOMI_FOD
+        	if (oss_fod == 0)
+                	props->panel_width_mm = val*10;
+        	else if (oss_fod == 1)
+                	props->panel_width_mm = val;
+#endif
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_LMI
-	if (oss_fod == 0)
-		props->panel_width_mm = 695;
-	else if (oss_fod == 1)
-		props->panel_width_mm = val;
-#endif
 
 	rc = utils->read_u32(utils->data,
 				  "qcom,mdss-pan-physical-height-dimension",
@@ -1940,15 +1939,13 @@ static int dsi_panel_parse_phy_props(struct dsi_panel *panel)
 		props->panel_height_mm = 0;
 		rc = 0;
 	} else {
-		props->panel_height_mm = val;
-	}
-
-#ifdef CONFIG_MACH_XIAOMI_LMI
-        if (oss_fod == 0)
-		props->panel_height_mm = 1545;
-        else if (oss_fod == 1)
-		props->panel_height_mm = val;
+#ifdef CONFIG_COMMON_XIAOMI_FOD
+        	if (oss_fod == 0)
+                	props->panel_height_mm = val*10;
+        	else if (oss_fod == 1)
+                	props->panel_height_mm = val;
 #endif
+	}
 
 	str = utils->get_property(utils->data,
 			"qcom,mdss-dsi-panel-orientation", NULL);

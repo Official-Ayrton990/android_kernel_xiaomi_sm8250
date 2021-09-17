@@ -20,6 +20,13 @@ config MACH_XIAOMI_SM8250
 	help
 	  Support for Xiaomi SM8250 devices
 
+config COMMON_XIAOMI_FOD
+        bool "Xiaomi SM8250"
+        depends on ARCH_QCOM
+        select MACH_XIAOMI
+        help
+          Support for DisplayFeature and OSS FOD on cmdline switch
+
 menu "Xiaomi board selection"
 
 	config MACH_XIAOMI_ALIOTH
