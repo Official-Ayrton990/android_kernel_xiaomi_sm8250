@@ -256,8 +256,8 @@ EXPORT_SYMBOL_GPL(ffs_lock);
 static struct ffs_dev *_ffs_find_dev(const char *name);
 static struct ffs_dev *_ffs_alloc_dev(void);
 static void _ffs_free_dev(struct ffs_dev *dev);
-static void *ffs_acquire_dev(const char *dev_name);
-static void ffs_release_dev(struct ffs_data *ffs_data);
+static int ffs_acquire_dev(const char *dev_name, struct ffs_data *ffs_data);
+static void ffs_release_dev(struct ffs_dev *ffs_dev);
 static int ffs_ready(struct ffs_data *ffs);
 static void ffs_closed(struct ffs_data *ffs);
 
@@ -265,7 +265,8 @@ static void ffs_closed(struct ffs_data *ffs);
 
 static int ffs_mutex_lock(struct mutex *mutex, unsigned nonblock)
 	__attribute__((warn_unused_result, nonnull));
-static char *ffs_prepare_buffer(const char __user *buf, size_t len)
+static char *ffs_prepare_buffer(const char __user *buf, size_t len,
+	size_t extra_buf_alloc)
 	__attribute__((warn_unused_result, nonnull));
 
 
@@ -342,6 +343,7 @@ static ssize_t ffs_ep0_write(struct file *file, const char __user *buf,
 			     size_t len, loff_t *ptr)
 {
 	struct ffs_data *ffs = file->private_data;
+	struct usb_gadget *gadget = ffs->gadget;
 	ssize_t ret;
 	char *data;
 
@@ -369,7 +371,7 @@ static ssize_t ffs_ep0_write(struct file *file, const char __user *buf,
 			break;
 		}
 
-		data = ffs_prepare_buffer(buf, len);
+		data = ffs_prepare_buffer(buf, len, 0);
 		if (IS_ERR(data)) {
 			ret = PTR_ERR(data);
 			break;
@@ -441,7 +443,7 @@ static ssize_t ffs_ep0_write(struct file *file, const char __user *buf,
 
 		spin_unlock_irq(&ffs->ev.waitq.lock);
 
-		data = ffs_prepare_buffer(buf, len);
+		data = ffs_prepare_buffer(buf, len, gadget->extra_buf_alloc);
 		if (IS_ERR(data)) {
 			ret = PTR_ERR(data);
 			break;
@@ -938,18 +940,20 @@ static ssize_t __ffs_epfile_read_data(struct ffs_epfile *epfile,
 static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 {
 	struct ffs_epfile *epfile = file->private_data;
-	struct ffs_data *ffs = epfile->ffs;
+	struct ffs_data *ffs;
 	struct usb_request *req;
 	struct ffs_ep *ep;
 	char *data = NULL;
 	ssize_t ret, data_len = -EINVAL;
 	int halt;
-
-	ffs_log("enter: %s", epfile->name);
+	size_t extra_buf_alloc = 0;
 
 	/* Are we still active? */
 	if (WARN_ON(epfile->ffs->state != FFS_ACTIVE))
 		return -ENODEV;
+
+	ffs = epfile->ffs;
+	ffs_log("enter: %s", epfile->name);
 
 	/* Wait for endpoint to be enabled */
 	ep = epfile->ep;
@@ -1022,7 +1026,12 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 			data_len = usb_ep_align_maybe(gadget, ep->ep, data_len);
 		spin_unlock_irq(&epfile->ffs->eps_lock);
 
-		data = kmalloc(data_len, GFP_KERNEL);
+		extra_buf_alloc = gadget->extra_buf_alloc;
+		if (!io_data->read)
+			data = kmalloc(data_len + extra_buf_alloc,
+					GFP_KERNEL);
+		else
+			data = kmalloc(data_len, GFP_KERNEL);
 		if (unlikely(!data)) {
 			ret = -ENOMEM;
 			goto error_mutex;
@@ -1665,7 +1674,6 @@ ffs_fs_mount(struct file_system_type *t, int flags,
 	};
 	struct dentry *rv;
 	int ret;
-	void *ffs_dev;
 	struct ffs_data	*ffs;
 
 	ENTER();
@@ -1686,20 +1694,16 @@ ffs_fs_mount(struct file_system_type *t, int flags,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	ffs_dev = ffs_acquire_dev(dev_name);
-	if (IS_ERR(ffs_dev)) {
+	ret = ffs_acquire_dev(dev_name, ffs);
+	if (ret) {
 		ffs_data_put(ffs);
-		return ERR_CAST(ffs_dev);
+		return ERR_PTR(ret);
 	}
-	ffs->private_data = ffs_dev;
 	data.ffs_data = ffs;
 
 	rv = mount_nodev(t, flags, &data, ffs_sb_fill);
-	if (IS_ERR(rv) && data.ffs_data) {
-		ffs_release_dev(data.ffs_data);
+	if (IS_ERR(rv) && data.ffs_data)
 		ffs_data_put(data.ffs_data);
-	}
-
 	return rv;
 }
 
@@ -1709,10 +1713,8 @@ ffs_fs_kill_sb(struct super_block *sb)
 	ENTER();
 
 	kill_litter_super(sb);
-	if (sb->s_fs_info) {
-		ffs_release_dev(sb->s_fs_info);
+	if (sb->s_fs_info)
 		ffs_data_closed(sb->s_fs_info);
-	}
 }
 
 static struct file_system_type ffs_fs_type = {
@@ -1789,6 +1791,7 @@ static void ffs_data_put(struct ffs_data *ffs)
 	if (unlikely(refcount_dec_and_test(&ffs->ref))) {
 		pr_info("%s(): freeing\n", __func__);
 		ffs_data_clear(ffs);
+		ffs_release_dev(ffs->private_data);
 		BUG_ON(waitqueue_active(&ffs->ev.waitq) ||
 		       waitqueue_active(&ffs->ep0req_completion.wait) ||
 		       waitqueue_active(&ffs->wait));
@@ -2793,6 +2796,7 @@ static int __ffs_data_got_strings(struct ffs_data *ffs,
 
 	do { /* lang_count > 0 so we can use do-while */
 		unsigned needed = needed_count;
+		u32 str_per_lang = str_count;
 
 		if (unlikely(len < 3))
 			goto error_free;
@@ -2828,7 +2832,7 @@ static int __ffs_data_got_strings(struct ffs_data *ffs,
 
 			data += length + 1;
 			len -= length + 1;
-		} while (--str_count);
+		} while (--str_per_lang);
 
 		s->id = 0;   /* terminator */
 		s->s = NULL;
@@ -3188,7 +3192,7 @@ static inline struct f_fs_opts *ffs_do_functionfs_bind(struct usb_function *f,
 	struct ffs_function *func = ffs_func_from_usb(f);
 	struct f_fs_opts *ffs_opts =
 		container_of(f->fi, struct f_fs_opts, func_inst);
-	struct ffs_data *ffs = ffs_opts->dev->ffs_data;
+	struct ffs_data *ffs;
 	int ret;
 
 	ENTER();
@@ -3203,12 +3207,13 @@ static inline struct f_fs_opts *ffs_do_functionfs_bind(struct usb_function *f,
 	if (!ffs_opts->no_configfs)
 		ffs_dev_lock();
 	ret = ffs_opts->dev->desc_ready ? 0 : -ENODEV;
-	func->ffs = ffs_opts->dev->ffs_data;
+	ffs = ffs_opts->dev->ffs_data;
 	if (!ffs_opts->no_configfs)
 		ffs_dev_unlock();
 	if (ret)
 		return ERR_PTR(ret);
 
+	func->ffs = ffs;
 	func->conf = c;
 	func->gadget = c->cdev->gadget;
 
@@ -3703,6 +3708,7 @@ static void ffs_free_inst(struct usb_function_instance *f)
 	struct f_fs_opts *opts;
 
 	opts = to_f_fs_opts(f);
+	ffs_release_dev(opts->dev);
 	ffs_dev_lock();
 	_ffs_free_dev(opts->dev);
 	ffs_dev_unlock();
@@ -3768,8 +3774,13 @@ static void ffs_func_unbind(struct usb_configuration *c,
 		ffs->func = NULL;
 	}
 
-	if (!--opts->refcnt)
+	/* Drain any pending AIO completions */
+	drain_workqueue(ffs->io_completion_wq);
+
+	if (!--opts->refcnt) {
+		ffs_event_add(ffs, FUNCTIONFS_UNBIND);
 		functionfs_unbind(ffs);
+	}
 
 	/* cleanup after autoconfig */
 	spin_lock_irqsave(&func->ffs->eps_lock, flags);
@@ -3792,10 +3803,12 @@ static void ffs_func_unbind(struct usb_configuration *c,
 	func->function.ssp_descriptors = NULL;
 	func->interfaces_nums = NULL;
 
-	ffs_event_add(ffs, FUNCTIONFS_UNBIND);
+	if (opts->refcnt) {
+		ffs_event_add(ffs, FUNCTIONFS_UNBIND);
 
-	ffs_log("exit: state %d setup_state %d flag %lu", ffs->state,
-		ffs->setup_state, ffs->flags);
+		ffs_log("exit: state %d setup_state %d flag %lu", ffs->state,
+			ffs->setup_state, ffs->flags);
+	}
 }
 
 static struct usb_function *ffs_alloc(struct usb_function_instance *fi)
@@ -3895,17 +3908,14 @@ static void _ffs_free_dev(struct ffs_dev *dev)
 {
 	list_del(&dev->entry);
 
-	/* Clear the private_data pointer to stop incorrect dev access */
-	if (dev->ffs_data)
-		dev->ffs_data->private_data = NULL;
-
 	kfree(dev);
 	if (list_empty(&ffs_devices))
 		functionfs_cleanup();
 }
 
-static void *ffs_acquire_dev(const char *dev_name)
+static int ffs_acquire_dev(const char *dev_name, struct ffs_data *ffs_data)
 {
+	int ret = 0;
 	struct ffs_dev *ffs_dev;
 
 	ENTER();
@@ -3913,32 +3923,35 @@ static void *ffs_acquire_dev(const char *dev_name)
 	ffs_dev_lock();
 
 	ffs_dev = _ffs_find_dev(dev_name);
-	if (!ffs_dev)
-		ffs_dev = ERR_PTR(-ENOENT);
-	else if (ffs_dev->mounted)
-		ffs_dev = ERR_PTR(-EBUSY);
-	else if (ffs_dev->ffs_acquire_dev_callback &&
-	    ffs_dev->ffs_acquire_dev_callback(ffs_dev))
-		ffs_dev = ERR_PTR(-ENOENT);
-	else
+	if (!ffs_dev) {
+		ret = -ENOENT;
+	} else if (ffs_dev->mounted) {
+		ret = -EBUSY;
+	} else if (ffs_dev->ffs_acquire_dev_callback &&
+		   ffs_dev->ffs_acquire_dev_callback(ffs_dev)) {
+		ret = -ENOENT;
+	} else {
 		ffs_dev->mounted = true;
+		ffs_dev->ffs_data = ffs_data;
+		ffs_data->private_data = ffs_dev;
+	}
 
 	ffs_dev_unlock();
-
-	return ffs_dev;
+	return ret;
 }
 
-static void ffs_release_dev(struct ffs_data *ffs_data)
+static void ffs_release_dev(struct ffs_dev *ffs_dev)
 {
-	struct ffs_dev *ffs_dev;
-
 	ENTER();
 
 	ffs_dev_lock();
 
-	ffs_dev = ffs_data->private_data;
-	if (ffs_dev) {
+	if (ffs_dev && ffs_dev->mounted) {
 		ffs_dev->mounted = false;
+		if (ffs_dev->ffs_data) {
+			ffs_dev->ffs_data->private_data = NULL;
+			ffs_dev->ffs_data = NULL;
+		}
 
 		if (ffs_dev->ffs_release_dev_callback)
 			ffs_dev->ffs_release_dev_callback(ffs_dev);
@@ -3969,7 +3982,6 @@ static int ffs_ready(struct ffs_data *ffs)
 	}
 
 	ffs_obj->desc_ready = true;
-	ffs_obj->ffs_data = ffs;
 
 	if (ffs_obj->ffs_ready_callback) {
 		ret = ffs_obj->ffs_ready_callback(ffs);
@@ -4003,7 +4015,6 @@ static void ffs_closed(struct ffs_data *ffs)
 		goto done;
 
 	ffs_obj->desc_ready = false;
-	ffs_obj->ffs_data = NULL;
 
 	if (test_and_clear_bit(FFS_FL_CALL_CLOSED_CALLBACK, &ffs->flags) &&
 	    ffs_obj->ffs_closed_callback)
@@ -4042,14 +4053,23 @@ static int ffs_mutex_lock(struct mutex *mutex, unsigned nonblock)
 		: mutex_lock_interruptible(mutex);
 }
 
-static char *ffs_prepare_buffer(const char __user *buf, size_t len)
+/**
+ * ffs_prepare_buffer() - copy userspace buffer into kernel.
+ * @buf: userspace buffer
+ * @len: length of the buffer
+ * @extra_alloc_buf: Extra buffer allocation if required by UDC.
+ *
+ * This function returns pointer to the copied buffer
+ */
+static char *ffs_prepare_buffer(const char __user *buf, size_t len,
+		size_t extra_buf_alloc)
 {
 	char *data;
 
 	if (unlikely(!len))
 		return NULL;
 
-	data = kmalloc(len, GFP_KERNEL);
+	data = kmalloc(len + extra_buf_alloc, GFP_KERNEL);
 	if (unlikely(!data))
 		return ERR_PTR(-ENOMEM);
 

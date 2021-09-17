@@ -1522,6 +1522,10 @@ static u16 sdhci_get_preset_value(struct sdhci_host *host)
 	u16 preset = 0;
 
 	switch (host->timing) {
+	case MMC_TIMING_MMC_HS:
+	case MMC_TIMING_SD_HS:
+		preset = sdhci_readw(host, SDHCI_PRESET_FOR_HIGH_SPEED);
+		break;
 	case MMC_TIMING_UHS_SDR12:
 		preset = sdhci_readw(host, SDHCI_PRESET_FOR_SDR12);
 		break;
@@ -3376,6 +3380,14 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 		} else {
 			pr_msg = true;
 		}
+
+		if (host->mmc->ops->get_cd &&
+				!host->mmc->ops->get_cd(host->mmc)) {
+			pr_msg = false;
+			pr_err("%s: Got data error(%d) during card removal\n",
+				mmc_hostname(host->mmc), host->data->error);
+		}
+
 		if (pr_msg && __ratelimit(&host->dbg_dump_rs)) {
 			pr_err("%s: data txfr (0x%08x) error: %d after %lld ms\n",
 			       mmc_hostname(host->mmc), intmask,

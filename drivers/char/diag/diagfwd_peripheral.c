@@ -178,7 +178,7 @@ static int diag_add_hdlc_encoding(unsigned char *dest_buf, int *dest_len,
 
 static int check_bufsize_for_encoding(struct diagfwd_buf_t *buf, uint32_t len)
 {
-	int i, ctx = 0;
+	int i, ctx = 0, flag_64k = 0;
 	uint32_t max_size = 0;
 	unsigned long flags;
 	unsigned char *temp_buf = NULL;
@@ -189,10 +189,11 @@ static int check_bufsize_for_encoding(struct diagfwd_buf_t *buf, uint32_t len)
 
 	max_size = (2 * len) + 3;
 	if (max_size > PERIPHERAL_BUF_SZ) {
-		if (max_size > MAX_PERIPHERAL_HDLC_BUF_SZ) {
-			pr_err("diag: In %s, max_size is going beyond limit %d\n",
+		if (max_size > MAX_PERIPHERAL_BUF_SZ) {
+			pr_err("diag: In %s, max_size (%d) is going beyond 32k\n",
 			       __func__, max_size);
 			max_size = MAX_PERIPHERAL_HDLC_BUF_SZ;
+			flag_64k = 1;
 		}
 
 		mutex_lock(&driver->md_session_lock);
@@ -229,11 +230,19 @@ static int check_bufsize_for_encoding(struct diagfwd_buf_t *buf, uint32_t len)
 				mutex_unlock(&driver->md_session_lock);
 				return -ENOMEM;
 			}
-			DIAG_LOG(DIAG_DEBUG_PERIPHERALS,
-			"Reallocated data buffer: %pK with size: %d\n",
-			temp_buf, max_size);
 			buf->data = temp_buf;
-			buf->len = max_size;
+
+			if (flag_64k)
+				buf->len = MAX_PERIPHERAL_HDLC_BUF_SZ;
+			else
+				buf->len = MAX_PERIPHERAL_BUF_SZ;
+
+			DIAG_LOG(DIAG_DEBUG_PERIPHERALS,
+			"diag: Reallocated data buffer: %pK with size: %d, max_buf_len: %d, p: %d, t: %d, n: %d\n",
+			temp_buf, max_size, buf->len,
+			GET_BUF_PERIPHERAL(buf->ctxt),
+			GET_BUF_TYPE(buf->ctxt),
+			GET_BUF_NUM(buf->ctxt));
 		}
 		mutex_unlock(&driver->md_session_lock);
 	}
@@ -1345,11 +1354,26 @@ int diagfwd_channel_open(struct diagfwd_info *fwd_info)
 
 int diagfwd_channel_close(struct diagfwd_info *fwd_info)
 {
+	struct diag_rpmsg_info *rpmsg_info = NULL;
+	struct diag_socket_info *socket_info = NULL;
+
 	if (!fwd_info)
 		return -EIO;
 
 	mutex_lock(&driver->diagfwd_channel_mutex[fwd_info->peripheral]);
 	fwd_info->ch_open = 0;
+	rpmsg_info = diag_get_rpmsg_info_ptr(fwd_info->type,
+						fwd_info->peripheral);
+	socket_info = diag_get_socket_info_ptr(fwd_info->type,
+						fwd_info->peripheral);
+
+	if (rpmsg_info && socket_info && rpmsg_info->probed
+					&& socket_info->reset_flag) {
+		mutex_unlock(
+			&driver->diagfwd_channel_mutex[fwd_info->peripheral]);
+		return 0;
+	}
+
 	if (fwd_info && fwd_info->c_ops && fwd_info->c_ops->close)
 		fwd_info->c_ops->close(fwd_info);
 

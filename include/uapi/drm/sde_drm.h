@@ -494,4 +494,13 @@ struct sde_drm_roi_v1 {
  */
 #define FOD_PRESSED_LAYER_ZORDER 0x20000000u
 
+/* display format modifiers */
+/*
+ * QTI planar fsc Tile Format
+ *
+ * Refers to a tile variant of the planar format.
+ * Implementation may be platform and base-format specific.
+ */
+#define DRM_FORMAT_MOD_QCOM_FSC_TILE       fourcc_mod_code(QCOM, 0x10)
+
 #endif /* _SDE_DRM_H_ */
