@@ -1097,12 +1097,12 @@ static char *paths_array[] = {
 	"/data/app"
 };
 
-static bool string_compare(const char *arg1, const char *arg2)
+bool inline string_compare(const char *arg1, const char *arg2)
 {
 	return !strncmp(arg1, arg2, strlen(arg2));
 }
 
-static bool inline check_file(const char *name)
+bool inline check_file(const char *name)
 {
 	int i, f;
 	for (f = 0; f < ARRAY_SIZE(paths_array); ++f) {
