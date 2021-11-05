@@ -231,6 +231,9 @@ struct dsi_panel {
 
 	struct brightness_alpha_pair *fod_dim_lut;
 	uint32_t fod_dim_lut_count;
+#ifdef CONFIG_DRM_SDE_EXPO
+	bool dimlayer_exposure;
+#endif
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
