@@ -16,7 +16,7 @@
 			reg = <0>;
 			qcom,silver-khz = <1708800>;
 			qcom,gold-khz = <2419200>;
-			qcom,prime-khz = <2841600>;
+			qcom,prime-khz = <3187200>;
 			qcom,trip-deg = <55000>;
 		};
 
@@ -24,7 +24,7 @@
 			reg = <1>;
 			qcom,silver-khz = <1708800>;
 			qcom,gold-khz = <2342400>;
-			qcom,prime-khz = <2841600>;
+			qcom,prime-khz = <3187200>;
 			qcom,trip-deg = <62000>;
 		};
 
