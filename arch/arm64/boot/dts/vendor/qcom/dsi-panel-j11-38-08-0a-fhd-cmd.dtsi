@@ -35,6 +35,7 @@
 		qcom,mdss-dsi-tx-eot-append;
 		qcom,mdss-dsi-dma-schedule-line = <5>;
 		qcom,mdss-dsi-lp11-init;
+		qcom,mdss-dsi-init-delay-us = <5000>;
 
 		qcom,mdss-dsi-panel-hdr-enabled;
 		qcom,mdss-dsi-panel-hdr-color-primaries = <14500 15500 32000
