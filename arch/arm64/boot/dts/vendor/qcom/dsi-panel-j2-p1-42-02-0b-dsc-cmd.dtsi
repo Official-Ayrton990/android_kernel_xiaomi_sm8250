@@ -308,10 +308,7 @@
 				39 01 00 00 00 00 03 51 0F FF];
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
 				/* Dimming Off */
-				15 01 00 00 00 00 02 53 20
-				/* Normal Mode */
-				/* parameter will be updated base on last brightness */
-				39 01 00 00 00 00 03 51 07 FF];
+				15 01 00 00 10 00 02 53 20];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_lp_mode";
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_lp_mode";
 
@@ -389,10 +386,7 @@
 				39 01 00 00 00 00 03 51 0F FF];
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
 				/* Dimming Off */
-				15 01 00 00 00 00 02 53 20
-				/* Normal Mode */
-				/* parameter will be updated base on last brightness */
-				39 01 00 00 00 00 03 51 07 FF];
+				15 01 00 00 10 00 02 53 20];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_lp_mode";
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_lp_mode";
 
