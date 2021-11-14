@@ -189,6 +189,10 @@
 			mi,mdss-dsi-doze-lbm-command-state = "dsi_lp_mode";
 
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command = [
+				/* elvss dimming off */
+				39 00 00 00 01 00 02 B0 07
+				39 00 00 00 01 00 02 B7 51
+				39 01 00 00 01 00 03 F0 A5 A5
 				/* HBM on */
 				39 01 00 00 01 00 02 53 E0];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_hs_mode";
