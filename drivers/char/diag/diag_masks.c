@@ -1480,7 +1480,7 @@ static int diag_cmd_update_event_mask(unsigned char *src_buf, int src_len,
 	struct diag_event_mask_config_t rsp;
 	struct diag_event_mask_config_t *req;
 	struct diag_event_mask_config_sub_t rsp_sub;
-	struct diag_event_mask_config_sub_t *req_sub;
+	struct diag_event_mask_config_sub_t *req_sub = NULL;
 	struct diag_mask_info *mask_info = NULL;
 	struct diag_md_session_t *info = NULL;
 	struct diag_multisim_masks *ms_ptr = NULL;

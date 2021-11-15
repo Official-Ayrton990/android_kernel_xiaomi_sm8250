@@ -4514,7 +4514,7 @@ tracing_trace_options_write(struct file *filp, const char __user *ubuf,
 {
 	struct seq_file *m = filp->private_data;
 	struct trace_array *tr = m->private;
-	char buf[64];
+	char buf[64] = "0";
 	int ret;
 
 	if (cnt >= sizeof(buf))
@@ -5479,7 +5479,7 @@ tracing_set_trace_write(struct file *filp, const char __user *ubuf,
 			size_t cnt, loff_t *ppos)
 {
 	struct trace_array *tr = filp->private_data;
-	char buf[MAX_TRACER_SIZE+1];
+	char buf[MAX_TRACER_SIZE+1] = "0";
 	int i;
 	size_t ret;
 	int err;
@@ -6314,7 +6314,7 @@ static ssize_t tracing_clock_write(struct file *filp, const char __user *ubuf,
 {
 	struct seq_file *m = filp->private_data;
 	struct trace_array *tr = m->private;
-	char buf[64];
+	char buf[64] = "0";
 	const char *clockstr;
 	int ret;
 

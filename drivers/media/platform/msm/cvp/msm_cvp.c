@@ -768,7 +768,7 @@ static int msm_cvp_map_buf(struct msm_cvp_inst *inst,
 	int i, rc = 0;
 	u32 version;
 	unsigned int iova;
-	u64 ktid;
+	u64 ktid = 0;
 	struct msm_cvp_frame *frame;
 
 	version = get_hfi_version();
