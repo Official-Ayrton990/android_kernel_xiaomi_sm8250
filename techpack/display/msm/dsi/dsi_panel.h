@@ -242,6 +242,7 @@ struct dsi_panel {
 
 	bool doze_enabled;
 	enum dsi_doze_mode_type doze_mode;
+	bool resend_ea;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
