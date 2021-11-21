@@ -5294,8 +5294,8 @@ error:
 int dsi_panel_apply_hbm_mode(struct dsi_panel *panel)
 {
 	static const enum dsi_cmd_set_type type_map[] = {
-		DSI_CMD_SET_MI_HBM_FOD_OFF,
-		DSI_CMD_SET_MI_HBM_FOD_ON
+		DSI_CMD_SET_DISP_HBM_FOD_OFF,
+		DSI_CMD_SET_DISP_HBM_FOD_ON
 	};
 
 	enum dsi_cmd_set_type type;
@@ -5305,7 +5305,7 @@ int dsi_panel_apply_hbm_mode(struct dsi_panel *panel)
 		panel->hbm_mode < ARRAY_SIZE(type_map))
 		type = type_map[panel->hbm_mode];
 	else
-		type = DSI_CMD_SET_MI_HBM_FOD_OFF;
+		type = DSI_CMD_SET_DISP_HBM_FOD_OFF;
 
 	mutex_lock(&panel->panel_lock);
 	rc = dsi_panel_tx_cmd_set(panel, type);
