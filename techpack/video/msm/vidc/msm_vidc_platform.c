@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
  */
 
 #include <linux/debugfs.h>
@@ -202,8 +202,10 @@ static struct msm_vidc_codec lagoon_codecs[] = {
 
 static struct msm_vidc_codec_capability lito_capabilities_v0[] = {
 	/* {cap_type, domains, codecs, min, max, step_size, default_value} */
-	{CAP_FRAME_WIDTH, DOMAINS_ALL, CODECS_ALL, 96, 5760, 1, 1920},
-	{CAP_FRAME_HEIGHT, DOMAINS_ALL, CODECS_ALL, 96, 5760, 1, 1080},
+	{CAP_FRAME_WIDTH, DEC, CODECS_ALL, 96, 5760, 1, 1920},
+	{CAP_FRAME_HEIGHT, DEC, CODECS_ALL, 96, 5760, 1, 1080},
+	{CAP_FRAME_WIDTH, ENC, CODECS_ALL, 96, 5760, 2, 1920},
+	{CAP_FRAME_HEIGHT, ENC, CODECS_ALL, 96, 5760, 2, 1080},
 	/*  ((5760 * 2880) / 256) */
 	{CAP_MBS_PER_FRAME, DOMAINS_ALL, CODECS_ALL, 36, 64800, 1, 8160},
 	/* ((3840x2176)/256)@60fps */
@@ -234,8 +236,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v0[] = {
 	{CAP_MAX_VIDEOCORES, DOMAINS_ALL, CODECS_ALL, 0, 1, 1, 1},
 
 	/* VP8 specific */
-	{CAP_FRAME_WIDTH, ENC|DEC, VP8, 96, 4096, 1, 1920},
-	{CAP_FRAME_HEIGHT, ENC|DEC, VP8, 96, 4096, 1, 1080},
+	{CAP_FRAME_WIDTH, DEC, VP8, 96, 4096, 1, 1920},
+	{CAP_FRAME_HEIGHT, DEC, VP8, 96, 4096, 1, 1080},
+	{CAP_FRAME_WIDTH, ENC, VP8, 96, 4096, 2, 1920},
+	{CAP_FRAME_HEIGHT, ENC, VP8, 96, 4096, 2, 1080},
 	/* (4096 * 2176) / 256 */
 	{CAP_MBS_PER_FRAME, ENC|DEC, VP8, 36, 34816, 1, 8160},
 	/* (3840 * 2176) / 256) * 30*/
@@ -255,8 +259,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v0[] = {
 	{CAP_BITRATE, DEC, MPEG2, 1, 40000000, 1, 20000000},
 
 	/* Secure usecase specific */
-	{CAP_SECURE_FRAME_WIDTH, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1920},
-	{CAP_SECURE_FRAME_HEIGHT, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_SECURE_FRAME_WIDTH, DEC, CODECS_ALL, 96, 4096, 1, 1920},
+	{CAP_SECURE_FRAME_HEIGHT, DEC, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_SECURE_FRAME_WIDTH, ENC, CODECS_ALL, 96, 4096, 2, 1920},
+	{CAP_SECURE_FRAME_HEIGHT, ENC, CODECS_ALL, 96, 4096, 2, 1080},
 	/* (4096 * 2176) / 256 */
 	{CAP_SECURE_MBS_PER_FRAME, DOMAINS_ALL, CODECS_ALL, 36, 34816, 1, 8160},
 	{CAP_SECURE_BITRATE, DOMAINS_ALL, CODECS_ALL, 1, 40000000, 1, 20000000},
@@ -270,10 +276,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v0[] = {
 	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 240, 1, 30},
 
 	/* Image specific */
-	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 1, 512},
-	{CAP_HEVC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 128, 512, 1, 512},
-	{CAP_HEIC_IMAGE_FRAME_WIDTH, ENC, HEVC, 512, 8192, 1, 8192},
-	{CAP_HEIC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 512, 8192, 1, 8192},
+	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 2, 512},
+	{CAP_HEVC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 128, 512, 2, 512},
+	{CAP_HEIC_IMAGE_FRAME_WIDTH, ENC, HEVC, 512, 8192, 2, 8192},
+	{CAP_HEIC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 512, 8192, 2, 8192},
 
 	/* Level for AVC and HEVC encoder specific.
 	   Default for levels is UNKNOWN value. But if we use unknown
@@ -298,8 +304,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v0[] = {
 
 static struct msm_vidc_codec_capability lito_capabilities_v1[] = {
 	/* {cap_type, domains, codecs, min, max, step_size, default_value} */
-	{CAP_FRAME_WIDTH, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1920},
-	{CAP_FRAME_HEIGHT, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_FRAME_WIDTH, DEC, CODECS_ALL, 96, 4096, 1, 1920},
+	{CAP_FRAME_HEIGHT, DEC, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_FRAME_WIDTH, ENC, CODECS_ALL, 96, 4096, 2, 1920},
+	{CAP_FRAME_HEIGHT, ENC, CODECS_ALL, 96, 4096, 2, 1080},
 	/*  ((4096 * 2176) / 256) */
 	{CAP_MBS_PER_FRAME, DOMAINS_ALL, CODECS_ALL, 36, 34816, 1, 8160},
 	/* UHD@30 decode + 1080@30 encode */
@@ -330,8 +338,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v1[] = {
 	{CAP_MAX_VIDEOCORES, DOMAINS_ALL, CODECS_ALL, 0, 1, 1, 1},
 
 	/* VP8 specific */
-	{CAP_FRAME_WIDTH, ENC|DEC, VP8, 96, 1920, 1, 1920},
-	{CAP_FRAME_HEIGHT, ENC|DEC, VP8, 96, 1920, 1, 1080},
+	{CAP_FRAME_WIDTH, DEC, VP8, 96, 1920, 1, 1920},
+	{CAP_FRAME_HEIGHT, DEC, VP8, 96, 1920, 1, 1080},
+	{CAP_FRAME_WIDTH, ENC, VP8, 96, 1920, 2, 1920},
+	{CAP_FRAME_HEIGHT, ENC, VP8, 96, 1920, 2, 1080},
 	/* (1920 * 1088) / 256 */
 	{CAP_MBS_PER_FRAME, ENC|DEC, VP8, 36, 8160, 1, 8160},
 	/* ((1920 * 1088) / 256) * 60*/
@@ -351,8 +361,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v1[] = {
 	{CAP_BITRATE, DEC, MPEG2, 1, 40000000, 1, 20000000},
 
 	/* Secure usecase specific */
-	{CAP_SECURE_FRAME_WIDTH, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1920},
-	{CAP_SECURE_FRAME_HEIGHT, DOMAINS_ALL, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_SECURE_FRAME_WIDTH, DEC, CODECS_ALL, 96, 4096, 1, 1920},
+	{CAP_SECURE_FRAME_HEIGHT, DEC, CODECS_ALL, 96, 4096, 1, 1080},
+	{CAP_SECURE_FRAME_WIDTH, ENC, CODECS_ALL, 96, 4096, 2, 1920},
+	{CAP_SECURE_FRAME_HEIGHT, ENC, CODECS_ALL, 96, 4096, 2, 1080},
 	/* (4096 * 2176) / 256 */
 	{CAP_SECURE_MBS_PER_FRAME, DOMAINS_ALL, CODECS_ALL, 36, 34816, 1, 8160},
 	{CAP_SECURE_BITRATE, DOMAINS_ALL, CODECS_ALL, 1, 40000000, 1, 20000000},
@@ -366,10 +378,10 @@ static struct msm_vidc_codec_capability lito_capabilities_v1[] = {
 	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 240, 1, 30},
 
 	/* Image specific */
-	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 1, 512},
-	{CAP_HEVC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 128, 512, 1, 512},
-	{CAP_HEIC_IMAGE_FRAME_WIDTH, ENC, HEVC, 512, 8192, 1, 8192},
-	{CAP_HEIC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 512, 8192, 1, 8192},
+	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 2, 512},
+	{CAP_HEVC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 128, 512, 2, 512},
+	{CAP_HEIC_IMAGE_FRAME_WIDTH, ENC, HEVC, 512, 8192, 2, 8192},
+	{CAP_HEIC_IMAGE_FRAME_HEIGHT, ENC, HEVC, 512, 8192, 2, 8192},
 
 	/* Level for AVC and HEVC encoder specific.
 	   Default for levels is UNKNOWN value. But if we use unknown
@@ -621,7 +633,7 @@ static struct msm_vidc_codec_capability bengal_capabilities_v0[] = {
 	{CAP_SECURE_BITRATE, DOMAINS_ALL, CODECS_ALL, 1, 35000000, 1, 20000000},
 
 	/* All intra encoding usecase specific */
-	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 30, 1, 30},
+	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 60, 1, 30},
 
 	/* Image specific */
 	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 1, 512},
@@ -685,7 +697,7 @@ static struct msm_vidc_codec_capability bengal_capabilities_v1[] = {
 	{CAP_SECURE_BITRATE, DOMAINS_ALL, CODECS_ALL, 1, 35000000, 1, 20000000},
 
 	/* All intra encoding usecase specific */
-	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 30, 1, 30},
+	{CAP_ALLINTRA_MAX_FPS, ENC, H264|HEVC, 1, 60, 1, 30},
 
 	/* Image specific */
 	{CAP_HEVC_IMAGE_FRAME_WIDTH, ENC, HEVC, 128, 512, 1, 512},
@@ -1867,6 +1879,7 @@ static struct msm_vidc_platform_data default_data = {
 	.vpu_ver = VPU_VERSION_IRIS2,
 	.num_vpp_pipes = 0x4,
 	.ubwc_config = 0x0,
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data lito_data = {
@@ -1887,6 +1900,7 @@ static struct msm_vidc_platform_data lito_data = {
 	.codecs_count = ARRAY_SIZE(default_codecs),
 	.codec_caps = lito_capabilities_v0,
 	.codec_caps_count = ARRAY_SIZE(lito_capabilities_v0),
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data kona_data = {
@@ -1907,6 +1921,7 @@ static struct msm_vidc_platform_data kona_data = {
 	.codecs_count = ARRAY_SIZE(default_codecs),
 	.codec_caps = kona_capabilities,
 	.codec_caps_count = ARRAY_SIZE(kona_capabilities),
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data lagoon_data = {
@@ -1927,6 +1942,7 @@ static struct msm_vidc_platform_data lagoon_data = {
 	.codecs_count = ARRAY_SIZE(lagoon_codecs),
 	.codec_caps = lagoon_capabilities_v0,
 	.codec_caps_count = ARRAY_SIZE(lagoon_capabilities_v0),
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data sm6150_data = {
@@ -1943,6 +1959,7 @@ static struct msm_vidc_platform_data sm6150_data = {
 	.vpu_ver = VPU_VERSION_AR50,
 	.num_vpp_pipes = 0x1,
 	.ubwc_config = 0x0,
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data bengal_data = {
@@ -1963,6 +1980,7 @@ static struct msm_vidc_platform_data bengal_data = {
 	.codecs_count = ARRAY_SIZE(bengal_codecs),
 	.codec_caps = bengal_capabilities_v0,
 	.codec_caps_count = ARRAY_SIZE(bengal_capabilities_v0),
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data scuba_data = {
@@ -1983,6 +2001,7 @@ static struct msm_vidc_platform_data scuba_data = {
 	.codecs_count = ARRAY_SIZE(scuba_codecs),
 	.codec_caps = scuba_capabilities,
 	.codec_caps_count = ARRAY_SIZE(scuba_capabilities),
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data sm8150_data = {
@@ -1999,6 +2018,7 @@ static struct msm_vidc_platform_data sm8150_data = {
 	.vpu_ver = VPU_VERSION_IRIS1,
 	.num_vpp_pipes = 0x2,
 	.ubwc_config = 0x0,
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data sdm845_data = {
@@ -2015,6 +2035,7 @@ static struct msm_vidc_platform_data sdm845_data = {
 	.vpu_ver = VPU_VERSION_AR50,
 	.num_vpp_pipes = 0x1,
 	.ubwc_config = 0x0,
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static struct msm_vidc_platform_data sdm670_data = {
@@ -2031,6 +2052,7 @@ static struct msm_vidc_platform_data sdm670_data = {
 	.vpu_ver = VPU_VERSION_AR50,
 	.num_vpp_pipes = 0x1,
 	.ubwc_config = 0x0,
+	.max_inst_count = MAX_SUPPORTED_INSTANCES,
 };
 
 static const struct of_device_id msm_vidc_dt_match[] = {
@@ -2040,6 +2062,10 @@ static const struct of_device_id msm_vidc_dt_match[] = {
 	},
 	{
 		.compatible = "qcom,kona-vidc",
+		.data = &kona_data,
+	},
+	{
+		.compatible = "qcom,qcs8250-vidc",
 		.data = &kona_data,
 	},
 	{
@@ -2193,6 +2219,21 @@ void *vidc_get_drv_data(struct device *dev)
 		d_vpr_h("DDR Type 0x%x hbb 0x%x\n",
 			ddr_type, driver_data->ubwc_config ?
 			driver_data->ubwc_config->highest_bank_bit : -1);
+	} else if (!strcmp(match->compatible, "qcom,qcs8250-vidc")) {
+		ddr_type = of_fdt_get_ddrtype();
+		if (ddr_type == -ENOENT)
+			d_vpr_e("Failed to get ddr type, use LPDDR5\n");
+
+		if (driver_data->ubwc_config &&
+			(ddr_type == DDR_TYPE_LPDDR4 ||
+			 ddr_type == DDR_TYPE_LPDDR4X))
+			driver_data->ubwc_config->highest_bank_bit = 0xf;
+
+		d_vpr_h("DDR Type 0x%x hbb 0x%x\n",
+			ddr_type, driver_data->ubwc_config ?
+			driver_data->ubwc_config->highest_bank_bit : -1);
+
+		driver_data->max_inst_count = MAX_SUPPORTED_INSTANCES_24;
 	} else if (!strcmp(match->compatible, "qcom,bengal-vidc")) {
 		rc = msm_vidc_read_rank(driver_data, dev);
 		if (rc) {
