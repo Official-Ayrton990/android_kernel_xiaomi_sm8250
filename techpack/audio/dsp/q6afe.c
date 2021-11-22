@@ -3125,10 +3125,6 @@ static int afe_send_port_topology_id(u16 port_id)
 			ret = afe_get_cal_topology_id(port_id, &topology_id,
 						      AFE_LSM_TOPOLOGY_CAL);
 		}
-	if (ret < 0 && q6afe_is_afe_lsm_port(port_id)) {
-		pr_debug("%s: Check for LSM topology\n", __func__);
-		ret = afe_get_cal_topology_id(port_id, &topology_id,
-					      AFE_LSM_TOPOLOGY_CAL);
 	}
 	if (ret || !topology_id) {
 		pr_debug("%s: AFE port[%d] get_cal_topology[%d] invalid!\n",

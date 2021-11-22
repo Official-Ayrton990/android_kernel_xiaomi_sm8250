@@ -3137,7 +3137,7 @@ static int swrm_runtime_resume(struct device *dev)
 exit:
 	if (!hw_core_err)
 		swrm_request_hw_vote(swrm, LPASS_HW_CORE, false);
-	if (swrm_clk_req_err || aud_core_err  || hw_core_err)
+	if (swrm_clk_req_err || hw_core_err)
 		pm_runtime_set_autosuspend_delay(&pdev->dev,
 				ERR_AUTO_SUSPEND_TIMER_VAL);
 	else
