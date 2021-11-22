@@ -552,6 +552,11 @@ static void __hdd_softap_hard_start_xmit(struct sk_buff *skb,
 		goto drop_pkt;
 	}
 
+	if (hdd_ctx->hdd_wlan_suspended) {
+		hdd_err_rl("Device is system suspended, drop pkt");
+		goto drop_pkt;
+	}
+
 	/*
 	 * If the device is operating on a DFS Channel
 	 * then check if SAP is in CAC WAIT state and
@@ -1131,6 +1136,15 @@ QDF_STATUS hdd_softap_rx_packet_cbk(void *adapter_context, qdf_nbuf_t rx_buf)
 					     STA_INFO_SOFTAP_RX_PACKET_CBK);
 		}
 
+		if (qdf_unlikely(qdf_nbuf_is_ipv4_eapol_pkt(skb) &&
+				 qdf_mem_cmp(qdf_nbuf_data(skb) +
+					     QDF_NBUF_DEST_MAC_OFFSET,
+					     adapter->mac_addr.bytes,
+					     QDF_MAC_ADDR_SIZE))) {
+			qdf_nbuf_free(skb);
+			continue;
+		}
+
 		hdd_event_eapol_log(skb, QDF_RX);
 		qdf_dp_trace_log_pkt(adapter->vdev_id,
 				     skb, QDF_RX, QDF_TRACE_DEFAULT_PDEV_ID);
@@ -1153,15 +1167,10 @@ QDF_STATUS hdd_softap_rx_packet_cbk(void *adapter_context, qdf_nbuf_t rx_buf)
 
 		qdf_status = hdd_rx_deliver_to_stack(adapter, skb);
 
-		if (QDF_IS_STATUS_SUCCESS(qdf_status)) {
+		if (QDF_IS_STATUS_SUCCESS(qdf_status))
 			++adapter->hdd_stats.tx_rx_stats.rx_delivered[cpu_index];
-		} else {
+		else
 			++adapter->hdd_stats.tx_rx_stats.rx_refused[cpu_index];
-			DPTRACE(qdf_dp_log_proto_pkt_info(NULL, NULL, 0, 0,
-						      QDF_RX,
-						      QDF_TRACE_DEFAULT_MSDU_ID,
-						      QDF_TX_RX_STATUS_DROP));
-		}
 	}
 
 	return QDF_STATUS_SUCCESS;
@@ -1398,7 +1407,7 @@ QDF_STATUS hdd_softap_stop_bss(struct hdd_adapter *adapter)
 
 	if (adapter->device_mode == QDF_SAP_MODE &&
 	    !hdd_ctx->config->disable_channel)
-		wlan_hdd_restore_channels(hdd_ctx, true);
+		wlan_hdd_restore_channels(hdd_ctx);
 
 	/*  Mark the indoor channel (passive) to enable  */
 	if (indoor_chnl_marking && adapter->device_mode == QDF_SAP_MODE) {
