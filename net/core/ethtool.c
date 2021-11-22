@@ -954,7 +954,7 @@ out:
 static noinline_for_stack int ethtool_set_rxnfc(struct net_device *dev,
 						u32 cmd, void __user *useraddr)
 {
-	struct ethtool_rxnfc info;
+	struct ethtool_rxnfc info = { 0 };
 	size_t info_size = sizeof(info);
 	int rc;
 
@@ -986,7 +986,7 @@ static noinline_for_stack int ethtool_set_rxnfc(struct net_device *dev,
 static noinline_for_stack int ethtool_get_rxnfc(struct net_device *dev,
 						u32 cmd, void __user *useraddr)
 {
-	struct ethtool_rxnfc info;
+	struct ethtool_rxnfc info = { 0 };
 	size_t info_size = sizeof(info);
 	const struct ethtool_ops *ops = dev->ethtool_ops;
 	int ret;

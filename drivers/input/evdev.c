@@ -1038,7 +1038,7 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
 	struct evdev_client *client = file->private_data;
 	struct evdev *evdev = client->evdev;
 	struct input_dev *dev = evdev->handle.dev;
-	struct input_absinfo abs;
+	struct input_absinfo abs = { 0 };
 	struct input_mask mask;
 	struct ff_effect effect;
 	int __user *ip = (int __user *)p;
