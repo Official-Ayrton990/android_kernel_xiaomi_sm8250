@@ -3305,6 +3305,10 @@ static QDF_STATUS send_scan_chan_list_cmd_tlv(wmi_unified_t wmi_handle,
 				WMI_SET_CHANNEL_FLAG(chan_info,
 						     WMI_CHAN_FLAG_PSC);
 
+			if (tchan_info->nan_disabled)
+				WMI_SET_CHANNEL_FLAG(chan_info,
+					     WMI_CHAN_FLAG_NAN_DISABLED);
+
 			/* also fill in power information */
 			WMI_SET_CHANNEL_MIN_POWER(chan_info,
 						  tchan_info->minpower);
@@ -6661,6 +6665,19 @@ static void wmi_copy_twt_resource_config(wmi_resource_config *resource_cfg,
 }
 #endif
 
+#ifdef WLAN_FEATURE_NAN
+static void wmi_set_nan_channel_support(wmi_resource_config *resource_cfg)
+{
+	WMI_RSRC_CFG_HOST_SERVICE_FLAG_NAN_CHANNEL_SUPPORT_SET(
+		resource_cfg->host_service_flags, 1);
+}
+#else
+static inline
+void wmi_set_nan_channel_support(wmi_resource_config *resource_cfg)
+{
+}
+#endif
+
 static
 void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 				target_resource_config *tgt_res_cfg)
@@ -6868,6 +6885,7 @@ void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 		resource_cfg->host_service_flags,
 		tgt_res_cfg->nan_separate_iface_support);
 
+	wmi_set_nan_channel_support(resource_cfg);
 }
 
 /* copy_hw_mode_id_in_init_cmd() - Helper routine to copy hw_mode in init cmd
@@ -13046,6 +13064,42 @@ extract_roam_11kv_stats_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 
 	return QDF_STATUS_SUCCESS;
 }
+
+/**
+ * extract_roam_msg_info_tlv() - Extract the roam message info
+ * from the WMI_ROAM_STATS_EVENTID
+ * @wmi_handle: wmi handle
+ * @evt_buf:    Pointer to the event buffer
+ * @dst:        Pointer to destination structure to fill data
+ * @idx:        TLV id
+ */
+static QDF_STATUS
+extract_roam_msg_info_tlv(wmi_unified_t wmi_handle, void *evt_buf,
+			  struct wmi_roam_msg_info *dst, uint8_t idx)
+{
+	WMI_ROAM_STATS_EVENTID_param_tlvs *param_buf;
+	wmi_roam_msg_info *src_data = NULL;
+
+	param_buf = (WMI_ROAM_STATS_EVENTID_param_tlvs *)evt_buf;
+
+	if (!param_buf || !param_buf->roam_msg_info ||
+	    !param_buf->num_roam_msg_info ||
+	    idx >= param_buf->num_roam_msg_info) {
+		wmi_debug("Empty roam_msg_info param buf");
+		return QDF_STATUS_SUCCESS;
+	}
+
+	src_data = &param_buf->roam_msg_info[idx];
+
+	dst->present = true;
+	dst->timestamp = src_data->timestamp;
+	dst->msg_id = src_data->msg_id;
+	dst->msg_param1 = src_data->msg_param1;
+	dst->msg_param2 = src_data->msg_param2;
+
+	return QDF_STATUS_SUCCESS;
+}
+
 #else
 static inline QDF_STATUS
 extract_roam_trigger_stats_tlv(wmi_unified_t wmi_handle, void *evt_buf,
@@ -13076,6 +13130,14 @@ extract_roam_scan_stats_tlv(wmi_unified_t wmi_handle, void *evt_buf,
 {
 	return QDF_STATUS_E_NOSUPPORT;
 }
+
+static inline QDF_STATUS
+extract_roam_msg_info_tlv(wmi_unified_t wmi_handle, void *evt_buf,
+			  struct wmi_roam_msg_info *dst, uint8_t idx)
+{
+	return QDF_STATUS_E_NOSUPPORT;
+}
+
 #endif
 
 #ifdef FEATURE_WLAN_TIME_SYNC_FTM
@@ -13223,6 +13285,50 @@ extract_time_sync_ftm_offset_event_tlv(wmi_unified_t wmi, void *buf,
 	return QDF_STATUS_SUCCESS;
 }
 #endif /* FEATURE_WLAN_TIME_SYNC_FTM */
+
+/**
+ * extract_install_key_comp_event_tlv() - extract install key complete event tlv
+ * @wmi_handle: wmi handle
+ * @evt_buf: pointer to event buffer
+ * @len: length of the event buffer
+ * @param: Pointer to hold install key complete event param
+ *
+ * Return: QDF_STATUS_SUCCESS for success or error code
+ */
+static QDF_STATUS
+extract_install_key_comp_event_tlv(wmi_unified_t wmi_handle,
+				   void *evt_buf, uint32_t len,
+				   struct wmi_install_key_comp_event *param)
+{
+	WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_install_key_complete_event_fixed_param *key_fp;
+
+	if (len < sizeof(*param_buf)) {
+		wmi_err("invalid event buf len %d", len);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	param_buf = (WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *)evt_buf;
+	if (!param_buf) {
+		wmi_err("received null buf from target");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	key_fp = param_buf->fixed_param;
+	if (!key_fp) {
+		wmi_err("received null event data from target");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	param->vdev_id = key_fp->vdev_id;
+	param->key_ix = key_fp->key_ix;
+	param->key_flags = key_fp->key_flags;
+	param->status = key_fp->status;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&key_fp->peer_macaddr,
+				   param->peer_macaddr);
+
+	return QDF_STATUS_SUCCESS;
+}
 
 struct wmi_ops tlv_ops =  {
 	.send_vdev_create_cmd = send_vdev_create_cmd_tlv,
@@ -13538,6 +13644,7 @@ struct wmi_ops tlv_ops =  {
 	.extract_roam_scan_stats = extract_roam_scan_stats_tlv,
 	.extract_roam_result_stats = extract_roam_result_stats_tlv,
 	.extract_roam_11kv_stats = extract_roam_11kv_stats_tlv,
+	.extract_roam_msg_info = extract_roam_msg_info_tlv,
 
 #ifdef FEATURE_WLAN_TIME_SYNC_FTM
 	.send_wlan_time_sync_ftm_trigger_cmd = send_wlan_ts_ftm_trigger_cmd_tlv,
@@ -13548,6 +13655,7 @@ struct wmi_ops tlv_ops =  {
 					extract_time_sync_ftm_offset_event_tlv,
 #endif /* FEATURE_WLAN_TIME_SYNC_FTM */
 	.send_roam_scan_ch_list_req_cmd = send_roam_scan_ch_list_req_cmd_tlv,
+	.extract_install_key_comp_event = extract_install_key_comp_event_tlv,
 };
 
 /**

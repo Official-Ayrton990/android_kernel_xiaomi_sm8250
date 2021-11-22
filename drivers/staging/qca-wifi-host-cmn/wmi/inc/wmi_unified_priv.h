@@ -2009,6 +2009,9 @@ QDF_STATUS
 			   void *evt_buf,
 			   struct wmi_neighbor_report_data *dst,
 			   uint8_t idx, uint8_t rpt_idx);
+QDF_STATUS
+(*extract_roam_msg_info)(wmi_unified_t wmi_handle, void *evt_buf,
+			struct wmi_roam_msg_info *dst, uint8_t idx);
 
 void (*wmi_pdev_id_conversion_enable)(wmi_unified_t wmi_handle,
 				      uint32_t *pdev_map,
@@ -2220,6 +2223,11 @@ QDF_STATUS (*extract_time_sync_ftm_offset_event)(
 #endif /* FEATURE_WLAN_TIME_SYNC_FTM */
 QDF_STATUS (*send_roam_scan_ch_list_req_cmd)(wmi_unified_t wmi_hdl,
 					     uint32_t vdev_id);
+
+QDF_STATUS
+(*extract_install_key_comp_event)(wmi_unified_t wmi_handle,
+				  void *evt_buf, uint32_t len,
+				  struct wmi_install_key_comp_event *param);
 };
 
 /* Forward declartion for psoc*/

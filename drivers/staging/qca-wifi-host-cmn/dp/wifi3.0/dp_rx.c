@@ -1919,7 +1919,7 @@ dp_rx_ring_record_entry(struct dp_soc *soc, uint8_t ring_num,
 	struct hal_buf_info hbi;
 	uint32_t idx;
 
-	if (qdf_unlikely(!&soc->rx_ring_history[ring_num]))
+	if (qdf_unlikely(!soc->rx_ring_history[ring_num]))
 		return;
 
 	hal_rx_reo_buf_paddr_get(ring_desc, &hbi);
@@ -1942,6 +1942,45 @@ dp_rx_ring_record_entry(struct dp_soc *soc, uint8_t ring_num,
 			hal_ring_desc_t ring_desc)
 {
 }
+#endif
+
+#ifdef DISABLE_EAPOL_INTRABSS_FWD
+/*
+ * dp_rx_intrabss_fwd_wrapper() - Wrapper API for intrabss fwd. For EAPOL
+ *  pkt with DA not equal to vdev mac addr, fwd is not allowed.
+ * @soc: core txrx main context
+ * @ta_peer: source peer entry
+ * @rx_tlv_hdr: start address of rx tlvs
+ * @nbuf: nbuf that has to be intrabss forwarded
+ * @msdu_metadata: msdu metadata
+ *
+ * Return: true if it is forwarded else false
+ */
+static inline
+bool dp_rx_intrabss_fwd_wrapper(struct dp_soc *soc, struct dp_peer *ta_peer,
+				uint8_t *rx_tlv_hdr, qdf_nbuf_t nbuf,
+				struct hal_rx_msdu_metadata msdu_metadata)
+{
+	if (qdf_unlikely(qdf_nbuf_is_ipv4_eapol_pkt(nbuf) &&
+			 qdf_mem_cmp(qdf_nbuf_data(nbuf) +
+				     QDF_NBUF_DEST_MAC_OFFSET,
+				     ta_peer->vdev->mac_addr.raw,
+				     QDF_MAC_ADDR_SIZE))) {
+		qdf_nbuf_free(nbuf);
+		DP_STATS_INC(soc, rx.err.intrabss_eapol_drop, 1);
+		return true;
+	}
+
+	return dp_rx_intrabss_fwd(soc, ta_peer, rx_tlv_hdr, nbuf,
+				  msdu_metadata);
+
+}
+#define DP_RX_INTRABSS_FWD(soc, peer, rx_tlv_hdr, nbuf, msdu_metadata) \
+		dp_rx_intrabss_fwd_wrapper(soc, peer, rx_tlv_hdr, nbuf, \
+					   msdu_metadata)
+#else
+#define DP_RX_INTRABSS_FWD(soc, peer, rx_tlv_hdr, nbuf, msdu_metadata) \
+		dp_rx_intrabss_fwd(soc, peer, rx_tlv_hdr, nbuf, msdu_metadata)
 #endif
 
 /**
@@ -2225,6 +2264,9 @@ more_data:
 
 		qdf_nbuf_set_tid_val(rx_desc->nbuf,
 				     HAL_RX_REO_QUEUE_NUMBER_GET(ring_desc));
+		qdf_nbuf_set_rx_reo_dest_ind(
+				rx_desc->nbuf,
+				HAL_RX_REO_MSDU_REO_DST_IND_GET(ring_desc));
 
 		QDF_NBUF_CB_RX_PKT_LEN(rx_desc->nbuf) = msdu_desc_info.msdu_len;
 
@@ -2357,17 +2399,25 @@ done:
 		 * Check if DMA completed -- msdu_done is the last bit
 		 * to be written
 		 */
-		if (qdf_unlikely(!qdf_nbuf_is_rx_chfrag_cont(nbuf) &&
-				 !hal_rx_attn_msdu_done_get(rx_tlv_hdr))) {
-			dp_err("MSDU DONE failure");
-			DP_STATS_INC(soc, rx.err.msdu_done_fail, 1);
-			hal_rx_dump_pkt_tlvs(hal_soc, rx_tlv_hdr,
-					     QDF_TRACE_LEVEL_INFO);
-			tid_stats->fail_cnt[MSDU_DONE_FAILURE]++;
-			qdf_nbuf_free(nbuf);
-			qdf_assert(0);
-			nbuf = next;
-			continue;
+		if (qdf_likely(!qdf_nbuf_is_rx_chfrag_cont(nbuf))) {
+			if (qdf_unlikely(!hal_rx_attn_msdu_done_get(
+								 rx_tlv_hdr))) {
+				dp_err_rl("MSDU DONE failure");
+				DP_STATS_INC(soc, rx.err.msdu_done_fail, 1);
+				hal_rx_dump_pkt_tlvs(hal_soc, rx_tlv_hdr,
+						     QDF_TRACE_LEVEL_INFO);
+				tid_stats->fail_cnt[MSDU_DONE_FAILURE]++;
+				qdf_assert(0);
+				qdf_nbuf_free(nbuf);
+				nbuf = next;
+				continue;
+			} else if (qdf_unlikely(hal_rx_attn_msdu_len_err_get(
+								 rx_tlv_hdr))) {
+				DP_STATS_INC(soc, rx.err.msdu_len_err, 1);
+				qdf_nbuf_free(nbuf);
+				nbuf = next;
+				continue;
+			}
 		}
 
 		DP_HIST_PACKET_COUNT_INC(vdev->pdev->pdev_id);
@@ -2477,6 +2527,23 @@ done:
 			continue;
 		}
 
+		/*
+		 * Drop non-EAPOL frames from unauthorized peer.
+		 */
+		if (qdf_likely(peer) && qdf_unlikely(!peer->authorize)) {
+			bool is_eapol = qdf_nbuf_is_ipv4_eapol_pkt(nbuf) ||
+					qdf_nbuf_is_ipv4_wapi_pkt(nbuf);
+
+			if (!is_eapol) {
+				DP_STATS_INC(soc,
+					     rx.err.peer_unauth_rx_pkt_drop,
+					     1);
+				qdf_nbuf_free(nbuf);
+				nbuf = next;
+				continue;
+			}
+		}
+
 		if (soc->process_rx_status)
 			dp_rx_cksum_offload(vdev->pdev, nbuf, rx_tlv_hdr);
 
@@ -2540,7 +2607,7 @@ done:
 
 			/* Intrabss-fwd */
 			if (dp_rx_check_ap_bridge(vdev))
-				if (dp_rx_intrabss_fwd(soc,
+				if (DP_RX_INTRABSS_FWD(soc,
 							peer,
 							rx_tlv_hdr,
 							nbuf,
