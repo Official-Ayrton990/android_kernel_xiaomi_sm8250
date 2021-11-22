@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2015-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
  */
 
 #define pr_fmt(fmt)	"[drm:%s:%d] " fmt, __func__, __LINE__
@@ -383,6 +383,14 @@ enum {
 };
 
 enum {
+	RC_OFF,
+	RC_LEN,
+	RC_VERSION,
+	RC_MEM_TOTAL_SIZE,
+	RC_PROP_MAX,
+};
+
+enum {
 	MIXER_OFF,
 	MIXER_LEN,
 	MIXER_PAIR_MASK,
@@ -689,6 +697,13 @@ static struct sde_prop_type ad_prop[] = {
 static struct sde_prop_type ltm_prop[] = {
 	{LTM_OFF, "qcom,sde-dspp-ltm-off", false, PROP_TYPE_U32_ARRAY},
 	{LTM_VERSION, "qcom,sde-dspp-ltm-version", false, PROP_TYPE_U32},
+};
+
+static struct sde_prop_type rc_prop[] = {
+	{RC_OFF, "qcom,sde-dspp-rc-off", false, PROP_TYPE_U32_ARRAY},
+	{RC_LEN, "qcom,sde-dspp-rc-size", false, PROP_TYPE_U32},
+	{RC_VERSION, "qcom,sde-dspp-rc-version", false, PROP_TYPE_U32},
+	{RC_MEM_TOTAL_SIZE, "qcom,sde-dspp-rc-mem-size", false, PROP_TYPE_U32},
 };
 
 static struct sde_prop_type ds_top_prop[] = {
@@ -2358,14 +2373,15 @@ static int sde_dspp_parse_dt(struct device_node *np,
 {
 	int rc, prop_count[DSPP_PROP_MAX], i;
 	int ad_prop_count[AD_PROP_MAX];
-	int ltm_prop_count[LTM_PROP_MAX];
+	int ltm_prop_count[LTM_PROP_MAX], rc_prop_count[RC_PROP_MAX];
 	bool prop_exists[DSPP_PROP_MAX], ad_prop_exists[AD_PROP_MAX];
-	bool ltm_prop_exists[LTM_PROP_MAX];
+	bool ltm_prop_exists[LTM_PROP_MAX], rc_prop_exists[RC_PROP_MAX];
 	bool blocks_prop_exists[DSPP_BLOCKS_PROP_MAX];
 	struct sde_prop_value *ad_prop_value = NULL, *ltm_prop_value = NULL;
+	struct sde_prop_value *rc_prop_value = NULL;
 	int blocks_prop_count[DSPP_BLOCKS_PROP_MAX];
 	struct sde_prop_value *prop_value = NULL, *blocks_prop_value = NULL;
-	u32 off_count, ad_off_count, ltm_off_count;
+	u32 off_count, ad_off_count, ltm_off_count, rc_off_count;
 	struct sde_dspp_cfg *dspp;
 	struct sde_dspp_sub_blks *sblk;
 	struct device_node *snp = NULL;
@@ -2424,6 +2440,22 @@ static int sde_dspp_parse_dt(struct device_node *np,
 		goto end;
 	rc = _read_dt_entry(np, ltm_prop, ARRAY_SIZE(ltm_prop), ltm_prop_count,
 		ltm_prop_exists, ltm_prop_value);
+	if (rc)
+		goto end;
+
+	/* Parse RC dtsi entries */
+	rc_prop_value = kcalloc(RC_PROP_MAX,
+			sizeof(struct sde_prop_value), GFP_KERNEL);
+	if (!rc_prop_value) {
+		rc = -ENOMEM;
+		goto end;
+	}
+	rc = _validate_dt_entry(np, rc_prop, ARRAY_SIZE(rc_prop),
+		rc_prop_count, &rc_off_count);
+	if (rc)
+		goto end;
+	rc = _read_dt_entry(np, rc_prop, ARRAY_SIZE(rc_prop), rc_prop_count,
+		rc_prop_exists, rc_prop_value);
 	if (rc)
 		goto end;
 
@@ -2490,6 +2522,22 @@ static int sde_dspp_parse_dt(struct device_node *np,
 			set_bit(SDE_DSPP_LTM, &dspp->features);
 		}
 
+		sblk->rc.id = SDE_DSPP_RC;
+		sde_cfg->rc_count = rc_off_count;
+		if (rc_prop_value && (i < rc_off_count) &&
+		    rc_prop_exists[RC_OFF]) {
+			sblk->rc.base = PROP_VALUE_ACCESS(rc_prop_value,
+					RC_OFF, i);
+			sblk->rc.len = PROP_VALUE_ACCESS(rc_prop_value,
+					RC_LEN, 0);
+			sblk->rc.version = PROP_VALUE_ACCESS(rc_prop_value,
+					RC_VERSION, 0);
+			sblk->rc.mem_total_size = PROP_VALUE_ACCESS(
+					rc_prop_value, RC_MEM_TOTAL_SIZE,
+					0);
+			sblk->rc.idx = i;
+			set_bit(SDE_DSPP_RC, &dspp->features);
+		}
 	}
 
 end:
@@ -2497,6 +2545,8 @@ end:
 	kfree(ad_prop_value);
 	kfree(ltm_prop_value);
 	kfree(blocks_prop_value);
+	kfree(rc_prop_value);
+
 	return rc;
 }
 
@@ -3210,11 +3260,22 @@ static int _sde_parse_prop_check(struct sde_mdss_cfg *cfg,
 			of_fdt_get_ddrtype() == LP_DDR4_TYPE)
 		cfg->mdp[0].highest_bank_bit = 0x02;
 
+	cfg->mdp[0].ubwc_static = PROP_VALUE_ACCESS(prop_value, UBWC_STATIC, 0);
+	if (!prop_exists[UBWC_STATIC])
+		cfg->mdp[0].ubwc_static = DEFAULT_SDE_UBWC_STATIC;
+
 	if (IS_SDE_MAJOR_MINOR_SAME(cfg->hwversion, SDE_HW_VER_630)) {
 		ret = _sde_get_ubwc_hbb(prop_exists, prop_value);
 
-		if (ret >= 0)
+		if (ret >= 0) {
+			u32 ubwc_static, hbb;
+
 			cfg->mdp[0].highest_bank_bit = ret;
+			ubwc_static = cfg->mdp[0].ubwc_static;
+			hbb = ((cfg->mdp[0].highest_bank_bit & 0x7) << 4);
+			ubwc_static = ((ubwc_static & 0xff8f) | hbb);
+			cfg->mdp[0].ubwc_static = ubwc_static;
+		}
 	}
 
 	cfg->macrotile_mode = PROP_VALUE_ACCESS(prop_value, MACROTILE_MODE, 0);
@@ -3223,10 +3284,6 @@ static int _sde_parse_prop_check(struct sde_mdss_cfg *cfg,
 
 	cfg->ubwc_bw_calc_version =
 		PROP_VALUE_ACCESS(prop_value, UBWC_BW_CALC_VERSION, 0);
-
-	cfg->mdp[0].ubwc_static = PROP_VALUE_ACCESS(prop_value, UBWC_STATIC, 0);
-	if (!prop_exists[UBWC_STATIC])
-		cfg->mdp[0].ubwc_static = DEFAULT_SDE_UBWC_STATIC;
 
 	cfg->mdp[0].ubwc_swizzle = PROP_VALUE_ACCESS(prop_value,
 			UBWC_SWIZZLE, 0);
@@ -4364,6 +4421,23 @@ static int _sde_hardware_pre_caps(struct sde_mdss_cfg *sde_cfg, uint32_t hw_rev)
 		sde_cfg->allow_gdsc_toggle = true;
 		clear_bit(MDSS_INTR_AD4_0_INTR, sde_cfg->mdss_irqs);
 		clear_bit(MDSS_INTR_AD4_1_INTR, sde_cfg->mdss_irqs);
+	} else if (IS_KHAJE_TARGET(hw_rev)) {
+		sde_cfg->has_cwb_support = false;
+		sde_cfg->has_qsync = true;
+		sde_cfg->perf.min_prefill_lines = 24;
+		sde_cfg->vbif_qos_nlvl = 8;
+		sde_cfg->ts_prefill_rev = 2;
+		sde_cfg->ctl_rev = SDE_CTL_CFG_VERSION_1_0_0;
+		sde_cfg->delay_prg_fetch_start = true;
+		sde_cfg->sui_ns_allowed = true;
+		sde_cfg->sui_misr_supported = true;
+		sde_cfg->sui_block_xin_mask = 0xC01;
+		sde_cfg->has_hdr = false;
+		sde_cfg->has_sui_blendstage = true;
+		sde_cfg->allow_gdsc_toggle = true;
+		clear_bit(MDSS_INTR_AD4_0_INTR, sde_cfg->mdss_irqs);
+		clear_bit(MDSS_INTR_AD4_1_INTR, sde_cfg->mdss_irqs);
+		sde_cfg->rc_lm_flush_override = true;
 	} else {
 		SDE_ERROR("unsupported chipset id:%X\n", hw_rev);
 		sde_cfg->perf.min_prefill_lines = 0xffff;
