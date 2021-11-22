@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2021 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -491,6 +491,59 @@ typedef  enum  {
     WMI_SERVICE_TWT_ALL_DIALOG_ID = 271, /* Indicates that FW supports TWT ALL dialog ID(255) for all commands and events, except for TWT add dialog and TWT get stats */
     WMI_SERVICE_SPLIT_AST_SUPPORT = 272, /* Indicate that FW supports SPLIT AST table */
     WMI_SERVICE_SPECTRAL_SCAN_DISABLED = 273, /* Indicates that SKU does not support normal spectral scan capabilities */
+    /* WMI_SERVICE_UNIFIED_LL_GET_STA_OVER_QMI_SUPPORT:
+     * This service flag indicates that FW can support receiving a
+     * WMI_REQUEST_UNIFIED_LL_GET_STA_CMDID command request from the host
+     * over the QMI communication link.
+     * If the target receives WMI_REQUEST_UNIFIED_LL_GET_STA_CMDID over QMI,
+     * any of the event messages sent in response (WMI_UPDATE_STATS_EVENTID,
+     * WMI_IFACE_LINK_STATS_EVENTID, WMI_PEER_LINK_STATS_EVENTID,
+     * WMI_RADIO_LINK_STATS_EVENTID, WMI_RADIO_TX_POWER_LEVEL_STATS_EVENTID)
+     * will be delivered over the QMI communication link.
+     * Any such messages delivered over QMI will use the same message format
+     * as if they had been delivered over the usual WMI communication link.
+     * This service flag indicates QMI is supported for these stats messages
+     * in addition to WMI, not instead of WMI - if the host sends the
+     * WMI_REQUEST_UNIFIED_LL_GET_STA_CMDID over the usual WMI communication
+     * link, the stats event messages sent by the target in response will
+     * be sent on the WMI communication link.
+     */
+    WMI_SERVICE_UNIFIED_LL_GET_STA_OVER_QMI_SUPPORT = 274,
+    /*
+     * Indicates FW supports EAPOL offload for SAE roaming if PMK of
+     * candidate AP is present in FW.
+     */
+    WMI_SERVICE_SAE_EAPOL_OFFLOAD_SUPPORT = 275,
+    /*
+     * Indicates FW supports sending events to host during Thermal Throttling
+     * every duty cycle on detecting temperature change when dc_per_event is 0.
+     */
+    WMI_SERVICE_THERM_THROT_TEMP_CHANGE_DYNAMIC_EVENT_SUPPORT = 276,
+    WMI_SERVICE_WAPI_CONCURRENCY_SUPPORTED = 277, /* Indicates FW support for WAPI concurrency */
+    WMI_SERVICE_SAP_CONNECTED_D3WOW = 278,  /* Indicates FW support for D3WoW for SAP connected case */
+    WMI_SERVICE_GO_CONNECTED_D3WOW = 279,   /* Indicates FW support for D3WoW for P2P GO connected case */
+    WMI_SERVICE_EXT_TPC_REG_SUPPORT = 280, /* Support for new 6G TPC power limits */
+    WMI_SERVICE_REG_CC_EXT_EVENT_SUPPORT = 281, /* Support for Extended REG_CC Event with additional params for 6G */
+    WMI_SERVICE_NDI_TXBF_SUPPORT = 282, /* Indicates FW support for Tx beamforming with NDI VDEV */
+    WMI_SERVICE_ENABLE_LOWER_6G_EDGE_CH_SUPP = 283, /* Indicates FW support for enabling lower 6 GHz edge channel 5935 */
+    WMI_SERVICE_DISABLE_UPPER_6G_EDGE_CH_SUPP = 284, /* Indicates FW support for disabling upper 6 GHz edge channel 7115 */
+    WMI_SERVICE_FORCED_DTIM_SUPP = 285, /* Indicates FW supports forced DTIM configuration */
+    WMI_SERVICE_DCS_AWGN_INT_SUPPORT = 286, /* Indicates FW supports AWGN Int */
+    WMI_SERVICE_IGMP_OFFLOAD_SUPPORT = 287, /* FW supports igmp offload during APPS suspend */
+    WMI_SERVICE_11AX_TDLS_SUPPORT = 288, /* Indicates FW supports 11ax TDLS. Host should enable 11ax on TDLS only when FW indicates the support. */
+    WMI_SERVICE_11BE = 289, /* Indicates FW supports 11be */
+    WMI_SERVICE_BIG_DATA_SUPPORT = 290, /* Indicates FW supports Big Data feature */
+    WMI_SERVICE_EAPOL_OVER_NWIFI = 291, /* Indicates FW supports sending eapol frames in native wifi mode even when the vdev is brought up in raw ethernet mode */
+    WMI_SERVICE_AMPDU_TX_BUF_SIZE_256_SUPPORT = 292, /* Indicates FW supports MAX 256 MPDUs in A-MPDU instead of 64 */
+    WMI_SERVICE_HALPHY_CAL_STATUS = 293, /* Indicates FW supports sending online HALPHY Calibration status to host */
+    WMI_SERVICE_HALPHY_CAL_ENABLE_DISABLE_SUPPORT = 294, /* Indicates Calibraton enable/disable support by FW */
+    WMI_SERVICE_AFC_SUPPORT = 295, /* Indicates FW supports AFC_CMD,AFC_EVENT */
+    WMI_SERVICE_RTT_AP_INITIATOR_STAGGERED_MODE_SUPPORTED = 296, /* FW supports RTT in AP Initiator for Staggered beacon mode */
+    WMI_SERVICE_RTT_AP_INITIATOR_BURSTED_MODE_SUPPORTED = 297, /* FW supports RTT in AP Initiator for BURSTED beacon mode */
+    WMI_SERVICE_P2P_P2P_CONCURRENCY_SUPPORT = 298, /* Indicates FW supports P2P + P2P conncurency both in SCC, MCC, SBS and DBS */
+    WMI_SERVICE_MGMT_RX_REO_SUPPORTED = 299, /* Indicates FW supports Management RX Reorder */
+    WMI_SERVICE_EMA_MULTIPLE_GROUP_SUPPORT = 300, /* FW support for EMA multi group support */
+    WMI_SERVICE_LARGE_BEACON_SUPPORT = 301, /* FW support for Large beacon support greater then 1.5K */
 
 
     WMI_MAX_EXT2_SERVICE
@@ -588,7 +641,7 @@ typedef  enum  {
         if (svc_id < WMI_MAX_SERVICE) { \
             WMI_SERVICE_DISABLE(pwmi_svc_bmap, svc_id); \
         } else if (svc_id < WMI_MAX_EXT_SERVICE) { \
-            WMI_SERVICE_DISABLE(pwmi_svc_bmap, pwmi_svc_ext_bmap, svc_id); \
+            WMI_SERVICE_EXT_DISABLE(pwmi_svc_bmap, pwmi_svc_ext_bmap, svc_id); \
         } else { \
             int word = ((svc_id) - WMI_MAX_EXT_SERVICE) / 32; \
             int bit = (svc_id) & 0x1f; /* svc_id mod 32 */ \
