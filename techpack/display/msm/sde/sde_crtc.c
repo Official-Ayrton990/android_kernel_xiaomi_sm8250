@@ -4431,7 +4431,6 @@ sec_err:
 	return -EINVAL;
 }
 
-extern bool is_dimlayer_hbm_enabled;
 static struct sde_hw_dim_layer* sde_crtc_setup_fod_dim_layer(
 		struct sde_crtc_state *cstate,
 		uint32_t stage)
@@ -4489,43 +4488,27 @@ error:
 static void sde_crtc_fod_atomic_check(struct sde_crtc_state *cstate,
 		struct plane_state *pstates, int cnt)
 {
-	int fod_layer_index = -1;
+	uint32_t dim_layer_stage;
 	int plane_idx;
-	int zpos = INT_MAX;
 
-	for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
+	for (plane_idx = 0; plane_idx < cnt; plane_idx++)
 		if (sde_plane_is_fod_layer(pstates[plane_idx].drm_pstate))
-		fod_layer_index = plane_idx;
+			break;
+
+	if (plane_idx == cnt) {
+		cstate->fod_dim_layer = NULL;
+	} else {
+		dim_layer_stage = pstates[plane_idx].stage;
+		cstate->fod_dim_layer = sde_crtc_setup_fod_dim_layer(cstate,
+				dim_layer_stage);
 	}
 
-	if (is_dimlayer_hbm_enabled) {
-		if (fod_layer_index >= 0) {
-			if (zpos > pstates[fod_layer_index].stage)
-				zpos = pstates[fod_layer_index].stage;
-			pstates[fod_layer_index].stage++;
-		}
+	if (!cstate->fod_dim_layer)
+		return;
 
-		for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
-			if (plane_idx == fod_layer_index)
-				continue;
-			if (pstates[plane_idx].stage >= zpos)
-				pstates[plane_idx].stage++;
-		}
-		if (zpos == INT_MAX) {
-			zpos = 0;
-			for (plane_idx = 0; plane_idx < cnt; plane_idx++) {
-				if (pstates[plane_idx].stage > zpos)
-					zpos = pstates[plane_idx].stage;
-			}
-			zpos++;
-		}
-
-		cstate->fod_dim_layer =
-		    sde_crtc_setup_fod_dim_layer(cstate, zpos);
-		if (!cstate->fod_dim_layer)
-			return;
-	} else
-		cstate->fod_dim_layer = NULL;
+	for (plane_idx = 0; plane_idx < cnt; plane_idx++)
+		if (pstates[plane_idx].stage >= dim_layer_stage)
+			pstates[plane_idx].stage++;
 }
 
 static int _sde_crtc_check_secure_conn(struct drm_crtc *crtc,
