@@ -1499,7 +1499,7 @@ static DEVICE_ATTR_RW(idle_timer);
 static DEVICE_ATTR_RO(gpubusy);
 static DEVICE_ATTR_RO(gpu_available_frequencies);
 static DEVICE_ATTR_RO(gpu_clock_stats);
-static DEVICE_ATTR_RO(max_pwrlevel);
+static DEVICE_ATTR_RW(max_pwrlevel);
 static DEVICE_ATTR_RW(min_pwrlevel);
 static DEVICE_ATTR_RW(thermal_pwrlevel);
 static DEVICE_ATTR_RO(num_pwrlevels);

@@ -381,7 +381,7 @@ EXPORT_SYMBOL(kstrtobool);
 int kstrtobool_from_user(const char __user *s, size_t count, bool *res)
 {
 	/* Longest string needed to differentiate, newline, terminator */
-	char buf[4];
+	char buf[4] = "0";
 
 	count = min(count, sizeof(buf) - 1);
 	if (copy_from_user(buf, s, count))
@@ -395,7 +395,7 @@ EXPORT_SYMBOL(kstrtobool_from_user);
 int f(const char __user *s, size_t count, unsigned int base, type *res)	\
 {									\
 	/* sign, base 2 representation, newline, terminator */		\
-	char buf[1 + sizeof(type) * 8 + 1 + 1];				\
+	char buf[1 + sizeof(type) * 8 + 1 + 1] = "0";				\
 									\
 	count = min(count, sizeof(buf) - 1);				\
 	if (copy_from_user(buf, s, count))				\

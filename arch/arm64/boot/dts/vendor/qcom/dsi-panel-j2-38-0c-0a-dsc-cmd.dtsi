@@ -489,9 +489,7 @@
 				39 00 00 00 00 00 02 B5 13
 				39 01 00 00 00 00 03 F0 A5 A5
 				/* HBM Mode Off Normal transition(60Hz) */
-				15 01 00 00 00 00 02 53 20
-				/* Write Display Brightness */
-				39 01 00 00 00 00 03 51 00 00];
+				15 01 00 00 10 00 02 53 20];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_hs_mode";
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_hs_mode";
 
@@ -628,9 +626,7 @@
 				39 00 00 00 00 00 02 B5 13
 				39 01 00 00 00 00 03 F0 A5 A5
 				/* HBM Mode Off Normal transition(90Hz) */
-				15 01 00 00 00 00 02 53 30
-				/* Write Display Brightness */
-				39 01 00 00 00 00 03 51 00 00];
+				15 01 00 00 10 00 02 53 30];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_hs_mode";
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_hs_mode";
 

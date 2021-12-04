@@ -211,7 +211,7 @@ error1:
 static int max31760_fan_pwr_enable_vregs(struct device *dev,
 				 struct max31760 *pdata)
 {
-	int ret;
+	int ret = 0;
 	struct regulator *reg;
 
 	/* Fan Control LDO L10A */
@@ -248,7 +248,7 @@ static const struct regmap_config max31760_regmap = {
 static int max31760_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
 {
-	int ret;
+	int ret = 0;
 	struct max31760 *pdata;
 
 	if (!client || !client->dev.of_node) {

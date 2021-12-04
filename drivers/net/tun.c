@@ -2922,7 +2922,7 @@ static long __tun_chr_ioctl(struct file *file, unsigned int cmd,
 	struct net *net = sock_net(&tfile->sk);
 	struct tun_struct *tun;
 	void __user* argp = (void __user*)arg;
-	struct ifreq ifr;
+	struct ifreq ifr = { 0 };
 	kuid_t owner;
 	kgid_t group;
 	int sndbuf;
