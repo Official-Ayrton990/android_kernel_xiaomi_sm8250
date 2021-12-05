@@ -208,20 +208,17 @@
 
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command = [
 				39 00 00 00 00 00 03 F0 5A 5A
-				/* elvss dimming off */
-				39 00 00 00 00 00 02 B0 07
-				39 00 00 00 00 00 02 B7 51
-				39 01 00 00 00 00 03 F0 A5 A5
-				/* HBM on */
-				39 01 00 00 01 00 02 53 E0];
+				39 00 00 00 00 00 02 B0 03
+				39 00 00 00 00 00 02 B7 C9
+				39 00 00 00 00 00 03 F0 A5 A5
+				39 01 00 00 10 00 02 53 E0];
 			qcom,mdss-dsi-dispparam-hbm-fod-on-command-state = "dsi_hs_mode";
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
-				15 01 00 00 10 00 02 53 20
 				39 00 00 00 00 00 03 F0 5A 5A
-				/* elvss dimming on */
-				39 00 00 00 00 00 02 B0 07
-				39 00 00 00 00 00 02 B7 D1
-				39 01 00 00 00 00 03 F0 A5 A5];
+				39 00 00 00 00 00 02 B0 03
+				39 00 00 00 00 00 02 B7 C9
+				39 00 00 00 00 00 03 F0 A5 A5
+				39 01 00 00 10 00 02 53 20];
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command-state = "dsi_hs_mode";
 
 			mi,mdss-dsi-hbm-off-command = [
