@@ -1231,16 +1231,6 @@ config SCHED_TUNE
 	  utilization-driven frequency selection is in use).
 
 	  If unsure, say N.
-
-config STUNE_ASSIST
-	bool "SchedTune configuration helper"
-	depends on SCHED_TUNE
-	depends on ANDROID
-	help
-	  This option enables the configuration of default SchedTune
-	  parameters from kernel.
-
-	  If unsure, say N.
 	  
 config DYNAMIC_STUNE_BOOST
 	bool "Dynamic SchedTune boosting support"
