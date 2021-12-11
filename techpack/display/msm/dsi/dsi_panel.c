@@ -883,26 +883,11 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 	if (panel->doze_enabled)
 		rc = dsi_panel_update_doze(panel);
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-        if (status) {
-		if (ea_panel_is_enabled()) {
-			ea_panel_mode_ctrl(panel, 0);
-			panel->resend_ea = true;
-		}
-	}
-#endif
 	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_DISP_HBM_FOD_ON : DSI_CMD_SET_DISP_HBM_FOD_OFF);
 
 	if (rc)
 		DSI_ERR("[%s] failed to send FOD HBM cmd, rc=%d\n",
 				panel->name, rc);
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-	if (panel->resend_ea) {
-		ea_panel_mode_ctrl(panel, 1);
-		panel->resend_ea = false;
-	}
-#endif
-
         return rc;
 }
 
