@@ -880,14 +880,20 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 {
         int rc = 0;
 
-	if (panel->doze_enabled)
-		rc = dsi_panel_update_doze(panel);
+        if (status) {
+                rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_ON);
+                if (rc)
+                        pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_ON cmd, rc=%d\n",
+                                        panel->name, rc);
+        } else if (panel->doze_enabled) {
+                dsi_panel_update_doze(panel);
+        } else {
+                rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_OFF);
+                if (rc)
+                        pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_OFF cmd, rc=%d\n",
+                                        panel->name, rc);
+        }
 
-	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_DISP_HBM_FOD_ON : DSI_CMD_SET_DISP_HBM_FOD_OFF);
-
-	if (rc)
-		DSI_ERR("[%s] failed to send FOD HBM cmd, rc=%d\n",
-				panel->name, rc);
         return rc;
 }
 
