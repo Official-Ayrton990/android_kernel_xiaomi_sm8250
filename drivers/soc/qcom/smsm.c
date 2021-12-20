@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015, Sony Mobile Communications Inc.
- * Copyright (c) 2012-2013,2019, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013,2019,2021 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -118,7 +118,7 @@ struct smsm_entry {
 	DECLARE_BITMAP(irq_enabled, 32);
 	DECLARE_BITMAP(irq_rising, 32);
 	DECLARE_BITMAP(irq_falling, 32);
-	u32 last_value;
+	unsigned long last_value;
 
 	u32 *remote_state;
 	u32 *subscription;
@@ -213,8 +213,7 @@ static irqreturn_t smsm_intr(int irq, void *data)
 	u32 val;
 
 	val = readl(entry->remote_state);
-	changed = val ^ entry->last_value;
-	entry->last_value = val;
+	changed = val ^ xchg(&entry->last_value, val);
 
 	for_each_set_bit(i, entry->irq_enabled, 32) {
 		if (!(changed & BIT(i)))
@@ -274,6 +273,12 @@ static void smsm_unmask_irq(struct irq_data *irqd)
 	irq_hw_number_t irq = irqd_to_hwirq(irqd);
 	struct qcom_smsm *smsm = entry->smsm;
 	u32 val;
+
+	/* Make sure our last cached state is up-to-date */
+	if (readl(entry->remote_state) & BIT(irq))
+		set_bit(irq, &entry->last_value);
+	else
+		clear_bit(irq, &entry->last_value);
 
 	set_bit(irq, entry->irq_enabled);
 
@@ -404,7 +409,7 @@ static int smsm_inbound_entry(struct qcom_smsm *smsm,
 
 	ret = devm_request_threaded_irq(smsm->dev, smsm->irq,
 					NULL, smsm_intr,
-					IRQF_ONESHOT,
+					IRQF_NO_SUSPEND | IRQF_ONESHOT,
 					"smsm", (void *)entry);
 	if (ret) {
 		dev_err(smsm->dev, "failed to request interrupt\n");

@@ -296,6 +296,12 @@ struct mmu_gather {
 };
 
 void tlb_flush_mmu(struct mmu_gather *tlb);
+void arch_tlb_finish_mmu(struct mmu_gather *tlb,
+			 unsigned long start, unsigned long end, bool force);
+void tlb_flush_pmd_range(struct mmu_gather *tlb, unsigned long address,
+			 unsigned long size);
+extern bool __tlb_remove_page_size(struct mmu_gather *tlb, struct page *page,
+				   int page_size);
 
 static inline void __tlb_adjust_range(struct mmu_gather *tlb,
 				      unsigned long address,
