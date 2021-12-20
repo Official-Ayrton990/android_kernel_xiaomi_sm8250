@@ -1014,6 +1014,23 @@ static inline void uclamp_rq_dec(struct rq *rq, struct task_struct *p)
 		uclamp_rq_dec_id(rq, p, clamp_id);
 }
 
+static inline void uclamp_rq_reinc_id(struct rq *rq, struct task_struct *p,
+				      enum uclamp_id clamp_id)
+{
+	if (!p->uclamp[clamp_id].active)
+		return;
+
+	uclamp_rq_dec_id(rq, p, clamp_id);
+	uclamp_rq_inc_id(rq, p, clamp_id);
+
+	/*
+	 * Make sure to clear the idle flag if we've transiently reached 0
+	 * active tasks on rq.
+	 */
+	if (clamp_id == UCLAMP_MAX && (rq->uclamp_flags & UCLAMP_FLAG_IDLE))
+		rq->uclamp_flags &= ~UCLAMP_FLAG_IDLE;
+}
+
 static inline void
 uclamp_update_active(struct task_struct *p, enum uclamp_id clamp_id)
 {
@@ -1036,10 +1053,7 @@ uclamp_update_active(struct task_struct *p, enum uclamp_id clamp_id)
 	 * affecting a valid clamp bucket, the next time it's enqueued,
 	 * it will already see the updated clamp bucket value.
 	 */
-	if (p->uclamp[clamp_id].active) {
-		uclamp_rq_dec_id(rq, p, clamp_id);
-		uclamp_rq_inc_id(rq, p, clamp_id);
-	}
+	uclamp_rq_reinc_id(rq, p, clamp_id);
 
 	task_rq_unlock(rq, p, &rf);
 }
@@ -1232,11 +1246,6 @@ unsigned int uclamp_task(struct task_struct *p)
 	util = min(util, uclamp_eff_value(p, UCLAMP_MAX));
 
 	return util;
-}
-
-bool uclamp_boosted(struct task_struct *p)
-{
-	return uclamp_eff_value(p, UCLAMP_MIN) > 0;
 }
 
 bool uclamp_latency_sensitive(struct task_struct *p)
@@ -5286,6 +5295,10 @@ recheck:
 		/* Normal users shall not reset the sched_reset_on_fork flag: */
 		if (p->sched_reset_on_fork && !reset_on_fork)
 			return -EPERM;
+
+		/* Can't change util-clamps */
+		if (attr->sched_flags & SCHED_FLAG_UTIL_CLAMP)
+			return -EPERM;
 	}
 
 	if (user) {
@@ -5614,6 +5627,16 @@ err_size:
 	return -E2BIG;
 }
 
+static void get_params(struct task_struct *p, struct sched_attr *attr)
+{
+	if (task_has_dl_policy(p))
+		__getparam_dl(p, attr);
+	else if (task_has_rt_policy(p))
+		attr->sched_priority = p->rt_priority;
+	else
+		attr->sched_nice = task_nice(p);
+}
+
 /**
  * sys_sched_setscheduler - set/change the scheduler policy and RT priority
  * @pid: the pid in question.
@@ -5823,12 +5846,8 @@ SYSCALL_DEFINE4(sched_getattr, pid_t, pid, struct sched_attr __user *, uattr,
 	kattr.sched_policy = p->policy;
 	if (p->sched_reset_on_fork)
 		kattr.sched_flags |= SCHED_FLAG_RESET_ON_FORK;
-	if (task_has_dl_policy(p))
-		__getparam_dl(p, &kattr);
-	else if (task_has_rt_policy(p))
-		kattr.sched_priority = p->rt_priority;
-	else
-		kattr.sched_nice = task_nice(p);
+	get_params(p, &kattr);
+	kattr.sched_flags &= SCHED_FLAG_ALL;
 
 #ifdef CONFIG_UCLAMP_TASK
 	kattr.sched_util_min = p->uclamp_req[UCLAMP_MIN].value;
@@ -8273,6 +8292,72 @@ static u64 cpu_uclamp_ls_read_u64(struct cgroup_subsys_state *css,
 
 	return (u64) tg->latency_sensitive;
 }
+
+static int cpu_uclamp_boost_write_u64(struct cgroup_subsys_state *css,
+                              struct cftype *cftype, u64 boosted)
+{
+	struct task_group *tg;
+
+	if (boosted > 1)
+		return -EINVAL;
+	tg = css_tg(css);
+	tg->boosted = (unsigned int) boosted;
+
+	return 0;
+}
+
+static u64 cpu_uclamp_boost_read_u64(struct cgroup_subsys_state *css,
+                             struct cftype *cft)
+{
+	struct task_group *tg = css_tg(css);
+
+	return (u64) tg->boosted;
+}
+
+/* Wrappers for the above {read, write, show} functions */
+int cpu_uclamp_min_show_wrapper(struct seq_file *sf, void *v)
+{
+	return cpu_uclamp_min_show(sf, v);
+}
+int cpu_uclamp_max_show_wrapper(struct seq_file *sf, void *v)
+{
+	return cpu_uclamp_max_show(sf, v);
+}
+
+ssize_t cpu_uclamp_min_write_wrapper(struct kernfs_open_file *of,
+                               char *buf, size_t nbytes,
+                               loff_t off)
+{
+	return cpu_uclamp_min_write(of, buf, nbytes, off);
+}
+ssize_t cpu_uclamp_max_write_wrapper(struct kernfs_open_file *of,
+                               char *buf, size_t nbytes,
+                               loff_t off)
+{
+	return cpu_uclamp_max_write(of, buf, nbytes, off);
+}
+
+int cpu_uclamp_ls_write_u64_wrapper(struct cgroup_subsys_state *css,
+                              struct cftype *cftype, u64 ls)
+{
+	return cpu_uclamp_ls_write_u64(css, cftype, ls);
+}
+u64 cpu_uclamp_ls_read_u64_wrapper(struct cgroup_subsys_state *css,
+                             struct cftype *cft)
+{
+	return cpu_uclamp_ls_read_u64(css, cft);
+}
+
+int cpu_uclamp_boost_write_u64_wrapper(struct cgroup_subsys_state *css,
+                              struct cftype *cftype, u64 boost)
+{
+	return cpu_uclamp_boost_write_u64(css, cftype, boost);
+}
+u64 cpu_uclamp_boost_read_u64_wrapper(struct cgroup_subsys_state *css,
+                             struct cftype *cft)
+{
+	return cpu_uclamp_boost_read_u64(css, cft);
+}
 #endif /* CONFIG_UCLAMP_TASK_GROUP */
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -8618,26 +8703,6 @@ static struct cftype cpu_legacy_files[] = {
 		.name = "rt_period_us",
 		.read_u64 = cpu_rt_period_read_uint,
 		.write_u64 = cpu_rt_period_write_uint,
-	},
-#endif
-#ifdef CONFIG_UCLAMP_TASK_GROUP
-	{
-		.name = "uclamp.min",
-		.flags = CFTYPE_NOT_ON_ROOT,
-		.seq_show = cpu_uclamp_min_show,
-		.write = cpu_uclamp_min_write,
-	},
-	{
-		.name = "uclamp.max",
-		.flags = CFTYPE_NOT_ON_ROOT,
-		.seq_show = cpu_uclamp_max_show,
-		.write = cpu_uclamp_max_write,
-	},
-	{
-		.name = "uclamp.latency_sensitive",
-		.flags = CFTYPE_NOT_ON_ROOT,
-		.read_u64 = cpu_uclamp_ls_read_u64,
-		.write_u64 = cpu_uclamp_ls_write_u64,
 	},
 #endif
 	{ }	/* Terminate */

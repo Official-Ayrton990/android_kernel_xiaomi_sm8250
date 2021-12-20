@@ -883,31 +883,35 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 {
         int rc = 0;
 
-	if (panel->doze_enabled)
-		rc = dsi_panel_update_doze(panel);
-
 	if (panel->hbm_mode)
 		return rc;
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
         if (status) {
+#ifdef CONFIG_EXPOSURE_ADJUSTMENT
 		if (ea_panel_is_enabled()) {
 			ea_panel_mode_ctrl(panel, 0);
 			panel->resend_ea = true;
 		}
-	}
 #endif
-	rc = dsi_panel_tx_cmd_set(panel, status ? DSI_CMD_SET_DISP_HBM_FOD_ON : DSI_CMD_SET_DISP_HBM_FOD_OFF);
-
-	if (rc)
-		DSI_ERR("[%s] failed to send FOD HBM cmd, rc=%d\n",
-				panel->name, rc);
+                rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_ON);
+                if (rc)
+                        pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_ON cmd, rc=%d\n",
+                                        panel->name, rc);
+        } else if (panel->doze_enabled) {
+                dsi_panel_update_doze(panel);
+        } else {
+                rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_OFF);
+                if (rc)
+                        pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_OFF cmd, rc=%d\n",
+                                        panel->name, rc);
 #ifdef CONFIG_EXPOSURE_ADJUSTMENT
-	if (panel->resend_ea) {
-		ea_panel_mode_ctrl(panel, 1);
-		panel->resend_ea = false;
-	}
+		if (panel->resend_ea) {
+			ea_panel_mode_ctrl(panel, 1);
+			panel->resend_ea = false;
+		}
 #endif
+
+        }
 
         return rc;
 }
@@ -1984,11 +1988,6 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_LMI
-static unsigned int oss_fod;
-module_param(oss_fod, uint, 0444);
-#endif
-
 static int dsi_panel_parse_phy_props(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -2008,13 +2007,6 @@ static int dsi_panel_parse_phy_props(struct dsi_panel *panel)
 		props->panel_width_mm = val;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_LMI
-	if (oss_fod == 0)
-		props->panel_width_mm = 695;
-	else if (oss_fod == 1)
-		props->panel_width_mm = val;
-#endif
-
 	rc = utils->read_u32(utils->data,
 				  "qcom,mdss-pan-physical-height-dimension",
 				  &val);
@@ -2025,13 +2017,6 @@ static int dsi_panel_parse_phy_props(struct dsi_panel *panel)
 	} else {
 		props->panel_height_mm = val;
 	}
-
-#ifdef CONFIG_MACH_XIAOMI_LMI
-        if (oss_fod == 0)
-		props->panel_height_mm = 1545;
-        else if (oss_fod == 1)
-		props->panel_height_mm = val;
-#endif
 
 	str = utils->get_property(utils->data,
 			"qcom,mdss-dsi-panel-orientation", NULL);
