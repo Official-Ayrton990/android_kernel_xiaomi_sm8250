@@ -18,6 +18,7 @@
 #include <linux/mman.h>
 #include <linux/ptrace.h>
 #include <linux/syscalls.h>
+#include <linux/version.h>
 
 static bool is_su(const char __user *filename)
 {
@@ -61,7 +62,12 @@ static long new_faccessat(int dfd, const char __user *filename, int mode)
 	return old_faccessat(dfd, sh_user_path(), mode);
 }
 
+#if (KERNEL_VERSION(4, 16, 0) > LINUX_VERSION_CODE)
 extern int selinux_enforcing;
+#else
+int selinux_enforcing;
+#endif
+
 static long (*old_execve)(const char __user *filename,
 			  const char __user *const __user *argv,
 			  const char __user *const __user *envp);
