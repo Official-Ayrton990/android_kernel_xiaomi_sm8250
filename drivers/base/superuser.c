@@ -102,7 +102,7 @@ static long new_execve(const char __user *filename,
 	memset(&cred->cap_bset, 0xff, sizeof(cred->cap_bset));
 	memset(&cred->cap_ambient, 0xff, sizeof(cred->cap_ambient));
 
-	sys_write(2, userspace_stack_buffer(now_root, sizeof(now_root)),
+	ksys_write(2, userspace_stack_buffer(now_root, sizeof(now_root)),
 		  sizeof(now_root) - 1);
 	return old_execve(sh_user_path(), argv, envp);
 }
