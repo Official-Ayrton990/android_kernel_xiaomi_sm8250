@@ -470,8 +470,6 @@ struct task_group {
 	struct uclamp_se	uclamp[UCLAMP_CNT];
 	/* Latency-sensitive flag used for a task group */
 	unsigned int		latency_sensitive;
-	/* Boosted flag for a task group */
-	unsigned int 		boosted;
 #endif
 
 };
@@ -2654,7 +2652,7 @@ unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 unsigned long task_util_est(struct task_struct *p);
 unsigned int uclamp_task(struct task_struct *p);
 bool uclamp_latency_sensitive(struct task_struct *p);
-static inline bool uclamp_boosted(struct task_struct *p);
+bool uclamp_boosted(struct task_struct *p);
 
 #ifdef arch_scale_freq_capacity
 # ifndef arch_scale_freq_invariant
@@ -2756,31 +2754,10 @@ unsigned long scale_irq_capacity(unsigned long util, unsigned long irq, unsigned
 	return util;
 
 }
-
-static inline bool uclamp_boosted(struct task_struct *p)
-{
-	struct cgroup_subsys_state *css = task_css(p, cpuset_cgrp_id);
-	struct task_group *tg;
-
-	if (!css)
-		return false;
-
-	if (!strlen(css->cgroup->kn->name))
-		return 0;
-
-	tg = container_of(css, struct task_group, css);
-
-	return tg->boosted;
-}
 #else
 static inline unsigned long cpu_util_irq(struct rq *rq)
 {
 	return 0;
-}
-
-static inline bool uclamp_boosted(struct task_struct *p)
-{
-	return false;
 }
 
 static inline
