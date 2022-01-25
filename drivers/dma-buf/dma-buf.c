@@ -136,7 +136,6 @@ static int dma_buf_release(struct inode *inode, struct file *file)
 	struct dma_buf *dmabuf;
 	struct dentry *dentry = file->f_path.dentry;
 	int dtor_ret = 0;
-    pid_t tgid = task_tgid_nr(current);
 
 	if (!is_dma_buf_file(file))
 		return -EINVAL;
