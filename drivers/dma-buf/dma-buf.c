@@ -171,8 +171,6 @@ static int dma_buf_release(struct inode *inode, struct file *file)
 		pr_warn_ratelimited("Leaking dmabuf %s because destructor failed error:%d\n",
 				    dmabuf->buf_name, dtor_ret);
 
-	trace_dma_buf_release(inode, file, tgid);
-
 	dma_buf_ref_destroy(dmabuf);
 
 	if (dmabuf->resv == (struct reservation_object *)&dmabuf[1])
