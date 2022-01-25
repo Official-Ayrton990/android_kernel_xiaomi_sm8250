@@ -1175,39 +1175,6 @@ static const struct irq_domain_ops pmic_arb_irq_domain_ops = {
 	.activate	= qpnpint_irq_domain_activate,
 };
 
-static int  spmi_pmic_arb_check_interrupt(struct spmi_pmic_arb *pmic_arb, u16 apid)
-{
-	unsigned int irq;
-	u32 status, id;
-	u8 sid = (pmic_arb->apid_data[apid].ppid >> 8) & 0xF;
-	u8 per = pmic_arb->apid_data[apid].ppid & 0xFF;
-	struct irq_desc *desc;
-	const char *name = "null";
-
-	status = readl_relaxed(pmic_arb->ver_ops->irq_status(pmic_arb, apid));
-	while (status) {
-		id = ffs(status) - 1;
-		status &= ~BIT(id);
-		irq = irq_find_mapping(pmic_arb->domain,
-					spec_to_hwirq(sid, per, id, apid));
-		if (irq == 0) {
-			cleanup_irq(pmic_arb, apid, id);
-			continue;
-		}
-
-		desc = irq_to_desc(irq);
-		if (desc == NULL)
-			name = "stray irq";
-		else if (desc->action && desc->action->name)
-			name = desc->action->name;
-
-		pr_warn("%s: interrupt %d\n", __func__, irq);
-		log_irq_wakeup_reason(irq);
-	}
-
-	return 0;
-}
-
 static int spmi_pmic_arb_probe(struct platform_device *pdev)
 {
 	struct spmi_pmic_arb *pmic_arb;
