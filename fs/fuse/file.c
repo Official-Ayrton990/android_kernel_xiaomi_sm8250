@@ -1970,7 +1970,6 @@ static int fuse_write_begin(struct file *file, struct address_space *mapping,
 	struct page *page;
 	loff_t fsize;
 	int err = -ENOMEM;
-	struct inode *inode = mapping->host;
 
 	WARN_ON(!fc->writeback_cache);
 
