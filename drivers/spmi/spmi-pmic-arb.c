@@ -1208,38 +1208,6 @@ static int  spmi_pmic_arb_check_interrupt(struct spmi_pmic_arb *pmic_arb, u16 ap
 	return 0;
 }
 
-static bool spmi_pmic_arb_check_wakeup_device(void *data)
-{
-	struct spmi_pmic_arb *pmic_arb = (struct spmi_pmic_arb *)(data);
-	const struct pmic_arb_ver_ops *ver_ops = pmic_arb->ver_ops;
-	int first = pmic_arb->min_apid >> 5;
-	int last = pmic_arb->max_apid >> 5;
-	u8 ee = pmic_arb->ee;
-	u32 status, enable;
-	int i, id, apid;
-
-	for (i = first; i <= last; ++i) {
-		status = readl_relaxed(
-				ver_ops->owner_acc_status(pmic_arb, ee, i));
-		while (status) {
-			id = ffs(status) - 1;
-			status &= ~BIT(id);
-			apid = id + i * 32;
-			if (apid < pmic_arb->min_apid || apid > pmic_arb->max_apid) {
-				WARN_ONCE(true, "spurious spmi irq received for apid=%d\n", apid);
-				continue;
-			}
-
-			enable = readl_relaxed(
-					ver_ops->acc_enable(pmic_arb, apid));
-			if (enable & SPMI_PIC_ACC_ENABLE_BIT)
-				spmi_pmic_arb_check_interrupt(pmic_arb, apid);
-		}
-	}
-
-	return true;
-}
-
 static int spmi_pmic_arb_probe(struct platform_device *pdev)
 {
 	struct spmi_pmic_arb *pmic_arb;
