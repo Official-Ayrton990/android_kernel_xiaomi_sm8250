@@ -8511,7 +8511,6 @@ static int ufshcd_detect_device(struct ufs_hba *hba)
 static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 {
 	int err = 0;
-	unsigned long flags;
 	int retries = MAX_HOST_RESET_RETRIES;
 
 	ufshcd_enable_irq(hba);
@@ -8821,9 +8820,7 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 {
 	int err;
 	size_t buff_len;
-	u8 model_index, lun;
 	u8 *desc_buf;
-	u32 d_lu_wb_buf_alloc;
 
 	buff_len = max_t(size_t, hba->desc_size.dev_desc,
 			 QUERY_DESC_MAX_SIZE + 1);
