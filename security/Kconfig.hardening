@@ -25,20 +25,22 @@ config CC_HAS_AUTO_VAR_INIT_PATTERN
 config CC_HAS_AUTO_VAR_INIT_ZERO
 	def_bool $(cc-option,-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang)
 
-config INIT_STACK_ALL_ZERO
-	bool "zero-init everything on the stack (strongest and safest)"
-	depends on CC_HAS_AUTO_VAR_INIT_ZERO
-        default y
+config INIT_STACK_NONE
+	bool "no automatic initialization (weakest)"
+	default y
 	help
-	  Initializes everything on the stack with a zero
-	  value. This is intended to eliminate all classes
-	  of uninitialized stack variable exploits and information
-	  exposures, even variables that were warned to have been
-	  left uninitialized.
+	  Disable automatic stack variable initialization.
+	  This leaves the kernel vulnerable to the standard
+	  classes of uninitialized stack variable exploits
+	  and information exposures.
 
-	  Zero initialization provides safe defaults for strings,
-	  pointers, indices and sizes, and is therefore
-	  more suitable as a security mitigation measure.
+config GCC_PLUGIN_STRUCTLEAK_BYREF_ALL
+	bool "Force initialize all struct type variables passed by reference"
+	depends on GCC_PLUGIN_STRUCTLEAK
+	depends on !COMPILE_TEST
+	help
+	  Zero initialize any struct type local variable that may
+	  be passed by reference without having been initialized.
 
 config GCC_PLUGIN_STRUCTLEAK_VERBOSE
 	bool "Report forcefully initialized variables"
