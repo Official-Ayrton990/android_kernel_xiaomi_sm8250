@@ -1589,39 +1589,6 @@ int msm_gpio_mpm_wake_set(unsigned int gpio, bool enable)
 }
 EXPORT_SYMBOL(msm_gpio_mpm_wake_set);
 
-static bool msm_pinctrl_check_wakeup_event(void *data)
-{
-	int i, irq;
-	bool ret = false;
-	u32 val;
-	unsigned long flags;
-	struct irq_desc *desc;
-	const struct msm_pingroup *g;
-	const char *name = "null";
-	struct msm_pinctrl *pctrl= msm_pinctrl_data;
-
-	raw_spin_lock_irqsave(&pctrl->lock, flags);
-	for_each_set_bit(i, pctrl->enabled_irqs, pctrl->chip.ngpio) {
-		g = &pctrl->soc->groups[i];
-		val = readl_relaxed(pctrl->regs + g->intr_status_reg);
-		if (val & BIT(g->intr_status_bit)){
-			irq = irq_find_mapping(pctrl->chip.irq.domain, i);
-			log_irq_wakeup_reason(irq);
-			desc = irq_to_desc(irq);
-			if (desc == NULL)
-				name = "stray_irq";
-			else if (desc->action && desc->action->name)
-				name = desc->action->name;
-			ret = true;
-			pr_warn("%s:%d triggered %s\n", __func__, irq, name);
-		}
-	}
-
-	raw_spin_unlock_irqrestore(&pctrl->lock, flags);
-
-	return ret;
-}
-
 int msm_pinctrl_probe(struct platform_device *pdev,
 		      const struct msm_pinctrl_soc_data *soc_data)
 {

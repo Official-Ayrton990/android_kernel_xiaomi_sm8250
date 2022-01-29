@@ -116,7 +116,6 @@ static void dma_buf_release(struct dentry *dentry)
 {
 	struct dma_buf *dmabuf;
 	int dtor_ret = 0;
-    pid_t tgid = task_tgid_nr(current);
 
 	dmabuf = dentry->d_fsdata;
 
