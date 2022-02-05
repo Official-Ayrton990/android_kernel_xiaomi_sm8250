@@ -18,10 +18,6 @@
 #include "xiaomi_frame_stat.h"
 #include "sde_dbg.h"
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-#include "exposure_adjustment.h"
-#endif
-
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
@@ -887,12 +883,6 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 		return rc;
 
         if (status) {
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-		if (ea_panel_is_enabled()) {
-			ea_panel_mode_ctrl(panel, 0);
-			panel->resend_ea = true;
-		}
-#endif
                 rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_HBM_FOD_ON);
                 if (rc)
                         pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_ON cmd, rc=%d\n",
@@ -904,13 +894,6 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
                 if (rc)
                         pr_err("[%s] failed to send DSI_CMD_SET_DISP_HBM_FOD_OFF cmd, rc=%d\n",
                                         panel->name, rc);
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-		if (panel->resend_ea) {
-			ea_panel_mode_ctrl(panel, 1);
-			panel->resend_ea = false;
-		}
-#endif
-
         }
 
         return rc;
@@ -919,7 +902,6 @@ int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
-	int bl_dc_min = panel->bl_config.bl_min_level * 2;
 	struct dsi_backlight_config *bl = &panel->bl_config;
 	struct dsi_panel_mi_cfg *mi_cfg = &panel->mi_cfg;
 
@@ -927,11 +909,6 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		return 0;
 
 	DSI_DEBUG("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
-
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-	if (bl_lvl > 0)
-		bl_lvl = ea_panel_calc_backlight(bl_lvl < bl_dc_min ? bl_dc_min : bl_lvl);
-#endif
 
 	/* lmi panel must restore to last_bl_level to avoid flash high
 	 * brightness white exiting app lock with DC on (MIUI-1755728),
@@ -3974,47 +3951,6 @@ void dsi_panel_put(struct dsi_panel *panel)
 	kfree(panel);
 }
 
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-static struct dsi_panel * set_panel;
-static ssize_t mdss_fb_set_ea_enable(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t len)
-{
-	u32 ea_enable;
-
-	if (sscanf(buf, "%d", &ea_enable) != 1) {
-		DSI_ERR("sccanf buf error!\n");
-		return len;
-	}
-
-	ea_panel_mode_ctrl(set_panel, ea_enable != 0);
-
-	return len;
-}
-
-static ssize_t mdss_fb_get_ea_enable(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	int ret;
-	bool ea_enable = ea_panel_is_enabled();
-
-	ret = scnprintf(buf, PAGE_SIZE, "%d\n", ea_enable ? 1 : 0);
-
-	return ret;
-}
-
-static DEVICE_ATTR(msm_fb_ea_enable, S_IRUGO | S_IWUSR,
-	mdss_fb_get_ea_enable, mdss_fb_set_ea_enable);
-
-static struct attribute *mdss_fb_attrs[] = {
-	&dev_attr_msm_fb_ea_enable.attr,
-	NULL,
-};
-
-static struct attribute_group mdss_fb_attr_group = {
-	.attrs = mdss_fb_attrs,
-};
-#endif
-
 int dsi_panel_drv_init(struct dsi_panel *panel,
 		       struct mipi_dsi_host *host)
 {
@@ -4068,13 +4004,6 @@ int dsi_panel_drv_init(struct dsi_panel *panel,
 			       panel->name, rc);
 		goto error_gpio_release;
 	}
-
-#ifdef CONFIG_EXPOSURE_ADJUSTMENT
-	rc = sysfs_create_group(&(panel->parent->kobj), &mdss_fb_attr_group);
-	if (rc)
-		DSI_ERR("sysfs group creation failed, rc=%d\n", rc);
-	set_panel = panel;
-#endif
 
 	goto exit;
 
