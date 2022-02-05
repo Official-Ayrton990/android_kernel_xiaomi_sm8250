@@ -2594,6 +2594,10 @@ static int sde_crtc_config_exposure_dim_layer(struct drm_crtc_state *crtc_state,
 		return -EINVAL;
 	}
 
+	if (!alpha || panel->doze_enabled) {
+		cstate->exposure_dim_layer = NULL;
+		return 0;
+	}
 
 	if ((stage + SDE_STAGE_0) >= kms->catalog->mixer[0].sblk->maxblendstages) {
 		return -EINVAL;
