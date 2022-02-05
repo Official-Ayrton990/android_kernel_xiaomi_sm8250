@@ -241,7 +241,9 @@ int dsi_display_set_backlight(struct drm_connector *connector,
 	}
 
 #ifdef CONFIG_DRM_SDE_EXPO
-	bl_temp = expo_map_dim_level((u32)bl_temp, dsi_display);
+	if (bl_lvl && !panel->doze_enabled) {
+		bl_temp = expo_map_dim_level((u32)bl_temp, dsi_display);
+	}
 #endif
 
 	rc = dsi_panel_set_backlight(panel, (u32)bl_temp);
