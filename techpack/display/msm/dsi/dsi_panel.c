@@ -798,9 +798,7 @@ static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
 
 static uint32_t interpolate(uint32_t x, uint32_t xa, uint32_t xb, uint32_t ya, uint32_t yb)
 {
-	u32 base = ya - (ya - yb) * (x - xa) / (xb - xa);
-
-	return base - 0.0125*base;
+	return ya - (ya - yb) * (x - xa) / (xb - xa);
 }
 
 
