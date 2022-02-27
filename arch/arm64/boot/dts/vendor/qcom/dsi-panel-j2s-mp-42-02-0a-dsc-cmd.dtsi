@@ -474,6 +474,7 @@
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
 				/* Dimming Off */
 				15 01 00 00 10 00 02 53 20
+				39 01 00 00 00 00 06 F0 55 AA 52 08 00 /* Set page 0 */
 				/* ELVSS SWIRE =-4.5V */
 				15 01 00 00 00 00 02 6F 07
 				15 01 00 00 00 00 02 B5 0A];
@@ -672,6 +673,7 @@
 			qcom,mdss-dsi-dispparam-hbm-fod-off-command = [
 				/* Dimming Off */
 				15 01 00 00 10 00 02 53 20
+				39 01 00 00 00 00 06 F0 55 AA 52 08 00 /* Set page 0 */
 				/* ELVSS SWIRE =-4.5V */
 				15 01 00 00 00 00 02 6F 07
 				15 01 00 00 00 00 02 B5 0A];
