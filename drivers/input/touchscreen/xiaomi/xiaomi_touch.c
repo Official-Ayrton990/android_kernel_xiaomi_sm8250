@@ -271,6 +271,39 @@ struct device_attribute *attr, const char *buf, size_t count)
 	return count;
 }
 
+static ssize_t fod_status_show(struct device *dev,
+struct device_attribute *attr, char *buf)
+{
+	struct xiaomi_touch_pdata *pdata = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", pdata->fod_status);
+}
+
+static ssize_t fod_status_store(struct device *dev,
+struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct xiaomi_touch_pdata *pdata = dev_get_drvdata(dev);
+	struct xiaomi_touch_interface *touch_data = pdata->touch_data;
+	int input, ret = 0;
+
+	ret = sscanf(buf, "%d", &input);
+
+	if (ret < 0)
+		return -EINVAL;
+
+	if (input) {
+		pdata->skip_update = true;
+		pdata->fod_status = true;
+		touch_data->setModeValue(11, 1);
+	} else {
+		pdata->skip_update = false;
+		pdata->fod_status = false;
+		touch_data->resetMode(11);
+	}
+
+	return count;
+}
+
 static ssize_t bump_sample_rate_start(struct device *dev,
 struct device_attribute *attr, char *buf)
 {
@@ -537,6 +570,9 @@ static DEVICE_ATTR(set_update, (S_IRUGO | S_IWUSR | S_IWGRP),
 static DEVICE_ATTR(bump_sample_rate, (S_IRUGO | S_IWUSR | S_IWGRP),
 		   bump_sample_rate_start, bump_sample_rate_store);
 
+static DEVICE_ATTR(fod_status, (S_IRUGO | S_IWUSR | S_IWGRP),
+                   fod_status_show, fod_status_store)
+
 static DEVICE_ATTR(log_debug, (S_IRUGO | S_IWUSR | S_IWGRP),
 		   xiaomi_touch_log_debug_show, xiaomi_touch_log_debug_store);
 #if XIAOMI_ROI
@@ -552,6 +588,7 @@ static struct attribute *touch_attr_group[] = {
 	&dev_attr_panel_color.attr,
 	&dev_attr_set_update.attr,
 	&dev_attr_bump_sample_rate.attr,
+	&dev_attr_fod_status.attr,
 	&dev_attr_panel_display.attr,
 	&dev_attr_touch_vendor.attr,
 	&dev_attr_log_debug.attr,
