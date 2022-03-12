@@ -292,11 +292,11 @@ struct device_attribute *attr, const char *buf, size_t count)
 		return -EINVAL;
 
 	if (input) {
-		pdata->skip_update = true;
+		pdata->set_update = true;
 		pdata->fod_status = true;
 		touch_data->setModeValue(11, 1);
 	} else {
-		pdata->skip_update = false;
+		pdata->set_update = false;
 		pdata->fod_status = false;
 		touch_data->resetMode(11);
 	}
@@ -571,7 +571,7 @@ static DEVICE_ATTR(bump_sample_rate, (S_IRUGO | S_IWUSR | S_IWGRP),
 		   bump_sample_rate_start, bump_sample_rate_store);
 
 static DEVICE_ATTR(fod_status, (S_IRUGO | S_IWUSR | S_IWGRP),
-                   fod_status_show, fod_status_store)
+                   fod_status_show, fod_status_store);
 
 static DEVICE_ATTR(log_debug, (S_IRUGO | S_IWUSR | S_IWGRP),
 		   xiaomi_touch_log_debug_show, xiaomi_touch_log_debug_store);
