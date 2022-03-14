@@ -246,6 +246,8 @@ struct dsi_panel {
 #ifdef CONFIG_DRM_SDE_EXPO
 	bool dimlayer_exposure;
 #endif
+	bool resend_ea;
+	bool resend_ea_hbm;
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)

@@ -173,3 +173,17 @@ config QTI_THERMAL_QFPROM
 	  set or not. It supports to check multiple nvmem cell value for
 	  multiple condtion. In that case, if any of the nvmem-cell condition
 	  fails, driver just exits with default enabled thermal zones.
+
+config MSM_THERMAL_SIMPLE
+	bool "Simple solution to monitor temperature and limit CPU frequency"
+	default n
+	help
+	  When properly configured, this driver monitors temperatures from a
+	  specified sensor and reduces the CPU's max frequency in response to
+	  the temperature crossing specified thermal zones. The temperature sensor
+	  use must be a specified ADC channel on a given VADC device, hence this
+	  driver's dependency on the chipset being an MSM product.
+
+	  This driver can only be configured via the device tree; it cannot be
+	  configured at runtime. Configuration instructions can be found in the
+	  accompanying documentation.
