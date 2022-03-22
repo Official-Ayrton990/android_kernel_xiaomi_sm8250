@@ -22,7 +22,7 @@
 #include <linux/file.h>
 #include <linux/nls.h>
 
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 #include <linux/ufstw.h>
 #endif
 
@@ -261,7 +261,7 @@ static int f2fs_do_sync_file(struct file *file, loff_t start, loff_t end,
 	};
 	unsigned int seq_id = 0;
 
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 	bool turbo_set = false;
 #endif
 
@@ -328,7 +328,7 @@ go_write:
 		clear_inode_flag(inode, FI_UPDATE_WRITE);
 		goto out;
 	}
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 	bdev_set_turbo_write(sbi->sb->s_bdev);
 	turbo_set = true;
 #endif
@@ -378,7 +378,8 @@ flush_out:
 	}
 	f2fs_update_time(sbi, REQ_TIME);
 out:
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+
+#if defined(CONFIG_UFSTW)
 	if (turbo_set)
 		bdev_clear_turbo_write(sbi->sb->s_bdev);
 #endif
@@ -992,7 +993,12 @@ int f2fs_setattr(struct dentry *dentry, struct iattr *attr)
 			clear_inode_flag(inode, FI_ACL_MODE);
 		}
 	}
-
+#ifdef CONFIG_FS_HPB
+		if (__is_hpb_file(dentry->d_name.name, inode))
+			set_inode_flag(inode, FI_HPB_INODE);
+		else
+			clear_inode_flag(inode, FI_HPB_INODE);
+#endif
 	/* file size may changed here */
 	f2fs_mark_inode_dirty_sync(inode, true);
 

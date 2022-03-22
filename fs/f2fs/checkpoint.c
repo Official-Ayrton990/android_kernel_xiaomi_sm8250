@@ -15,7 +15,7 @@
 #include <linux/swap.h>
 #include <linux/kthread.h>
 
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 #include <linux/ufstw.h>
 #endif
 
@@ -1587,7 +1587,7 @@ int f2fs_write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	if (cpc->reason != CP_RESIZE)
 		down_write(&sbi->cp_global_sem);
 
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 	bdev_set_turbo_write(sbi->sb->s_bdev);
 #endif
 
@@ -1658,7 +1658,7 @@ stop:
 	f2fs_update_time(sbi, CP_TIME);
 	trace_f2fs_write_checkpoint(sbi->sb, cpc->reason, "finish checkpoint");
 out:
-#if defined(CONFIG_UFSTW) && defined(UFS3V0)
+#if defined(CONFIG_UFSTW)
 	bdev_clear_turbo_write(sbi->sb->s_bdev);
 #endif
 	if (cpc->reason != CP_RESIZE)
