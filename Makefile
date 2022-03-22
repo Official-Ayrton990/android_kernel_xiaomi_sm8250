@@ -688,12 +688,6 @@ include/config/auto.conf:
 endif # may-sync-config
 endif # $(dot-config)
 
-ifeq ($(CONFIG_MACH_XIAOMI_CMI)$(CONFIG_MACH_XIAOMI_UMI), y)
-KBUILD_CFLAGS += -DUFS3V0
-else
-KBUILD_CFLAGS += -DUFS3V1
-endif
-
 ifdef CONFIG_LLVM_POLLY
 KBUILD_CFLAGS	+= -mllvm -polly \
 		   -mllvm -polly-run-dce \
