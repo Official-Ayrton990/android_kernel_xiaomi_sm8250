@@ -313,9 +313,13 @@ static void nvme_mpath_set_live(struct nvme_ns *ns)
 	if (!head->disk)
 		return;
 
-	if (!(head->disk->flags & GENHD_FL_UP))
-		device_add_disk(&head->subsys->dev, head->disk,
-				nvme_ns_id_attr_groups);
+	if (!(head->disk->flags & GENHD_FL_UP)) {
+		device_add_disk(&head->subsys->dev, head->disk, NULL);
+		if (sysfs_create_group(&disk_to_dev(head->disk)->kobj,
+				&nvme_ns_id_attr_group))
+			dev_warn(&head->subsys->dev,
+				 "failed to create id group.\n");
+	}
 
 	synchronize_srcu(&ns->head->srcu);
 	kblockd_schedule_work(&ns->head->requeue_work);

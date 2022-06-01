@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <net/pkt_sched.h>
@@ -915,12 +916,18 @@ int dfc_bearer_flow_ctl(struct net_device *dev,
 
 	enable = bearer->grant_size ? true : false;
 
-	qmi_rmnet_flow_control(dev, bearer->mq_idx, enable);
+	/* Do not flow disable tcp ack q in tcp bidir
+	 * ACK queue opened first to drain ACKs faster
+	 * Although since tcp ancillary is true most of the time,
+	 * this shouldn't really make a difference
+	 * If there is non zero grant but tcp ancillary is false,
+	 * send out ACKs anyway
+	 */
+	if (bearer->ack_mq_idx != INVALID_MQ)
+		qmi_rmnet_flow_control(dev, bearer->ack_mq_idx,
+				       enable || bearer->tcp_bidir);
 
-	/* Do not flow disable tcp ack q in tcp bidir */
-	if (bearer->ack_mq_idx != INVALID_MQ &&
-	    (enable || !bearer->tcp_bidir))
-		qmi_rmnet_flow_control(dev, bearer->ack_mq_idx, enable);
+	qmi_rmnet_flow_control(dev, bearer->mq_idx, enable);
 
 	if (!enable && bearer->ack_req)
 		dfc_send_ack(dev, bearer->bearer_id,
@@ -989,7 +996,9 @@ static int dfc_update_fc_map(struct net_device *dev, struct qos_info *qos,
 	u32 adjusted_grant;
 
 	itm = qmi_rmnet_get_bearer_map(qos, fc_info->bearer_id);
-	if (!itm)
+
+	/* cache the bearer assuming it is a new bearer */
+	if (unlikely(!itm && !is_query && fc_info->num_bytes))
 		itm = qmi_rmnet_get_bearer_noref(qos, fc_info->bearer_id);
 
 	if (itm) {
@@ -1015,7 +1024,8 @@ static int dfc_update_fc_map(struct net_device *dev, struct qos_info *qos,
 		}
 
 		if ((itm->grant_size == 0 && adjusted_grant > 0) ||
-		    (itm->grant_size > 0 && adjusted_grant == 0))
+		    (itm->grant_size > 0 && adjusted_grant == 0) ||
+		    (itm->tcp_bidir ^ DFC_IS_TCP_BIDIR(ancillary)))
 			action = true;
 
 		/* This is needed by qmap */

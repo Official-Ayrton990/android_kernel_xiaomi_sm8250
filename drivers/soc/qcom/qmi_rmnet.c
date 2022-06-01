@@ -43,6 +43,7 @@ unsigned int rmnet_wq_frequency __read_mostly = 1000;
 #define PS_WORK_ACTIVE_BIT 0
 #define PS_INTERVAL (((!rmnet_wq_frequency) ?                             \
 					1 : rmnet_wq_frequency/10) * (HZ/100))
+#define PS_INTERVAL_JF (msecs_to_jiffies(PS_INTERVAL))
 #define NO_DELAY (0x0000 * HZ)
 #define WATCHDOG_EXPIRE_JF (msecs_to_jiffies(50))
 
@@ -393,12 +394,15 @@ static void __qmi_rmnet_update_mq(struct net_device *dev,
 				bearer->mq_idx = itm->mq_idx;
 		}
 
-		qmi_rmnet_flow_control(dev, itm->mq_idx,
-				       bearer->grant_size > 0 ? 1 : 0);
-
+		/* Always enable flow for the newly associated bearer */
+		if (!bearer->grant_size) {
+			bearer->grant_size = DEFAULT_GRANT;
+			bearer->grant_thresh =
+				qmi_rmnet_grant_per(DEFAULT_GRANT);
+		}
+		qmi_rmnet_flow_control(dev, itm->mq_idx, 1);
 		if (dfc_mode == DFC_MODE_SA)
-			qmi_rmnet_flow_control(dev, bearer->ack_mq_idx,
-					bearer->grant_size > 0 ? 1 : 0);
+			qmi_rmnet_flow_control(dev, bearer->ack_mq_idx, 1);
 	}
 }
 
@@ -1245,7 +1249,7 @@ void qmi_rmnet_work_init(void *port)
 		rmnet_ps_wq = NULL;
 		return;
 	}
-	INIT_DEFERRABLE_WORK(&rmnet_work->work, qmi_rmnet_check_stats);
+	INIT_DELAYED_WORK(&rmnet_work->work, qmi_rmnet_check_stats);
 	rmnet_work->port = port;
 	rmnet_get_packets(rmnet_work->port, &rmnet_work->old_rx_pkts,
 			  &rmnet_work->old_tx_pkts);

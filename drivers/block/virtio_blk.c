@@ -891,7 +891,19 @@ static int virtblk_probe(struct virtio_device *vdev)
 	virtblk_update_capacity(vblk, false);
 	virtio_device_ready(vdev);
 
-	device_add_disk(&vdev->dev, vblk->disk, virtblk_attr_groups);
+	device_add_disk(&vdev->dev, vblk->disk, NULL);
+	err = device_create_file(disk_to_dev(vblk->disk), &dev_attr_serial);
+	if (err)
+		goto out_del_disk;
+
+	if (virtio_has_feature(vdev, VIRTIO_BLK_F_CONFIG_WCE))
+		err = device_create_file(disk_to_dev(vblk->disk),
+					 &dev_attr_cache_type_rw);
+	else
+		err = device_create_file(disk_to_dev(vblk->disk),
+					 &dev_attr_cache_type_ro);
+	if (err)
+		goto out_del_disk;
 	return 0;
 
 out_free_tags:
