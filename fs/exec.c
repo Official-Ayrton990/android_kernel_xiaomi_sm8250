@@ -1813,11 +1813,11 @@ static int __do_execve_file(int fd, struct filename *filename,
 	if (retval)
 		goto out_unmark;
 
-	bprm->argc = count(argv, MAX_ARG_STRINGS);
-	if (bprm->argc == 0)
+	bprm.argc = count(argv, MAX_ARG_STRINGS);
+	if (bprm.argc == 0)
 		pr_warn_once("process '%s' launched '%s' with NULL argv: empty string added\n",
 			     current->comm, bprm->filename);
-	if ((retval = bprm->argc) < 0)
+	if ((retval = bprm.argc) < 0)
 		goto out;
 
 	bprm.envc = count(envp, MAX_ARG_STRINGS);
@@ -1849,13 +1849,13 @@ static int __do_execve_file(int fd, struct filename *filename,
 	 */
 	if (bprm->argc == 0) {
 		const char *argv[] = { "", NULL };
-		retval = copy_strings_kernel(1, argv, bprm);
+		retval = copy_strings_kernel(1, argv, &bprm);
 		if (retval < 0)
 			goto out;
-		bprm->argc = 1;
+		bprm.argc = 1;
 	}
 
-	retval = exec_binprm(bprm);
+	retval = exec_binprm(&bprm);
 	if (retval < 0)
 		goto out;
 
